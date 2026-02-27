@@ -1,0 +1,22 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using WMS_WEBAPI.Models;
+
+namespace WMS_WEBAPI.Data.Configuration
+{
+    public abstract class BaseLineSerialEntityConfiguration<T> : BaseEntityConfiguration<T> where T : BaseLineSerialEntity
+    {
+        public override void Configure(EntityTypeBuilder<T> builder)
+        {
+            base.Configure(builder);
+
+            builder.Property(x => x.Quantity).HasColumnType("decimal(18,6)").IsRequired();
+            builder.Property(x => x.SerialNo).HasMaxLength(50);
+            builder.Property(x => x.SerialNo2).HasMaxLength(50);
+            builder.Property(x => x.SerialNo3).HasMaxLength(50);
+            builder.Property(x => x.SerialNo4).HasMaxLength(50);
+            builder.Property(x => x.SourceCellCode).HasMaxLength(20);
+            builder.Property(x => x.TargetCellCode).HasMaxLength(20);
+        }
+    }
+}
