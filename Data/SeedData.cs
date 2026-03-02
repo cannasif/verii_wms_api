@@ -55,6 +55,63 @@ namespace WMS_WEBAPI.Data
             }
             catch { }
 
+            var now = DateTime.UtcNow;
+            var allowedRoleTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "user", "admin" };
+
+            var authorities = context.UserAuthorities.IgnoreQueryFilters().ToList();
+            var userAuthority = authorities.FirstOrDefault(a => string.Equals(a.Title, "user", StringComparison.OrdinalIgnoreCase));
+            var adminAuthority = authorities.FirstOrDefault(a => string.Equals(a.Title, "admin", StringComparison.OrdinalIgnoreCase));
+
+            if (userAuthority == null)
+            {
+                userAuthority = new UserAuthority { Id = 1, Title = "user", CreatedDate = now, IsDeleted = false };
+                context.UserAuthorities.Add(userAuthority);
+            }
+            else if (userAuthority.IsDeleted)
+            {
+                userAuthority.IsDeleted = false;
+                userAuthority.DeletedDate = null;
+                context.UserAuthorities.Update(userAuthority);
+            }
+
+            if (adminAuthority == null)
+            {
+                adminAuthority = new UserAuthority { Id = 2, Title = "admin", CreatedDate = now, IsDeleted = false };
+                context.UserAuthorities.Add(adminAuthority);
+            }
+            else if (adminAuthority.IsDeleted)
+            {
+                adminAuthority.IsDeleted = false;
+                adminAuthority.DeletedDate = null;
+                context.UserAuthorities.Update(adminAuthority);
+            }
+
+            context.SaveChanges();
+
+            var fallbackAdminRoleId = adminAuthority?.Id ?? 2;
+            var unsupportedAuthorities = context.UserAuthorities
+                .IgnoreQueryFilters()
+                .Where(a => !allowedRoleTitles.Contains(a.Title))
+                .ToList();
+
+            if (unsupportedAuthorities.Count > 0)
+            {
+                var unsupportedIds = unsupportedAuthorities.Select(a => a.Id).ToHashSet();
+                var affectedUsers = context.Users.Where(u => unsupportedIds.Contains(u.RoleId)).ToList();
+                foreach (var user in affectedUsers)
+                {
+                    user.RoleId = fallbackAdminRoleId;
+                }
+
+                foreach (var authority in unsupportedAuthorities)
+                {
+                    authority.IsDeleted = true;
+                    authority.DeletedDate = now;
+                }
+
+                context.SaveChanges();
+            }
+
             // Admin kullanıcısı zaten var mı kontrol et
             if (context.Users.Any(u => u.Email == "admin@v3rii.com"))
             {
@@ -69,7 +126,7 @@ namespace WMS_WEBAPI.Data
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Veriipass123!"),
                 FirstName = "Admin",
                 LastName = "User",
-                RoleId = 3, // Admin role ID (UserAuthorityConfiguration'dan)
+                RoleId = fallbackAdminRoleId,
                 IsEmailConfirmed = true,
                 IsActive = true,
                 CreatedDate = DateTime.UtcNow

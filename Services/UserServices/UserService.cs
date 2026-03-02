@@ -143,6 +143,15 @@ namespace WMS_WEBAPI.Services
                     {
                         return ApiResponse<UserDto>.ErrorResult(validateGroups.Message, validateGroups.ExceptionMessage, validateGroups.StatusCode);
                     }
+
+                    var validateSystemAdminAssignment = await ValidateSystemAdminGroupAssignmentAsync(dto.RoleId, dto.PermissionGroupIds);
+                    if (!validateSystemAdminAssignment.Success)
+                    {
+                        return ApiResponse<UserDto>.ErrorResult(
+                            validateSystemAdminAssignment.Message,
+                            validateSystemAdminAssignment.ExceptionMessage,
+                            validateSystemAdminAssignment.StatusCode);
+                    }
                 }
 
                 var plainPassword = string.IsNullOrWhiteSpace(dto.Password) ? GenerateTemporaryPassword() : dto.Password;
@@ -232,6 +241,16 @@ namespace WMS_WEBAPI.Services
                     if (!validateGroups.Success)
                     {
                         return ApiResponse<UserDto>.ErrorResult(validateGroups.Message, validateGroups.ExceptionMessage, validateGroups.StatusCode);
+                    }
+
+                    var effectiveRoleId = dto.RoleId ?? entity.RoleId;
+                    var validateSystemAdminAssignment = await ValidateSystemAdminGroupAssignmentAsync(effectiveRoleId, dto.PermissionGroupIds);
+                    if (!validateSystemAdminAssignment.Success)
+                    {
+                        return ApiResponse<UserDto>.ErrorResult(
+                            validateSystemAdminAssignment.Message,
+                            validateSystemAdminAssignment.ExceptionMessage,
+                            validateSystemAdminAssignment.StatusCode);
                     }
                 }
 
@@ -369,6 +388,57 @@ namespace WMS_WEBAPI.Services
                     ex.Message,
                     500);
             }
+        }
+
+        private async Task<ApiResponse<bool>> ValidateSystemAdminGroupAssignmentAsync(long roleId, IEnumerable<long> permissionGroupIds)
+        {
+            try
+            {
+                var distinctGroupIds = permissionGroupIds.Distinct().ToList();
+                if (distinctGroupIds.Count == 0)
+                {
+                    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+                }
+
+                var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.AsQueryable()
+                    .AsNoTracking()
+                    .AnyAsync(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id));
+
+                if (!hasSystemAdminGroup)
+                {
+                    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+                }
+
+                var isAdminRole = await IsAdminRoleAsync(roleId);
+                if (!isAdminRole)
+                {
+                    return ApiResponse<bool>.ErrorResult(
+                        _localizationService.GetLocalizedString("ValidationError"),
+                        "System Admin permission group can only be assigned to users with Admin role.",
+                        400);
+                }
+
+                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResult(
+                    _localizationService.GetLocalizedString("InternalServerError"),
+                    ex.Message,
+                    500);
+            }
+        }
+
+        private async Task<bool> IsAdminRoleAsync(long roleId)
+        {
+            var roleTitle = await _unitOfWork.UserAuthorities.AsQueryable()
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && x.Id == roleId)
+                .Select(x => x.Title)
+                .FirstOrDefaultAsync();
+
+            return !string.IsNullOrWhiteSpace(roleTitle) &&
+                   roleTitle.Contains("admin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

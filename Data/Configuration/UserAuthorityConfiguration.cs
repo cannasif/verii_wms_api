@@ -24,8 +24,7 @@ namespace WMS_WEBAPI.Data.Configuration
             // Seed data
             builder.HasData(
                 new UserAuthority { Id = 1, Title = "user", CreatedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-                new UserAuthority { Id = 2, Title = "admin", CreatedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-                new UserAuthority { Id = 3, Title = "superadmin", CreatedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+                new UserAuthority { Id = 2, Title = "admin", CreatedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
             );
         }
     }

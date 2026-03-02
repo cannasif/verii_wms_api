@@ -87,6 +87,22 @@ namespace WMS_WEBAPI.Services
                             _localizationService.GetLocalizedString("ValidationError"),
                             StatusCodes.Status400BadRequest);
                     }
+
+                    var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.AsQueryable()
+                        .AsNoTracking()
+                        .AnyAsync(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id));
+
+                    if (hasSystemAdminGroup)
+                    {
+                        var isAdminRole = await IsAdminRoleAsync(user.RoleId);
+                        if (!isAdminRole)
+                        {
+                            return ApiResponse<UserPermissionGroupDto>.ErrorResult(
+                                _localizationService.GetLocalizedString("ValidationError"),
+                                "System Admin permission group can only be assigned to users with Admin role.",
+                                StatusCodes.Status400BadRequest);
+                        }
+                    }
                 }
 
                 var currentLinks = await _unitOfWork.UserPermissionGroups
@@ -132,6 +148,18 @@ namespace WMS_WEBAPI.Services
                     ex.Message,
                     StatusCodes.Status500InternalServerError);
             }
+        }
+
+        private async Task<bool> IsAdminRoleAsync(long roleId)
+        {
+            var roleTitle = await _unitOfWork.UserAuthorities.AsQueryable()
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && x.Id == roleId)
+                .Select(x => x.Title)
+                .FirstOrDefaultAsync();
+
+            return !string.IsNullOrWhiteSpace(roleTitle) &&
+                   roleTitle.Contains("admin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
