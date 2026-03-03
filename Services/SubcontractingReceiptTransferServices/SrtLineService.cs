@@ -49,7 +49,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageSize < 1) request.PageSize = 20;
 
                 var query = _unitOfWork.SrtLines.AsQueryable().Where(x => !x.IsDeleted);
-                query = query.ApplyFilters(request.Filters);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
