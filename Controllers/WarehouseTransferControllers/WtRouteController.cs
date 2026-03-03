@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Controllers
 {
@@ -29,6 +30,14 @@ namespace WMS_WEBAPI.Controllers
             var result = await _wtRouteService.GetAllAsync();
             return StatusCode(result.StatusCode, result);
         }
+
+        [HttpPost("paged")]
+        public async Task<ActionResult<ApiResponse<PagedResponse<WtRouteDto>>>> GetPaged([FromBody] PagedRequest request)
+        {
+            var result = await _wtRouteService.GetPagedAsync(request);
+            return StatusCode(result.StatusCode, result);
+        }
+
 
         /// <summary>
         /// ID'ye göre WtRoute kaydını getirir
