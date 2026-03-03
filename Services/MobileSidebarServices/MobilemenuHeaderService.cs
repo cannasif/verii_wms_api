@@ -35,6 +35,41 @@ namespace WMS_WEBAPI.Services
             }
         }
 
+        public async Task<ApiResponse<PagedResponse<MobilemenuHeaderDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var query = _unitOfWork.MobilemenuHeaders.AsQueryable().Where(x => !x.IsDeleted);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = await query.CountAsync();
+                var entities = await query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToListAsync();
+
+                var dtos = _mapper.Map<List<MobilemenuHeaderDto>>(entities);
+                var result = new PagedResponse<MobilemenuHeaderDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+
+                return ApiResponse<PagedResponse<MobilemenuHeaderDto>>.SuccessResult(
+                    result,
+                    _localizationService.GetLocalizedString("MobilemenuHeaderRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<MobilemenuHeaderDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("MobilemenuHeaderErrorOccurred"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
+
         public async Task<ApiResponse<MobilemenuHeaderDto>> GetByIdAsync(long id)
         {
             try

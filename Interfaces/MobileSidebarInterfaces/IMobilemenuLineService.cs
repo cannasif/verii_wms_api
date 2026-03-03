@@ -1,11 +1,13 @@
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface IMobilemenuLineService
     {
         Task<ApiResponse<IEnumerable<MobilemenuLineDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<MobilemenuLineDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<MobilemenuLineDto>> GetByIdAsync(long id);
         Task<ApiResponse<MobilemenuLineDto>> GetByItemIdAsync(string itemId);
         Task<ApiResponse<IEnumerable<MobilemenuLineDto>>> GetByHeaderIdAsync(int headerId);

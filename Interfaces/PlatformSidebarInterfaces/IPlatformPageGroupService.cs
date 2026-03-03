@@ -1,12 +1,14 @@
 using System;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface IPlatformPageGroupService
     {
         Task<ApiResponse<IEnumerable<PlatformPageGroupDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<PlatformPageGroupDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<PlatformPageGroupDto>> GetByIdAsync(long id);
         Task<ApiResponse<PlatformPageGroupDto>> CreateAsync(CreatePlatformPageGroupDto createDto);
         Task<ApiResponse<PlatformPageGroupDto>> UpdateAsync(long id, UpdatePlatformPageGroupDto updateDto);

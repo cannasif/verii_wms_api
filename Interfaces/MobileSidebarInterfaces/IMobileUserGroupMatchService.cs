@@ -1,11 +1,13 @@
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface IMobileUserGroupMatchService
     {
         Task<ApiResponse<IEnumerable<MobileUserGroupMatchDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<MobileUserGroupMatchDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<MobileUserGroupMatchDto>> GetByIdAsync(long id);
         Task<ApiResponse<IEnumerable<MobileUserGroupMatchDto>>> GetByUserIdAsync(int userId);
         Task<ApiResponse<IEnumerable<MobileUserGroupMatchDto>>> GetByGroupCodeAsync(string groupCode);

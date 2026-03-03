@@ -35,6 +35,41 @@ namespace WMS_WEBAPI.Services
             }
         }
 
+        public async Task<ApiResponse<PagedResponse<MobilePageGroupDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var query = _unitOfWork.MobilePageGroups.AsQueryable().Where(x => !x.IsDeleted);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = await query.CountAsync();
+                var entities = await query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToListAsync();
+
+                var dtos = _mapper.Map<List<MobilePageGroupDto>>(entities);
+                var result = new PagedResponse<MobilePageGroupDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+
+                return ApiResponse<PagedResponse<MobilePageGroupDto>>.SuccessResult(
+                    result,
+                    _localizationService.GetLocalizedString("MobilePageGroupRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<MobilePageGroupDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("MobilePageGroupErrorOccurred"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
+
         public async Task<ApiResponse<MobilePageGroupDto>> GetByIdAsync(long id)
         {
             try

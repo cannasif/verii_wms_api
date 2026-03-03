@@ -35,6 +35,41 @@ namespace WMS_WEBAPI.Services
             }
         }
 
+        public async Task<ApiResponse<PagedResponse<PlatformPageGroupDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var query = _unitOfWork.PlatformPageGroups.AsQueryable().Where(x => !x.IsDeleted);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = await query.CountAsync();
+                var entities = await query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToListAsync();
+
+                var dtos = _mapper.Map<List<PlatformPageGroupDto>>(entities);
+                var result = new PagedResponse<PlatformPageGroupDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+
+                return ApiResponse<PagedResponse<PlatformPageGroupDto>>.SuccessResult(
+                    result,
+                    _localizationService.GetLocalizedString("PlatformPageGroupRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<PlatformPageGroupDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("PlatformPageGroupRetrievalError"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
+
         public async Task<ApiResponse<PlatformPageGroupDto>> GetByIdAsync(long id)
         {
             try
