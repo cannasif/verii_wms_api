@@ -34,7 +34,7 @@ namespace WMS_WEBAPI.Services
                     .AsNoTracking()
                     .Include(u => u.RoleNavigation)
                     .Where(u => !u.IsDeleted)
-                    .ApplyFilters(request.Filters);
+                    .ApplyFilters(request.Filters, request.FilterLogic);
 
                 var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? nameof(User.Id), desc);
