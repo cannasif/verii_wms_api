@@ -5,6 +5,7 @@ using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
 using WMS_WEBAPI.UnitOfWork;
+using System.Linq;
 
 namespace WMS_WEBAPI.Services
 {
@@ -34,6 +35,46 @@ namespace WMS_WEBAPI.Services
                 return ApiResponse<IEnumerable<WiLineSerialDto>>.ErrorResult(_localizationService.GetLocalizedString("WiLineSerialErrorOccurred"), ex.Message ?? string.Empty, 500);
             }
         }
+
+        public async Task<ApiResponse<PagedResponse<WiLineSerialDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var allResult = await GetAllAsync();
+                if (!allResult.Success || allResult.Data == null)
+                {
+                    return ApiResponse<PagedResponse<WiLineSerialDto>>.ErrorResult(
+                        allResult.Message,
+                        allResult.ExceptionMessage,
+                        allResult.StatusCode);
+                }
+
+                var query = allResult.Data.AsQueryable();
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = query.Count();
+                var items = query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToList();
+
+                var result = new PagedResponse<WiLineSerialDto>(items, totalCount, request.PageNumber, request.PageSize);
+                return ApiResponse<PagedResponse<WiLineSerialDto>>.SuccessResult(result, allResult.Message);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<WiLineSerialDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("Error_GetAll"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
 
         public async Task<ApiResponse<WiLineSerialDto>> GetByIdAsync(long id)
         {

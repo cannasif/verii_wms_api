@@ -46,7 +46,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var query = _unitOfWork.WiLines.AsQueryable().Where(x => !x.IsDeleted);
-                query = query.ApplyFilters(request.Filters);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 

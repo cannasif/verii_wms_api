@@ -34,6 +34,41 @@ namespace WMS_WEBAPI.Services
             }
         }
 
+        public async Task<ApiResponse<PagedResponse<WiRouteDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var query = _unitOfWork.WiRoutes.AsQueryable().Where(x => !x.IsDeleted);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = await query.CountAsync();
+                var entities = await query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToListAsync();
+
+                var dtos = _mapper.Map<List<WiRouteDto>>(entities);
+                var result = new PagedResponse<WiRouteDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+
+                return ApiResponse<PagedResponse<WiRouteDto>>.SuccessResult(
+                    result,
+                    _localizationService.GetLocalizedString("WiRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<WiRouteDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("WiRouteErrorOccurred"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
+
         public async Task<ApiResponse<WiRouteDto>> GetByIdAsync(long id)
         {
             try
