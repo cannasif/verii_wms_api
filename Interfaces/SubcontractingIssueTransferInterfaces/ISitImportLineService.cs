@@ -1,10 +1,12 @@
 using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface ISitImportLineService
     {
         Task<ApiResponse<IEnumerable<SitImportLineDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<SitImportLineDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<SitImportLineDto>> GetByIdAsync(long id);
         Task<ApiResponse<IEnumerable<SitImportLineDto>>> GetByHeaderIdAsync(long headerId);
         Task<ApiResponse<IEnumerable<SitImportLineDto>>> GetByLineIdAsync(long lineId);

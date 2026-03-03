@@ -65,7 +65,7 @@ namespace WMS_WEBAPI.Services
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var query = _unitOfWork.SitHeaders.AsQueryable().Where(x => !x.IsDeleted && x.BranchCode == branchCode);
 
-                query = query.ApplyFilters(request.Filters);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
@@ -671,7 +671,7 @@ namespace WMS_WEBAPI.Services
                 var query = _unitOfWork.SitHeaders.AsQueryable()
                     .Where(x => !x.IsDeleted && x.IsCompleted && x.IsPendingApproval && !x.IsERPIntegrated && x.ApprovalStatus == null);
 
-                query = query.ApplyFilters(request.Filters);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
