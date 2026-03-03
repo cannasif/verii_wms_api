@@ -1,10 +1,12 @@
 using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface IIcTerminalLineService
     {
         Task<ApiResponse<IEnumerable<IcTerminalLineDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<IcTerminalLineDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<IcTerminalLineDto>> GetByIdAsync(long id);
         Task<ApiResponse<IEnumerable<IcTerminalLineDto>>> GetByHeaderIdAsync(long headerId);
         Task<ApiResponse<IcTerminalLineDto>> CreateAsync(CreateIcTerminalLineDto createDto);

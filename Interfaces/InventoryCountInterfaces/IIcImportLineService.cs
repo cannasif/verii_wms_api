@@ -1,10 +1,12 @@
 using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface IIcImportLineService
     {
         Task<ApiResponse<IEnumerable<IcImportLineDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<IcImportLineDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<IcImportLineDto>> GetByIdAsync(long id);
         Task<ApiResponse<IEnumerable<IcImportLineDto>>> GetByHeaderIdAsync(long headerId);
         Task<ApiResponse<IEnumerable<IcImportLineWithRoutesDto>>> GetCollectedBarcodesByHeaderIdAsync(long headerId);

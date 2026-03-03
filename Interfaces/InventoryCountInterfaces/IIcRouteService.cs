@@ -1,10 +1,12 @@
 using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Interfaces
 {
     public interface IIcRouteService
     {
         Task<ApiResponse<IEnumerable<IcRouteDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<IcRouteDto>>> GetPagedAsync(PagedRequest request);
         Task<ApiResponse<IcRouteDto>> GetByIdAsync(long id);
         Task<ApiResponse<IEnumerable<IcRouteDto>>> GetByImportLineIdAsync(long importLineId);
         Task<ApiResponse<IcRouteDto>> CreateAsync(CreateIcRouteDto createDto);
