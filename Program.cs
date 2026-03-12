@@ -31,6 +31,20 @@ if (builder.Environment.IsDevelopment())
     builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 }
 
+var configuredCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()
+    ?.Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.Trim().TrimEnd('/'))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray()
+    ?? Array.Empty<string>();
+
+if (configuredCorsOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Cors:AllowedOrigins ayari bos birakilamaz.");
+}
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
@@ -268,13 +282,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "https://crm.v3rii.com",
-                "http://crm.v3rii.com",
-                "https://wms.v3rii.com",
-                "http://wms.v3rii.com"
-            )
+        policy.WithOrigins(configuredCorsOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -426,18 +434,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Early CORS middleware: ensures preflight and even error responses have CORS headers.
-var allowedCorsOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-{
-    "http://localhost:5173",
-    "https://crm.v3rii.com",
-    "http://crm.v3rii.com",
-    "http://192.168.10.52",
-    "http://192.168.10.52:5173",
-    "http://cloud.windoform.com",
-    "https://cloud.windoform.com",
-    "https://wms.v3rii.com",
-    "http://wms.v3rii.com"
-};
+var allowedCorsOrigins = new HashSet<string>(configuredCorsOrigins, StringComparer.OrdinalIgnoreCase);
 
 app.Use(async (ctx, next) =>
 {
