@@ -1077,6 +1077,9 @@
   <data name="UserAuthorityDeletedSuccessfully" xml:space="preserve">
     <value>Autoridad de usuario eliminada con éxito</value>
   </data>
+  <data name="UserAuthorityCannotDeleteWhenUsersAssigned" xml:space="preserve">
+    <value>No se puede eliminar el rol porque tiene usuarios asignados. Reasigne o elimine esos usuarios primero.</value>
+  </data>
   <!-- #endregion UserAuthority -->
 
   <data name="Unauthorized" xml:space="preserve">

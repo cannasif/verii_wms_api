@@ -160,6 +160,16 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("UserAuthorityNotFound"), _localizationService.GetLocalizedString("UserAuthorityNotFound"), 404);
                 }
 
+                var hasUsersWithRole = await _unitOfWork.Users.AsQueryable()
+                    .AnyAsync(u => u.RoleId == id);
+                if (hasUsersWithRole)
+                {
+                    return ApiResponse<bool>.ErrorResult(
+                        _localizationService.GetLocalizedString("UserAuthorityCannotDeleteWhenUsersAssigned"),
+                        _localizationService.GetLocalizedString("UserAuthorityCannotDeleteWhenUsersAssigned"),
+                        400);
+                }
+
                 await _unitOfWork.UserAuthorities.SoftDelete(id);
                 await _unitOfWork.SaveChangesAsync();
 

@@ -2898,6 +2898,9 @@
   <data name="UserAuthorityDeletedSuccessfully" xml:space="preserve">
     <value>Kullanıcı yetkisi başarıyla silindi</value>
   </data>
+  <data name="UserAuthorityCannotDeleteWhenUsersAssigned" xml:space="preserve">
+    <value>Bu role atanmış kullanıcılar olduğu için rol silinemez. Önce kullanıcıların rolünü değiştirin.</value>
+  </data>
   <!-- #endregion UserAuthority -->
 
   <data name="Unauthorized" xml:space="preserve">

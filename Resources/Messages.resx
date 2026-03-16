@@ -3081,6 +3081,9 @@
   <data name="UserAuthorityDeletedSuccessfully" xml:space="preserve">
     <value>User authority deleted successfully</value>
   </data>
+  <data name="UserAuthorityCannotDeleteWhenUsersAssigned" xml:space="preserve">
+    <value>Cannot delete role because users are assigned to it. Reassign or remove those users first.</value>
+  </data>
   <!-- #endregion UserAuthority -->
 
 </root>
