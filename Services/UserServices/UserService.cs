@@ -34,6 +34,13 @@ namespace WMS_WEBAPI.Services
                     .AsNoTracking()
                     .Include(u => u.RoleNavigation)
                     .Where(u => !u.IsDeleted)
+                    .ApplySearch(
+                        request.Search,
+                        nameof(User.Username),
+                        nameof(User.Email),
+                        nameof(User.FirstName),
+                        nameof(User.LastName),
+                        "RoleNavigation.Title")
                     .ApplyFilters(request.Filters, request.FilterLogic);
 
                 var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);

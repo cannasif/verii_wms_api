@@ -21,9 +21,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SitHeaderDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -94,10 +94,11 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("assigned/{userId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SitHeaderDto>>>> GetAssignedOrders(long userId)
+        public async Task<IActionResult> GetAssignedOrders(long userId, [FromQuery] PagedRequest request)
         {
             var result = await _service.GetAssignedOrdersAsync(userId);
-            return StatusCode(result.StatusCode, result);
+            var pagedResult = result.ToPagedResponse(request);
+            return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         [HttpGet("getAssignedOrderLines/{headerId}")]

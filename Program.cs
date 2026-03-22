@@ -22,6 +22,10 @@ using Hangfire.SqlServer;
 using Microsoft.Extensions.FileProviders;
 using System.IO;
 using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Infrastructure.Hangfire;
+using WMS_WEBAPI.Options;
+using WMS_WEBAPI.Services.Jobs;
+using WMS_WEBAPI.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +50,10 @@ if (configuredCorsOrigins.Length == 0)
 }
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Conventions.Add(new PermissionAuthorizationConvention());
+});
 builder.Services.AddMemoryCache();
 var dataProtectionKeyPath =
     builder.Configuration["DataProtection:KeyPath"] ??
@@ -94,10 +101,21 @@ builder.Services.AddHangfire(configuration => configuration
         DisableGlobalLocks = true
     }));
 
+builder.Services.Configure<HangfireMonitoringOptions>(
+    builder.Configuration.GetSection(HangfireMonitoringOptions.SectionName));
+
+GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute
+{
+    Attempts = 3,
+    DelaysInSeconds = new[] { 60, 300, 900 },
+    LogEvents = true,
+    OnAttemptsExceeded = AttemptsExceededAction.Fail
+});
+
 // Add Hangfire server
 builder.Services.AddHangfireServer(options =>
 {
-    options.Queues = new[] { "default", "email", "reset-pass-mail" };
+    options.Queues = new[] { "default", "email", "reset-pass-mail", "dead-letter" };
 });
 
 // Register Core Services
@@ -115,6 +133,8 @@ builder.Services.AddScoped<IPermissionDefinitionService, PermissionDefinitionSer
 builder.Services.AddScoped<IPermissionGroupService, PermissionGroupService>();
 builder.Services.AddScoped<IUserPermissionGroupService, UserPermissionGroupService>();
 builder.Services.AddScoped<IPermissionAccessService, PermissionAccessService>();
+builder.Services.AddScoped<ICustomerMirrorService, CustomerMirrorService>();
+builder.Services.AddScoped<IStockMirrorService, StockMirrorService>();
 
 // Register Localization Services
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
@@ -245,6 +265,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IUserDetailService, UserDetailService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IResetPasswordEmailJob, WMS_WEBAPI.Services.Jobs.ResetPasswordEmailJob>();
+builder.Services.AddScoped<IStockSyncJob, StockSyncJob>();
+builder.Services.AddScoped<ICustomerSyncJob, CustomerSyncJob>();
+builder.Services.AddScoped<IHangfireDeadLetterJob, HangfireDeadLetterJob>();
 
 // Register Package Services
 builder.Services.AddScoped<IPHeaderService, PHeaderService>();
@@ -385,6 +408,19 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var permission in PermissionCatalog.All.Select(x => x.Code))
+    {
+        options.AddPolicy(PermissionPolicy.Build(permission), policy =>
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(ClaimConstants.SystemAdmin, "true") ||
+                context.User.Claims.Any(claim =>
+                    string.Equals(claim.Type, ClaimConstants.Permission, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(claim.Value, permission, StringComparison.OrdinalIgnoreCase))));
+    }
+});
+
 // Configure Swagger
 builder.Services.AddSwaggerGen(c =>
 {
@@ -418,6 +454,19 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<WmsDbContext>();
+    await PermissionCatalogBootstrapper.EnsureSeededAsync(dbContext);
+}
+
+GlobalJobFilters.Filters.Add(
+    new HangfireJobStateFilter(
+        app.Services.GetRequiredService<ILogger<HangfireJobStateFilter>>(),
+        app.Services.GetRequiredService<IBackgroundJobClient>(),
+        app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HangfireMonitoringOptions>>(),
+        app.Services.GetRequiredService<IServiceScopeFactory>()));
 
 // Migrations / seed are intentionally run out-of-band
 // (e.g., dotnet ef database update and explicit seed command).
@@ -519,6 +568,25 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = new[] { new WMS_WEBAPI.HangfireAuthorizationFilter() }
 });
+
+if (!app.Environment.IsDevelopment())
+{
+    RecurringJob.AddOrUpdate<IStockSyncJob>(
+        "erp-stock-sync-job",
+        job => job.ExecuteAsync(),
+        Cron.MinuteInterval(30));
+
+    RecurringJob.AddOrUpdate<ICustomerSyncJob>(
+        "erp-customer-sync-job",
+        job => job.ExecuteAsync(),
+        Cron.MinuteInterval(30));
+}
+else
+{
+    RecurringJob.RemoveIfExists("erp-stock-sync-job");
+    RecurringJob.RemoveIfExists("erp-customer-sync-job");
+    app.Logger.LogInformation("Skipping recurring ERP sync jobs in Development environment.");
+}
 
 // X-Language header'ını okuyacak custom middleware
 app.UseMiddleware<LanguageMiddleware>();

@@ -21,9 +21,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ShParameterDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _shParameterService.GetAllAsync();
+            var result = await _shParameterService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

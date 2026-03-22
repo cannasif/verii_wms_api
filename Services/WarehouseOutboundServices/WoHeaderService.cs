@@ -11,6 +11,19 @@ namespace WMS_WEBAPI.Services
 {
     public class WoHeaderService : IWoHeaderService
     {
+        private static readonly string[] SearchableColumns =
+        [
+            nameof(WoHeader.DocumentNo),
+            nameof(WoHeader.CustomerCode),
+            nameof(WoHeader.SourceWarehouse),
+            nameof(WoHeader.TargetWarehouse),
+            nameof(WoHeader.DocumentType),
+            nameof(WoHeader.Description1),
+            nameof(WoHeader.Description2),
+            nameof(WoHeader.OrderId),
+            nameof(WoHeader.OutboundType)
+        ];
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
@@ -60,9 +73,14 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
+                request ??= new PagedRequest();
+                request.Filters ??= new List<Filter>();
+
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                var query = _unitOfWork.WoHeaders.AsQueryable().Where(x => x.BranchCode == branchCode);
-                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                var query = _unitOfWork.WoHeaders.AsQueryable()
+                    .Where(x => x.BranchCode == branchCode)
+                    .ApplySearch(request.Search, SearchableColumns)
+                    .ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 

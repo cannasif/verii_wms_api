@@ -19,9 +19,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PrImportLineDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _prImportLineService.GetAllAsync();
+            var result = await _prImportLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

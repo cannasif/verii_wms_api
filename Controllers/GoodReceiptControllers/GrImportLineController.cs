@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>GrImportLine listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _grImportLineService.GetAllAsync();
+            var result = await _grImportLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

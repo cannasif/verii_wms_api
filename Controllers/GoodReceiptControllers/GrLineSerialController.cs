@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.Services;
 
 namespace WMS_WEBAPI.Controllers
 {
@@ -20,9 +21,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrLineSerialDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _grLineSerialService.GetAllAsync();
+            var result = await _grLineSerialService.GetPagedAsync(request.PageNumber, request.PageSize, request.SortBy, request.SortDirection);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -34,10 +35,11 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("by-line/{lineId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrLineSerialDto>>>> GetByLineId(long lineId)
+        public async Task<IActionResult> GetByLineId(long lineId, [FromQuery] PagedRequest request)
         {
             var result = await _grLineSerialService.GetByLineIdAsync(lineId);
-            return StatusCode(result.StatusCode, result);
+            var pagedResult = result.ToPagedResponse(request);
+            return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         [HttpPost]

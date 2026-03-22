@@ -5,6 +5,7 @@ using System.Text;
 using WMS_WEBAPI.Models;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Security;
 
 namespace WMS_WEBAPI.Services
 {
@@ -19,11 +20,11 @@ namespace WMS_WEBAPI.Services
             _localizationService = localizationService;
         }
 
-        public ApiResponse<string> GenerateToken(User user)
+        public ApiResponse<string> GenerateToken(User user, IReadOnlyCollection<string>? permissions = null, bool isSystemAdmin = false)
         {
             try
             {
-                var claims = new[]
+                var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
@@ -32,6 +33,20 @@ namespace WMS_WEBAPI.Services
                     new Claim("lastName", user.LastName ?? ""),
                     new Claim(ClaimTypes.Role, user.RoleNavigation?.Title ?? "User")
                 };
+
+                if (isSystemAdmin)
+                {
+                    claims.Add(new Claim(ClaimConstants.SystemAdmin, "true"));
+                }
+
+                if (permissions != null)
+                {
+                    claims.AddRange(
+                        permissions
+                            .Where(permission => !string.IsNullOrWhiteSpace(permission))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .Select(permission => new Claim(ClaimConstants.Permission, permission)));
+                }
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!));
                 var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

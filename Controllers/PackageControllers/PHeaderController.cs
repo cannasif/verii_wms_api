@@ -22,9 +22,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PHeaderDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _pHeaderService.GetAllAsync();
+            var result = await _pHeaderService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

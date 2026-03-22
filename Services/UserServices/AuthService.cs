@@ -7,6 +7,7 @@ using WMS_WEBAPI.Models;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.UnitOfWork;
 using Hangfire;
+using WMS_WEBAPI.Security;
 
 namespace WMS_WEBAPI.Services
 {
@@ -122,7 +123,9 @@ namespace WMS_WEBAPI.Services
                     Password = request.Password
                 };
                 // Email veya username ile kullanıcı arama
-                var user = await _unitOfWork.Users.AsQueryable().FirstOrDefaultAsync(u => u.Username == loginDto.Username || u.Email == loginDto.Username);
+                var user = await _unitOfWork.Users.AsQueryable()
+                    .Include(u => u.RoleNavigation)
+                    .FirstOrDefaultAsync(u => u.Username == loginDto.Username || u.Email == loginDto.Username);
                 
                 if (user == null)
                 {
@@ -136,7 +139,8 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<string>.ErrorResult(msg, msg, 401);
                 }
 
-                var tokenResponse = _jwtService.GenerateToken(user);
+                var (permissions, isSystemAdmin) = await GetPermissionClaimsAsync(user.Id, user.RoleId);
+                var tokenResponse = _jwtService.GenerateToken(user, permissions, isSystemAdmin);
                 if (!tokenResponse.Success)
                 {
                     return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("Error.User.LoginFailed"), tokenResponse.Message ?? string.Empty, 500);
@@ -288,7 +292,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var user = await _unitOfWork.Users.AsQueryable().FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await _unitOfWork.Users.AsQueryable()
+                    .Include(u => u.RoleNavigation)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
                     var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
@@ -316,7 +322,8 @@ namespace WMS_WEBAPI.Services
 
                 await InvalidateUserSessionsAsync(user.Id);
 
-                var tokenResponse = _jwtService.GenerateToken(user);
+                var (permissions, isSystemAdmin) = await GetPermissionClaimsAsync(user.Id, user.RoleId);
+                var tokenResponse = _jwtService.GenerateToken(user, permissions, isSystemAdmin);
                 if (!tokenResponse.Success || string.IsNullOrWhiteSpace(tokenResponse.Data))
                 {
                     return ApiResponse<string>.ErrorResult(
@@ -383,6 +390,42 @@ namespace WMS_WEBAPI.Services
                 await _context.SaveChangesAsync();
                 await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, userId.ToString());
             }
+        }
+
+        private async Task<(IReadOnlyCollection<string> Permissions, bool IsSystemAdmin)> GetPermissionClaimsAsync(long userId, long roleId)
+        {
+            var roleTitle = await _unitOfWork.UserAuthorities.AsQueryable()
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted && x.Id == roleId)
+                .Select(x => x.Title)
+                .FirstOrDefaultAsync();
+
+            var userGroupLinks = await _unitOfWork.UserPermissionGroups.AsQueryable()
+                .AsNoTracking()
+                .Where(x => x.UserId == userId && !x.IsDeleted)
+                .Include(x => x.PermissionGroup)
+                    .ThenInclude(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
+                        .ThenInclude(x => x.PermissionDefinition)
+                .ToListAsync();
+
+            var isSystemAdmin = userGroupLinks.Any(x => x.PermissionGroup.IsSystemAdmin);
+            if (!isSystemAdmin &&
+                userGroupLinks.Count == 0 &&
+                !string.IsNullOrWhiteSpace(roleTitle) &&
+                roleTitle.Equals("admin", StringComparison.OrdinalIgnoreCase))
+            {
+                isSystemAdmin = true;
+            }
+
+            var permissions = userGroupLinks
+                .SelectMany(x => x.PermissionGroup.GroupPermissions)
+                .Where(x => !x.IsDeleted && x.PermissionDefinition != null && !x.PermissionDefinition.IsDeleted && x.PermissionDefinition.IsActive)
+                .Select(x => x.PermissionDefinition.Code)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+
+            return (permissions, isSystemAdmin);
         }
 
         static UserDto MapToUserDto(User user)

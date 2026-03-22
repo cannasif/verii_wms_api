@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtTerminalLine listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtTerminalLineDto>>>> GetAll() 
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _wtTerminalLineService.GetAllAsync();
+            var result = await _wtTerminalLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

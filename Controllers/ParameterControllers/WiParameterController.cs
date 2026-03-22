@@ -21,9 +21,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WiParameterDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _wiParameterService.GetAllAsync();
+            var result = await _wiParameterService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtLine listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtLineDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _wtLineService.GetAllAsync();
+            var result = await _wtLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -49,10 +49,11 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="headerId">Header ID</param>
         /// <returns>WtLine listesi</returns>
         [HttpGet("header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromQuery] PagedRequest request)
         {
             var result = await _wtLineService.GetByHeaderIdAsync(headerId);
-            return StatusCode(result.StatusCode, result);
+            var pagedResult = result.ToPagedResponse(request);
+            return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         /// <summary>

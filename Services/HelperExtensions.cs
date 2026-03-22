@@ -3,6 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.Reflection;
+using WMS_WEBAPI.DTOs;
  
 namespace WMS_WEBAPI.Services
 {
@@ -19,12 +20,58 @@ namespace WMS_WEBAPI.Services
         public int PageSize { get; set; } = 20;
         public string? SortBy { get; set; } = "Id";
         public string? SortDirection { get; set; } = "desc";
+        public string? Search { get; set; }
         public List<Filter>? Filters { get; set; } = new();
         public string FilterLogic { get; set; } = "and";
     }
 
     public static class QueryHelper
     {
+        public static readonly string[] CommonSearchableColumns =
+        {
+            "Name",
+            "Title",
+            "Description",
+            "Code",
+            "CustomerCode",
+            "CustomerName",
+            "TaxOffice",
+            "TaxNumber",
+            "TcknNumber",
+            "SalesRepCode",
+            "GroupCode",
+            "Email",
+            "Website",
+            "Phone1",
+            "Phone2",
+            "Address",
+            "City",
+            "District",
+            "CountryCode",
+            "ErpStockCode",
+            "StockName",
+            "Unit",
+            "UreticiKodu",
+            "GrupKodu",
+            "GrupAdi",
+            "Kod1",
+            "Kod1Adi",
+            "Kod2",
+            "Kod2Adi",
+            "Kod3",
+            "Kod3Adi",
+            "Kod4",
+            "Kod4Adi",
+            "Kod5",
+            "Kod5Adi",
+            "Username",
+            "Email",
+            "FirstName",
+            "LastName",
+            "FullName",
+            "RoleNavigation.Title"
+        };
+
         private static string ResolveColumnName(string column, IReadOnlyDictionary<string, string>? columnMapping)
         {
             if (columnMapping == null) return column;
@@ -48,6 +95,75 @@ namespace WMS_WEBAPI.Services
             }
 
             return prop == null ? null : (current, prop);
+        }
+
+        public static IQueryable<T> ApplySearch<T>(
+            this IQueryable<T> query,
+            string? search,
+            params string[] searchableColumns)
+        {
+            if (string.IsNullOrWhiteSpace(search) || searchableColumns.Length == 0)
+            {
+                return query;
+            }
+
+            var terms = search
+                .Trim()
+                .ToLowerInvariant()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (terms.Length == 0)
+            {
+                return query;
+            }
+
+            var parameter = Expression.Parameter(typeof(T), "x");
+            Expression? searchPredicate = null;
+
+            foreach (var term in terms)
+            {
+                Expression? termPredicate = null;
+                var searchValue = Expression.Constant(term);
+
+                foreach (var column in searchableColumns)
+                {
+                    var resolved = ResolvePropertyPath(parameter, typeof(T), column);
+                    if (resolved == null || resolved.Value.property.PropertyType != typeof(string))
+                    {
+                        continue;
+                    }
+
+                    var member = resolved.Value.expression;
+                    var notNull = Expression.NotEqual(member, Expression.Constant(null, typeof(string)));
+                    var toLower = Expression.Call(member, typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!);
+                    var contains = Expression.Call(
+                        toLower,
+                        typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!,
+                        searchValue);
+                    var currentPredicate = Expression.AndAlso(notNull, contains);
+
+                    termPredicate = termPredicate == null
+                        ? currentPredicate
+                        : Expression.OrElse(termPredicate, currentPredicate);
+                }
+
+                if (termPredicate == null)
+                {
+                    continue;
+                }
+
+                searchPredicate = searchPredicate == null
+                    ? termPredicate
+                    : Expression.AndAlso(searchPredicate, termPredicate);
+            }
+
+            if (searchPredicate == null)
+            {
+                return query;
+            }
+
+            var lambda = Expression.Lambda<Func<T, bool>>(searchPredicate, parameter);
+            return query.Where(lambda);
         }
 
         public static IQueryable<T> ApplyFilters<T>(
@@ -90,6 +206,7 @@ namespace WMS_WEBAPI.Services
 
                 if (property.PropertyType == typeof(string))
                 {
+                    var notNull = Expression.NotEqual(left, Expression.Constant(null, typeof(string)));
                     var method = operatorLower switch
                     {
                         "contains" => typeof(string).GetMethod("Contains", new[] { typeof(string) }),
@@ -99,7 +216,7 @@ namespace WMS_WEBAPI.Services
                     };
                     if (method != null)
                     {
-                        exp = Expression.Call(left, method, Expression.Constant(filter.Value));
+                        exp = Expression.AndAlso(notNull, Expression.Call(left, method, Expression.Constant(filter.Value)));
                     }
                     else
                     {
@@ -202,13 +319,18 @@ namespace WMS_WEBAPI.Services
             return query.Where(lambda);
         }
 
-        public static IQueryable<T> ApplySorting<T>(this IQueryable<T> query, string sortBy, bool desc)
+        public static IQueryable<T> ApplySorting<T>(
+            this IQueryable<T> query,
+            string sortBy,
+            bool desc,
+            IReadOnlyDictionary<string, string>? columnMapping = null)
         {
             if (string.IsNullOrWhiteSpace(sortBy))
             {
                 sortBy = "Id";
             }
 
+            sortBy = ResolveColumnName(sortBy, columnMapping);
             var parameter = Expression.Parameter(typeof(T), "x");
             var resolved = ResolvePropertyPath(parameter, typeof(T), sortBy);
             if (resolved == null)
@@ -246,12 +368,61 @@ namespace WMS_WEBAPI.Services
         {
             if (request == null) return query;
 
+            query = query.ApplySearch(request.Search, CommonSearchableColumns);
             query = query.ApplyFilters(request.Filters, request.FilterLogic, columnMapping);
             bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(request.SortDirection, "descending", StringComparison.OrdinalIgnoreCase);
-            query = query.ApplySorting(request.SortBy ?? "Id", desc);
+            query = query.ApplySorting(request.SortBy ?? "Id", desc, columnMapping);
             query = query.ApplyPagination(request.PageNumber, request.PageSize);
             return query;
+        }
+
+        public static ApiResponse<PagedResponse<T>> ToPagedResponse<T>(
+            this ApiResponse<IEnumerable<T>> source,
+            PagedRequest? request,
+            params string[] searchableColumns)
+        {
+            if (!source.Success)
+            {
+                return ApiResponse<PagedResponse<T>>.ErrorResult(
+                    source.Message,
+                    source.ExceptionMessage,
+                    source.StatusCode,
+                    source.Errors.FirstOrDefault());
+            }
+
+            request ??= new PagedRequest();
+            request.Filters ??= new List<Filter>();
+
+            var query = (source.Data ?? Enumerable.Empty<T>()).AsQueryable();
+            var columns = searchableColumns.Length > 0
+                ? searchableColumns
+                : typeof(T)
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(property => property.PropertyType == typeof(string))
+                    .Select(property => property.Name)
+                    .ToArray();
+
+            query = query
+                .ApplySearch(request.Search, columns)
+                .ApplyFilters(request.Filters, request.FilterLogic);
+
+            bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(request.SortDirection, "descending", StringComparison.OrdinalIgnoreCase);
+
+            query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+            var pageNumber = Math.Max(request.PageNumber, 0);
+            var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+            var totalCount = query.Count();
+            var items = query
+                .Skip(pageNumber * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return ApiResponse<PagedResponse<T>>.SuccessResult(
+                new PagedResponse<T>(items, totalCount, pageNumber, pageSize),
+                source.Message);
         }
     }
 }

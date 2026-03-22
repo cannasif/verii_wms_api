@@ -80,9 +80,9 @@ namespace WMS_WEBAPI.Controllers
         /// Get all user details
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<UserDetailDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _userDetailService.GetAllAsync();
+            var result = await _userDetailService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

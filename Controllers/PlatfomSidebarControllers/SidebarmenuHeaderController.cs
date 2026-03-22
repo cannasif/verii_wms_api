@@ -24,9 +24,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>SidebarmenuHeader listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SidebarmenuHeaderDto>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _sidebarmenuHeaderService.GetAllAsync();
+            var result = await _sidebarmenuHeaderService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

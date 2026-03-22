@@ -19,9 +19,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtHeaderDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _wtHeaderService.GetAllAsync();
+            var result = await _wtHeaderService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -81,10 +81,11 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("assigned/{userId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtHeaderDto>>>> GetAssignedTransferOrders(long userId)
+        public async Task<IActionResult> GetAssignedTransferOrders(long userId, [FromQuery] PagedRequest request)
         {
             var result = await _wtHeaderService.GetAssignedTransferOrdersAsync(userId);
-            return StatusCode(result.StatusCode, result);
+            var pagedResult = result.ToPagedResponse(request);
+            return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         [HttpGet("getAssignedTransferOrderLines/{headerId}")]

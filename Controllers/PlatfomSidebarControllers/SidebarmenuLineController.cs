@@ -23,9 +23,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>SidebarmenuLine listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SidebarmenuLineDto>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _sidebarmenuLineService.GetAllAsync();
+            var result = await _sidebarmenuLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

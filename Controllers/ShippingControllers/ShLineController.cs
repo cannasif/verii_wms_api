@@ -21,9 +21,9 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ShLineDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -35,10 +35,11 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ShLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromQuery] PagedRequest request)
         {
             var result = await _service.GetByHeaderIdAsync(headerId);
-            return StatusCode(result.StatusCode, result);
+            var pagedResult = result.ToPagedResponse(request);
+            return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
 

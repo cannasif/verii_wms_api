@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>GR Line listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrLineDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _grLineService.GetAllAsync();
+            var result = await _grLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -49,10 +49,11 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="headerId">GR Header ID</param>
         /// <returns>GR Line listesi</returns>
         [HttpGet("by-header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromQuery] PagedRequest request)
         {
             var result = await _grLineService.GetByHeaderIdAsync(headerId);
-            return StatusCode(result.StatusCode, result);
+            var pagedResult = result.ToPagedResponse(request);
+            return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         /// <summary>

@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtRoute listesi</returns>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtRouteDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _wtRouteService.GetAllAsync();
+            var result = await _wtRouteService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

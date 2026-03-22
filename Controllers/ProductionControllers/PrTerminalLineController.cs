@@ -17,9 +17,9 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PrTerminalLineDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _prTerminalLineService.GetAllAsync();
+            var result = await _prTerminalLineService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

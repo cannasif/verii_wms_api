@@ -17,9 +17,9 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PrRouteDto>>>> GetAll()
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
         {
-            var result = await _prRouteService.GetAllAsync();
+            var result = await _prRouteService.GetPagedAsync(request);
             return StatusCode(result.StatusCode, result);
         }
 

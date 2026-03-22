@@ -5,6 +5,6 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface IJwtService
     {
-        ApiResponse<string> GenerateToken(User user);
+        ApiResponse<string> GenerateToken(User user, IReadOnlyCollection<string>? permissions = null, bool isSystemAdmin = false);
     }
 }
