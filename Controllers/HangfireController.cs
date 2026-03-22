@@ -3,6 +3,10 @@ using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WMS_WEBAPI.Data;
+using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Models;
 
 namespace WMS_WEBAPI.Controllers
 {
@@ -12,10 +16,12 @@ namespace WMS_WEBAPI.Controllers
     public class HangfireController : ControllerBase
     {
         private readonly IMonitoringApi _monitoringApi;
+        private readonly WmsDbContext _dbContext;
 
-        public HangfireController()
+        public HangfireController(WmsDbContext dbContext)
         {
             _monitoringApi = JobStorage.Current.GetMonitoringApi();
+            _dbContext = dbContext;
         }
 
         [HttpGet("stats")]
@@ -78,6 +84,30 @@ namespace WMS_WEBAPI.Controllers
                 Items = jobs,
                 Timestamp = DateTime.UtcNow
             });
+        }
+
+        [HttpGet("failure-logs")]
+        public async Task<ActionResult<ApiResponse<PagedResponse<JobFailureLog>>>> GetFailureLogs(
+            [FromQuery] int pageNumber = 0,
+            [FromQuery] int pageSize = 20)
+        {
+            if (pageNumber < 0) pageNumber = 0;
+            if (pageSize <= 0) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _dbContext.JobFailureLogs
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted)
+                .OrderByDescending(x => x.FailedAt);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip(pageNumber * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var paged = new PagedResponse<JobFailureLog>(items, totalCount, pageNumber, pageSize);
+            return Ok(ApiResponse<PagedResponse<JobFailureLog>>.SuccessResult(paged, "Hangfire SQL failure logs retrieved successfully."));
         }
 
         private static object MapJob(KeyValuePair<string, FailedJobDto> kvp)

@@ -13,6 +13,9 @@ namespace WMS_WEBAPI.Data
         public virtual DbSet<UserDetail> UserDetails { get; set; }
         public virtual DbSet<UserSession> UserSessions { get; set; }
         public virtual DbSet<PasswordResetRequest> PasswordResetRequests { get; set; }
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<Stock> Stocks { get; set; }
+        public DbSet<JobFailureLog> JobFailureLogs { get; set; }
         public DbSet<GrHeader> GrHeaders { get; set; }
         public DbSet<GrLine> GrLines { get; set; }
         public DbSet<GrImportDocument> GrImportDocuments { get; set; }
@@ -133,6 +136,9 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new UserDetailConfiguration());
             modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
             modelBuilder.ApplyConfiguration(new PasswordResetRequestConfiguration());
+            modelBuilder.ApplyConfiguration(new CustomerConfiguration());
+            modelBuilder.ApplyConfiguration(new StockConfiguration());
+            modelBuilder.ApplyConfiguration(new JobFailureLogConfiguration());
             modelBuilder.ApplyConfiguration(new GrHeaderConfiguration());
             modelBuilder.ApplyConfiguration(new GrLineConfiguration());
             modelBuilder.ApplyConfiguration(new GrImportDocumentConfiguration());

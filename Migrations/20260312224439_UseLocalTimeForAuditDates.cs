@@ -11,11 +11,6 @@ namespace WMS_WEBAPI.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DeleteData(
-                table: "RII_USER_AUTHORITY",
-                keyColumn: "Id",
-                keyValue: 3L);
-
             migrationBuilder.AlterColumn<DateTime>(
                 name: "CreatedDate",
                 table: "RII_WT_PARAMETER",
@@ -1580,10 +1575,6 @@ namespace WMS_WEBAPI.Migrations
                 oldType: "datetime2",
                 oldDefaultValueSql: "GETDATE()");
 
-            migrationBuilder.InsertData(
-                table: "RII_USER_AUTHORITY",
-                columns: new[] { "Id", "CreatedBy", "CreatedDate", "DeletedBy", "DeletedDate", "Title", "UpdatedBy", "UpdatedDate" },
-                values: new object[] { 3L, null, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "superadmin", null, null });
         }
     }
 }
