@@ -1,0 +1,173 @@
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.Models;
+using WMS_WEBAPI.UnitOfWork;
+
+namespace WMS_WEBAPI.Services
+{
+    public class WiRouteService : IWiRouteService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
+        private readonly ILocalizationService _localizationService;
+
+        public WiRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _localizationService = localizationService;
+        }
+
+        public async Task<ApiResponse<IEnumerable<WiRouteDto>>> GetAllAsync()
+        {
+            try
+            {
+                var entities = await _unitOfWork.WiRoutes.GetAllAsync();
+                var dtos = _mapper.Map<IEnumerable<WiRouteDto>>(entities);
+                return ApiResponse<IEnumerable<WiRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<WiRouteDto>>.ErrorResult(_localizationService.GetLocalizedString("WiRouteErrorOccurred"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<PagedResponse<WiRouteDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var query = _unitOfWork.WiRoutes.AsQueryable().Where(x => !x.IsDeleted);
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = await query.CountAsync();
+                var entities = await query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToListAsync();
+
+                var dtos = _mapper.Map<List<WiRouteDto>>(entities);
+                var result = new PagedResponse<WiRouteDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+
+                return ApiResponse<PagedResponse<WiRouteDto>>.SuccessResult(
+                    result,
+                    _localizationService.GetLocalizedString("WiRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<WiRouteDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("WiRouteErrorOccurred"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
+
+        public async Task<ApiResponse<WiRouteDto>> GetByIdAsync(long id)
+        {
+            try
+            {
+                var entity = await _unitOfWork.WiRoutes.GetByIdAsync(id);
+                if (entity == null) return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteNotFound"), _localizationService.GetLocalizedString("WiRouteNotFound"), 404);
+                var dto = _mapper.Map<WiRouteDto>(entity);
+                return ApiResponse<WiRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteErrorOccurred"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<WiRouteDto>> CreateAsync(CreateWiRouteDto createDto)
+        {
+            try
+            {
+                var entity = _mapper.Map<WiRoute>(createDto);
+                var created = await _unitOfWork.WiRoutes.AddAsync(entity);
+                await _unitOfWork.SaveChangesAsync();
+                var dto = _mapper.Map<WiRouteDto>(created);
+                return ApiResponse<WiRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiRouteCreatedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteErrorOccurred"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<WiRouteDto>> UpdateAsync(long id, UpdateWiRouteDto updateDto)
+        {
+            try
+            {
+                var existing = await _unitOfWork.WiRoutes.GetByIdAsync(id);
+                if (existing == null) return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteNotFound"), _localizationService.GetLocalizedString("WiRouteNotFound"), 404);
+                var entity = _mapper.Map(updateDto, existing);
+                _unitOfWork.WiRoutes.Update(entity);
+                await _unitOfWork.SaveChangesAsync();
+                var dto = _mapper.Map<WiRouteDto>(entity);
+                return ApiResponse<WiRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiRouteUpdatedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteErrorOccurred"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        {
+            try
+            {
+                var route = await _unitOfWork.WiRoutes.GetByIdAsync(id);
+                if (route == null || route.IsDeleted)
+                {
+                    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WiRouteNotFound"), _localizationService.GetLocalizedString("WiRouteNotFound"), 404);
+                }
+
+                var importLineId = route.ImportLineId;
+
+                // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
+                var remainingRoutesCount = await _unitOfWork.WiRoutes
+                    .AsQueryable()
+                    .CountAsync(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id);
+
+                // Eğer başka route yoksa (count == 0), bu son route demektir, ImportLine'ı da silmeliyiz
+                var shouldDeleteImportLine = remainingRoutesCount == 0;
+
+                using var tx = await _unitOfWork.BeginTransactionAsync();
+                try
+                {
+                    // Route'u sil
+                    await _unitOfWork.WiRoutes.SoftDelete(id);
+
+                    // Eğer bu son route ise, ImportLine'ı da sil
+                    if (shouldDeleteImportLine)
+                    {
+                        var importLine = await _unitOfWork.WiImportLines.GetByIdAsync(importLineId);
+                        if (importLine != null && !importLine.IsDeleted)
+                        {
+                            await _unitOfWork.WiImportLines.SoftDelete(importLineId);
+                        }
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await tx.CommitAsync();
+                    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("WiRouteDeletedSuccessfully"));
+                }
+                catch
+                {
+                    await tx.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WiRouteErrorOccurred"), ex.Message ?? string.Empty, 500);
+            }
+        }
+    }
+}

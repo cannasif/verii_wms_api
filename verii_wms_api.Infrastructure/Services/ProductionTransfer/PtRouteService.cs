@@ -1,0 +1,250 @@
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.Models;
+using WMS_WEBAPI.UnitOfWork;
+using System.Linq;
+
+namespace WMS_WEBAPI.Services
+{
+    public class PtRouteService : IPtRouteService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
+        private readonly ILocalizationService _localizationService;
+
+        public PtRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _localizationService = localizationService;
+        }
+
+        public async Task<ApiResponse<IEnumerable<PtRouteDto>>> GetAllAsync()
+        {
+            try
+            {
+                var entities = await _unitOfWork.PtRoutes.FindAsync(x => !x.IsDeleted);
+                var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
+                return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<PtRouteDto>>.ErrorResult(_localizationService.GetLocalizedString("PtRouteRetrievalError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<PagedResponse<PtRouteDto>>> GetPagedAsync(PagedRequest request)
+        {
+            try
+            {
+                request ??= new PagedRequest();
+                if (request.PageNumber < 1) request.PageNumber = 1;
+                if (request.PageSize < 1) request.PageSize = 20;
+
+                var allResult = await GetAllAsync();
+                if (!allResult.Success || allResult.Data == null)
+                {
+                    return ApiResponse<PagedResponse<PtRouteDto>>.ErrorResult(
+                        allResult.Message,
+                        allResult.ExceptionMessage,
+                        allResult.StatusCode);
+                }
+
+                var query = allResult.Data.AsQueryable();
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = query.Count();
+                var items = query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToList();
+
+                var result = new PagedResponse<PtRouteDto>(items, totalCount, request.PageNumber, request.PageSize);
+                return ApiResponse<PagedResponse<PtRouteDto>>.SuccessResult(result, allResult.Message);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResponse<PtRouteDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("Error_GetAll"),
+                    ex.Message ?? string.Empty,
+                    500);
+            }
+        }
+
+
+        public async Task<ApiResponse<PtRouteDto>> GetByIdAsync(long id)
+        {
+            try
+            {
+                var entity = await _unitOfWork.PtRoutes.GetByIdAsync(id);
+                if (entity == null || entity.IsDeleted)
+                {
+                    var notFound = _localizationService.GetLocalizedString("PtRouteNotFound");
+                    return ApiResponse<PtRouteDto>.ErrorResult(notFound, notFound, 404);
+                }
+                var dto = _mapper.Map<PtRouteDto>(entity);
+                return ApiResponse<PtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PtRouteDto>.ErrorResult(_localizationService.GetLocalizedString("PtRouteRetrievalError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<PtRouteDto>>> GetByImportLineIdAsync(long importLineId)
+        {
+            try
+            {
+                var entities = await _unitOfWork.PtRoutes.FindAsync(x => x.ImportLineId == importLineId && !x.IsDeleted);
+                var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
+                return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<PtRouteDto>>.ErrorResult(_localizationService.GetLocalizedString("PtRouteRetrievalError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<PtRouteDto>>> GetBySerialNoAsync(string serialNo)
+        {
+            try
+            {
+                var sn = (serialNo ?? "").Trim();
+                var entities = await _unitOfWork.PtRoutes.FindAsync(x => (((x.SerialNo ?? "").Trim() == sn) || ((x.SerialNo2 ?? "").Trim() == sn) || ((x.SerialNo3 ?? "").Trim() == sn) || ((x.SerialNo4 ?? "").Trim() == sn)) && !x.IsDeleted);
+                var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
+                return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<PtRouteDto>>.ErrorResult(_localizationService.GetLocalizedString("PtRouteRetrievalError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<PtRouteDto>>> GetBySourceWarehouseAsync(int sourceWarehouse)
+        {
+            try
+            {
+                var entities = await _unitOfWork.PtRoutes.FindAsync(x => x.SourceWarehouse == sourceWarehouse && !x.IsDeleted);
+                var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
+                return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<PtRouteDto>>.ErrorResult(_localizationService.GetLocalizedString("PtRouteRetrievalError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<PtRouteDto>>> GetByTargetWarehouseAsync(int targetWarehouse)
+        {
+            try
+            {
+                var entities = await _unitOfWork.PtRoutes.FindAsync(x => x.TargetWarehouse == targetWarehouse && !x.IsDeleted);
+                var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
+                return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<PtRouteDto>>.ErrorResult(_localizationService.GetLocalizedString("PtRouteRetrievalError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+
+
+        public async Task<ApiResponse<PtRouteDto>> CreateAsync(CreatePtRouteDto createDto)
+        {
+            try
+            {
+                var entity = _mapper.Map<PtRoute>(createDto);
+                entity.CreatedDate = DateTimeProvider.Now;
+                entity.IsDeleted = false;
+                await _unitOfWork.PtRoutes.AddAsync(entity);
+                await _unitOfWork.SaveChangesAsync();
+                var dto = _mapper.Map<PtRouteDto>(entity);
+                return ApiResponse<PtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PtRouteCreatedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PtRouteDto>.ErrorResult(_localizationService.GetLocalizedString("PtRouteCreationError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<PtRouteDto>> UpdateAsync(long id, UpdatePtRouteDto updateDto)
+        {
+            try
+            {
+                var entity = await _unitOfWork.PtRoutes.GetByIdAsync(id);
+                if (entity == null || entity.IsDeleted)
+                {
+                    var notFound = _localizationService.GetLocalizedString("PtRouteNotFound");
+                    return ApiResponse<PtRouteDto>.ErrorResult(notFound, notFound, 404);
+                }
+                _mapper.Map(updateDto, entity);
+                entity.UpdatedDate = DateTimeProvider.Now;
+                _unitOfWork.PtRoutes.Update(entity);
+                await _unitOfWork.SaveChangesAsync();
+                var dto = _mapper.Map<PtRouteDto>(entity);
+                return ApiResponse<PtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PtRouteUpdatedSuccessfully"));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PtRouteDto>.ErrorResult(_localizationService.GetLocalizedString("PtRouteUpdateError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        {
+            try
+            {
+                var route = await _unitOfWork.PtRoutes.GetByIdAsync(id);
+                if (route == null || route.IsDeleted)
+                {
+                    var notFound = _localizationService.GetLocalizedString("PtRouteNotFound");
+                    return ApiResponse<bool>.ErrorResult(notFound, notFound, 404);
+                }
+
+                var importLineId = route.ImportLineId;
+
+                // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
+                var remainingRoutesCount = await _unitOfWork.PtRoutes
+                    .AsQueryable()
+                    .CountAsync(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id);
+
+                // Eğer başka route yoksa (count == 0), bu son route demektir, ImportLine'ı da silmeliyiz
+                var shouldDeleteImportLine = remainingRoutesCount == 0;
+
+                using var tx = await _unitOfWork.BeginTransactionAsync();
+                try
+                {
+                    // Route'u sil
+                    await _unitOfWork.PtRoutes.SoftDelete(id);
+
+                    // Eğer bu son route ise, ImportLine'ı da sil
+                    if (shouldDeleteImportLine)
+                    {
+                        var importLine = await _unitOfWork.PtImportLines.GetByIdAsync(importLineId);
+                        if (importLine != null && !importLine.IsDeleted)
+                        {
+                            await _unitOfWork.PtImportLines.SoftDelete(importLineId);
+                        }
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await tx.CommitAsync();
+                    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("PtRouteDeletedSuccessfully"));
+                }
+                catch
+                {
+                    await tx.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("PtRouteDeletionError"), ex.Message ?? string.Empty, 500);
+            }
+        }
+    }
+}
