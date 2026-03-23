@@ -62,6 +62,23 @@ namespace WMS_WEBAPI.Controllers
             });
         }
 
+        [HttpPost("failed/paged")]
+        public ActionResult<ApiResponse<PagedResponse<object>>> GetFailedPaged([FromBody] PagedRequest request)
+        {
+            var pageNumber = request.PageNumber < 0 ? 0 : request.PageNumber;
+            var pageSize = request.PageSize <= 0 ? 20 : Math.Min(request.PageSize, 100);
+            var from = pageNumber * pageSize;
+
+            var failed = _monitoringApi.FailedJobs(from, pageSize)
+                .Select(MapJob)
+                .Cast<object>()
+                .ToList();
+
+            var totalCount = (int)_monitoringApi.FailedCount();
+            var paged = new PagedResponse<object>(failed, totalCount, pageNumber, pageSize);
+            return Ok(ApiResponse<PagedResponse<object>>.SuccessResult(paged, "Hangfire failed jobs retrieved successfully."));
+        }
+
         [HttpGet("dead-letter")]
         public IActionResult GetDeadLetter([FromQuery] int from = 0, [FromQuery] int count = 20)
         {
@@ -84,6 +101,26 @@ namespace WMS_WEBAPI.Controllers
                 Items = jobs,
                 Timestamp = DateTime.UtcNow
             });
+        }
+
+        [HttpPost("dead-letter/paged")]
+        public ActionResult<ApiResponse<PagedResponse<object>>> GetDeadLetterPaged([FromBody] PagedRequest request)
+        {
+            var pageNumber = request.PageNumber < 0 ? 0 : request.PageNumber;
+            var pageSize = request.PageSize <= 0 ? 20 : Math.Min(request.PageSize, 100);
+            var from = pageNumber * pageSize;
+
+            var queue = _monitoringApi.Queues().FirstOrDefault(x => x.Name == "dead-letter");
+            var jobs = queue == null
+                ? new List<object>()
+                : _monitoringApi.EnqueuedJobs("dead-letter", from, pageSize)
+                    .Select((KeyValuePair<string, EnqueuedJobDto> item) => MapEnqueuedJob(item))
+                    .Cast<object>()
+                    .ToList();
+
+            var totalCount = (int)(queue?.Length ?? 0);
+            var paged = new PagedResponse<object>(jobs, totalCount, pageNumber, pageSize);
+            return Ok(ApiResponse<PagedResponse<object>>.SuccessResult(paged, "Hangfire dead-letter jobs retrieved successfully."));
         }
 
         [HttpGet("failure-logs")]
