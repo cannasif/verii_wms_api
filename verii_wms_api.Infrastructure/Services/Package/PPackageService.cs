@@ -24,7 +24,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var packages = await _unitOfWork.PPackages.GetAllAsync();
+                var packages = await _unitOfWork.PPackages.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PPackageDto>>(packages);
                 return ApiResponse<IEnumerable<PPackageDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PPackageRetrievedSuccessfully"));
             }
@@ -41,7 +41,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.PPackages.AsQueryable();
+                var query = _unitOfWork.PPackages.Query();
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
 
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
@@ -65,7 +65,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var package = await _unitOfWork.PPackages.GetByIdAsync(id);
+                var package = await _unitOfWork.PPackages.Query().FirstOrDefaultAsync(x => x.Id == id);
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");
@@ -85,7 +85,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var packages = await _unitOfWork.PPackages.FindAsync(x => x.PackingHeaderId == packingHeaderId && !x.IsDeleted);
+                var packages = await _unitOfWork.PPackages.Query().Where(x => x.PackingHeaderId == packingHeaderId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PPackageDto>>(packages);
                 return ApiResponse<IEnumerable<PPackageDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PPackageRetrievedSuccessfully"));
             }
@@ -100,7 +100,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 // Validate PackingHeader exists
-                var header = await _unitOfWork.PHeaders.GetByIdAsync(createDto.PackingHeaderId);
+                var header = await _unitOfWork.PHeaders.Query().FirstOrDefaultAsync(x => x.Id == createDto.PackingHeaderId);
                 if (header == null || header.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("PHeaderNotFound");
@@ -133,7 +133,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var package = await _unitOfWork.PPackages.GetByIdAsync(id);
+                var package = await _unitOfWork.PPackages.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");
@@ -157,7 +157,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var package = await _unitOfWork.PPackages.GetByIdAsync(id);
+                var package = await _unitOfWork.PPackages.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");
@@ -176,4 +176,3 @@ namespace WMS_WEBAPI.Services
         }
     }
 }
-

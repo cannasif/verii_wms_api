@@ -26,7 +26,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var items = await _unitOfWork.WiLineSerials.FindAsync(x => !x.IsDeleted);
+                var items = await _unitOfWork.WiLineSerials.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WiLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<WiLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiLineSerialRetrievedSuccessfully"));
             }
@@ -80,7 +80,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiLineSerials.GetByIdAsync(id);
+                var entity = await _unitOfWork.WiLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WiLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("WiLineSerialNotFound"), _localizationService.GetLocalizedString("WiLineSerialNotFound"), 404);
@@ -98,7 +98,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var items = await _unitOfWork.WiLineSerials.FindAsync(x => x.LineId == lineId && !x.IsDeleted);
+                var items = await _unitOfWork.WiLineSerials.Query().Where(x => x.LineId == lineId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WiLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<WiLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiLineSerialRetrievedSuccessfully"));
             }
@@ -135,7 +135,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiLineSerials.GetByIdAsync(id);
+                var entity = await _unitOfWork.WiLineSerials.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WiLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("WiLineSerialNotFound"), _localizationService.GetLocalizedString("WiLineSerialNotFound"), 404);
@@ -165,12 +165,12 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiLineSerials.GetByIdAsync(id);
+                var entity = await _unitOfWork.WiLineSerials.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WiLineSerialNotFound"), _localizationService.GetLocalizedString("WiLineSerialNotFound"), 404);
                 }
-                var lineEntity = await _unitOfWork.WiLines.GetByIdAsync(entity.LineId);
+                var lineEntity = await _unitOfWork.WiLines.Query().FirstOrDefaultAsync(x => x.Id == entity.LineId);
 
                 {
                     var s1 = (entity.SerialNo ?? "").Trim();
@@ -181,9 +181,8 @@ namespace WMS_WEBAPI.Services
                     if (anyEntitySerial)
                     {
                         var serialExistsInRoutes = await _unitOfWork.WiRoutes
-                            .AsQueryable()
-                            .AnyAsync(r => !r.IsDeleted
-                                           && r.ImportLine.LineId == entity.LineId
+                            .Query()
+                            .AnyAsync(r => r.ImportLine.LineId == entity.LineId
                                            && (
                                                (!string.IsNullOrWhiteSpace(s1) && (r.SerialNo ?? "").Trim() == s1) ||
                                                (!string.IsNullOrWhiteSpace(s2) && (r.SerialNo2 ?? "").Trim() == s2) ||
@@ -199,13 +198,13 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var totalLineSerialQty = await _unitOfWork.WiLineSerials
-                    .AsQueryable()
-                    .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
+                    .Query()
+                    .Where(ls => ls.LineId == entity.LineId)
                     .SumAsync(ls => ls.Quantity);
 
                 var totalRouteQty = await _unitOfWork.WiRoutes
-                    .AsQueryable()
-                    .Where(r => !r.IsDeleted && r.ImportLine.LineId == entity.LineId)
+                    .Query()
+                    .Where(r => r.ImportLine.LineId == entity.LineId)
                     .SumAsync(r => r.Quantity);
 
                 var remainingAfterDelete = totalLineSerialQty - entity.Quantity;
@@ -216,13 +215,13 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var currentSerialCount = await _unitOfWork.WiLineSerials
-                    .AsQueryable()
-                    .CountAsync(ls => !ls.IsDeleted && ls.LineId == entity.LineId);
+                    .Query()
+                    .CountAsync(ls => ls.LineId == entity.LineId);
                 var remainingSerialCount = currentSerialCount - 1;
 
                 var hasImportLines = await _unitOfWork.WiImportLines
-                    .AsQueryable()
-                    .AnyAsync(il => !il.IsDeleted && il.LineId == entity.LineId);
+                    .Query()
+                    .AnyAsync(il => il.LineId == entity.LineId);
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
 
                 var headerWillBeDeleted = false;
@@ -231,14 +230,14 @@ namespace WMS_WEBAPI.Services
                 {
                     var headerId = lineEntity.HeaderId;
                     var currentLinesUnderHeader = await _unitOfWork.WiLines
-                        .AsQueryable()
-                        .CountAsync(l => !l.IsDeleted && l.HeaderId == headerId);
+                        .Query()
+                        .CountAsync(l => l.HeaderId == headerId);
                     var remainingLinesUnderHeader = currentLinesUnderHeader - 1;
                     if (remainingLinesUnderHeader == 0)
                     {
                         var hasHeaderImportLines = await _unitOfWork.WiImportLines
-                            .AsQueryable()
-                            .AnyAsync(il => !il.IsDeleted && il.HeaderId == headerId);
+                            .Query()
+                            .AnyAsync(il => il.HeaderId == headerId);
                         if (!hasHeaderImportLines)
                         {
                             headerWillBeDeleted = true;

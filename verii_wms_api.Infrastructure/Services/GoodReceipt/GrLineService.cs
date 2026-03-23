@@ -34,7 +34,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.GrLines.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.GrLines.Query();
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -64,7 +64,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var lines = await _unitOfWork.GrLines.GetAllAsync();
+                var lines = await _unitOfWork.GrLines.Query().ToListAsync();
                 var lineDtos = _mapper.Map<IEnumerable<GrLineDto>>(lines);
 
                 var enriched = await _erpService.PopulateStockNamesAsync(lineDtos);
@@ -85,7 +85,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var line = await _unitOfWork.GrLines.GetByIdAsync(id);
+                var line = await _unitOfWork.GrLines.Query().FirstOrDefaultAsync(x => x.Id == id);
                 if (line == null)
                 {
                     return ApiResponse<GrLineDto>.ErrorResult(
@@ -116,7 +116,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var lines = await _unitOfWork.GrLines.FindAsync(x => x.HeaderId == headerId);
+                var lines = await _unitOfWork.GrLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var lineDtos = _mapper.Map<IEnumerable<GrLineDto>>(lines);
 
                 var enriched = await _erpService.PopulateStockNamesAsync(lineDtos);
@@ -166,7 +166,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existingLine = await _unitOfWork.GrLines.GetByIdAsync(id);
+                var existingLine = await _unitOfWork.GrLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (existingLine == null)
                 {
                     return ApiResponse<GrLineDto>.ErrorResult(
@@ -205,7 +205,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.GrLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(
@@ -216,15 +216,15 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var hasActiveLineSerials = await _unitOfWork.GrLineSerials
-                    .AsQueryable()
-                    .AnyAsync(ls => !ls.IsDeleted && ls.LineId == id);
+                    .Query()
+                    .AnyAsync(ls => ls.LineId == id);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("GrLineLineSerialsExist");
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var importLines = await _unitOfWork.GrImportLines.FindAsync(x => x.LineId == id && !x.IsDeleted);
+                var importLines = await _unitOfWork.GrImportLines.Query().Where(x => x.LineId == id).ToListAsync();
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("GrLineImportLinesExist");
@@ -238,11 +238,11 @@ namespace WMS_WEBAPI.Services
                     await _unitOfWork.GrLines.SoftDelete(id);
 
                     var hasOtherLines = await _unitOfWork.GrLines
-                        .AsQueryable()
-                        .AnyAsync(l => !l.IsDeleted && l.HeaderId == headerId);
+                        .Query()
+                        .AnyAsync(l => l.HeaderId == headerId);
                     var hasOtherImportLines = await _unitOfWork.GrImportLines
-                        .AsQueryable()
-                        .AnyAsync(il => !il.IsDeleted && il.HeaderId == headerId);
+                        .Query()
+                        .AnyAsync(il => il.HeaderId == headerId);
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.GrHeaders.SoftDelete(headerId);
@@ -272,7 +272,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var lines = await _unitOfWork.GrLines.FindAsync(x => x.HeaderId == headerId);
+                var lines = await _unitOfWork.GrLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var lineDtos = _mapper.Map<IEnumerable<GrLineDto>>(lines);
 
                 return ApiResponse<IEnumerable<GrLineDto>>.SuccessResult(lineDtos, _localizationService.GetLocalizedString("GrLineRetrievedSuccessfully"));

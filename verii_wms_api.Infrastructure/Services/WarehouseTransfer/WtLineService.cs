@@ -30,7 +30,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.WtLines.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.WtLines.Query();
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -61,7 +61,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.WtLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.WtLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WtLineDto>>(entities);
 
                 var enrichedStock = await _erpService.PopulateStockNamesAsync(dtos);
@@ -84,7 +84,8 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var entity = await _unitOfWork.WtLines
-                    .GetByIdAsync(id);
+                    .Query()
+                    .FirstOrDefaultAsync(x => x.Id == id);
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -112,7 +113,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.WtLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.WtLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WtLineDto>>(entities);
 
                 var enrichedStock = await _erpService.PopulateStockNamesAsync(dtos);
@@ -153,7 +154,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.WtLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WtLineDto>.ErrorResult(_localizationService.GetLocalizedString("WtLineNotFound"), _localizationService.GetLocalizedString("WtLineNotFound"), 404);
@@ -178,22 +179,22 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.WtLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WtLineNotFound"), _localizationService.GetLocalizedString("WtLineNotFound"), 404);
                 }
 
                 var hasActiveLineSerials = await _unitOfWork.WtLineSerials
-                    .AsQueryable()
-                    .AnyAsync(ls => !ls.IsDeleted && ls.LineId == id);
+                    .Query()
+                    .AnyAsync(ls => ls.LineId == id);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("WtLineLineSerialsExist");
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var importLines = await _unitOfWork.WtImportLines.FindAsync(x => x.LineId == id && !x.IsDeleted);
+                var importLines = await _unitOfWork.WtImportLines.Query().Where(x => x.LineId == id).ToListAsync();
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("WtLineImportLinesExist");
@@ -207,11 +208,11 @@ namespace WMS_WEBAPI.Services
                     await _unitOfWork.WtLines.SoftDelete(id);
 
                     var hasOtherLines = await _unitOfWork.WtLines
-                        .AsQueryable()
-                        .AnyAsync(l => !l.IsDeleted && l.HeaderId == headerId);
+                        .Query()
+                        .AnyAsync(l => l.HeaderId == headerId);
                     var hasOtherImportLines = await _unitOfWork.WtImportLines
-                        .AsQueryable()
-                        .AnyAsync(il => !il.IsDeleted && il.HeaderId == headerId);
+                        .Query()
+                        .AnyAsync(il => il.HeaderId == headerId);
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.WtHeaders.SoftDelete(headerId);

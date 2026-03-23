@@ -30,10 +30,8 @@ namespace WMS_WEBAPI.Services
                 request.Filters ??= new List<Filter>();
 
                 var query = _unitOfWork.Users
-                    .AsQueryable()
-                    .AsNoTracking()
+                    .Query()
                     .Include(u => u.RoleNavigation)
-                    .Where(u => !u.IsDeleted)
                     .ApplySearch(
                         request.Search,
                         nameof(User.Username),
@@ -72,10 +70,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var user = await _unitOfWork.Users
-                    .AsQueryable()
-                    .AsNoTracking()
+                    .Query()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+                    .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
                 {
@@ -110,9 +107,8 @@ namespace WMS_WEBAPI.Services
                         400);
                 }
 
-                var usernameExists = await _unitOfWork.Users.AsQueryable()
-                    .AsNoTracking()
-                    .AnyAsync(x => !x.IsDeleted && x.Username == dto.Username);
+                var usernameExists = await _unitOfWork.Users.Query()
+                    .AnyAsync(x => x.Username == dto.Username);
                 if (usernameExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -121,9 +117,8 @@ namespace WMS_WEBAPI.Services
                         400);
                 }
 
-                var emailExists = await _unitOfWork.Users.AsQueryable()
-                    .AsNoTracking()
-                    .AnyAsync(x => !x.IsDeleted && x.Email == dto.Email);
+                var emailExists = await _unitOfWork.Users.Query()
+                    .AnyAsync(x => x.Email == dto.Email);
                 if (emailExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -132,9 +127,8 @@ namespace WMS_WEBAPI.Services
                         400);
                 }
 
-                var roleExists = await _unitOfWork.UserAuthorities.AsQueryable()
-                    .AsNoTracking()
-                    .AnyAsync(x => !x.IsDeleted && x.Id == dto.RoleId);
+                var roleExists = await _unitOfWork.UserAuthorities.Query()
+                    .AnyAsync(x => x.Id == dto.RoleId);
                 if (!roleExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -180,10 +174,9 @@ namespace WMS_WEBAPI.Services
                     }
                 }
 
-                var created = await _unitOfWork.Users.AsQueryable()
-                    .AsNoTracking()
+                var created = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == entity.Id && !u.IsDeleted);
+                    .FirstOrDefaultAsync(u => u.Id == entity.Id);
 
                 BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
                     job.SendUserCreatedEmailAsync(dto.Email, dto.Username, plainPassword, dto.FirstName, dto.LastName));
@@ -205,7 +198,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.Users.AsQueryable().FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+                var entity = await _unitOfWork.Users.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -216,9 +209,8 @@ namespace WMS_WEBAPI.Services
 
                 if (!string.IsNullOrWhiteSpace(dto.Email) && !dto.Email.Equals(entity.Email, StringComparison.OrdinalIgnoreCase))
                 {
-                    var emailExists = await _unitOfWork.Users.AsQueryable()
-                        .AsNoTracking()
-                        .AnyAsync(x => !x.IsDeleted && x.Id != id && x.Email == dto.Email);
+                    var emailExists = await _unitOfWork.Users.Query()
+                        .AnyAsync(x => x.Id != id && x.Email == dto.Email);
                     if (emailExists)
                     {
                         return ApiResponse<UserDto>.ErrorResult(
@@ -230,9 +222,8 @@ namespace WMS_WEBAPI.Services
 
                 if (dto.RoleId.HasValue)
                 {
-                    var roleExists = await _unitOfWork.UserAuthorities.AsQueryable()
-                        .AsNoTracking()
-                        .AnyAsync(x => !x.IsDeleted && x.Id == dto.RoleId.Value);
+                    var roleExists = await _unitOfWork.UserAuthorities.Query()
+                        .AnyAsync(x => x.Id == dto.RoleId.Value);
                     if (!roleExists)
                     {
                         return ApiResponse<UserDto>.ErrorResult(
@@ -274,10 +265,9 @@ namespace WMS_WEBAPI.Services
                     }
                 }
 
-                var updated = await _unitOfWork.Users.AsQueryable()
-                    .AsNoTracking()
+                var updated = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == entity.Id && !u.IsDeleted);
+                    .FirstOrDefaultAsync(u => u.Id == entity.Id);
 
                 return ApiResponse<UserDto>.SuccessResult(
                     _mapper.Map<UserDto>(updated ?? entity),
@@ -296,7 +286,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var exists = await _unitOfWork.Users.AsQueryable().AnyAsync(x => x.Id == id && !x.IsDeleted);
+                var exists = await _unitOfWork.Users.Query().AnyAsync(x => x.Id == id);
                 if (!exists)
                 {
                     return ApiResponse<object>.ErrorResult(
@@ -335,9 +325,8 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
                 }
 
-                var validCount = await _unitOfWork.PermissionGroups.AsQueryable()
-                    .AsNoTracking()
-                    .CountAsync(x => !x.IsDeleted && distinctGroupIds.Contains(x.Id));
+                var validCount = await _unitOfWork.PermissionGroups.Query()
+                    .CountAsync(x => distinctGroupIds.Contains(x.Id));
 
                 if (validCount != distinctGroupIds.Count)
                 {
@@ -364,8 +353,8 @@ namespace WMS_WEBAPI.Services
             {
                 var distinctGroupIds = permissionGroupIds.Distinct().ToList();
 
-                var currentLinks = await _unitOfWork.UserPermissionGroups.AsQueryable()
-                    .Where(x => !x.IsDeleted && x.UserId == userId)
+                var currentLinks = await _unitOfWork.UserPermissionGroups.Query()
+                    .Where(x => x.UserId == userId)
                     .ToListAsync();
 
                 foreach (var link in currentLinks.Where(x => !distinctGroupIds.Contains(x.PermissionGroupId)))
@@ -407,9 +396,8 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
                 }
 
-                var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.AsQueryable()
-                    .AsNoTracking()
-                    .AnyAsync(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id));
+                var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.Query()
+                    .AnyAsync(x => x.IsSystemAdmin && distinctGroupIds.Contains(x.Id));
 
                 if (!hasSystemAdminGroup)
                 {
@@ -438,9 +426,8 @@ namespace WMS_WEBAPI.Services
 
         private async Task<bool> IsAdminRoleAsync(long roleId)
         {
-            var roleTitle = await _unitOfWork.UserAuthorities.AsQueryable()
-                .AsNoTracking()
-                .Where(x => !x.IsDeleted && x.Id == roleId)
+            var roleTitle = await _unitOfWork.UserAuthorities.Query()
+                .Where(x => x.Id == roleId)
                 .Select(x => x.Title)
                 .FirstOrDefaultAsync();
 

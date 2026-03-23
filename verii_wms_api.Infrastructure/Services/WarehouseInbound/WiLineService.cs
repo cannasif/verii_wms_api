@@ -26,7 +26,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.WiLines.GetAllAsync();
+                var entities = await _unitOfWork.WiLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WiLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -45,7 +45,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.WiLines.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.WiLines.Query();
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -72,7 +72,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.WiLines.Query().FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null) return ApiResponse<WiLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiLineNotFound"), _localizationService.GetLocalizedString("WiLineNotFound"), 404);
                 var dto = _mapper.Map<WiLineDto>(entity);
                 var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
@@ -93,7 +93,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.WiLines.FindAsync(x => x.HeaderId == headerId);
+                var entities = await _unitOfWork.WiLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WiLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -132,7 +132,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.WiLines.GetByIdAsync(id);
+                var existing = await _unitOfWork.WiLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (existing == null) return ApiResponse<WiLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiLineNotFound"), _localizationService.GetLocalizedString("WiLineNotFound"), 404);
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WiLines.Update(entity);
@@ -150,22 +150,22 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.WiLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WiLineNotFound"), _localizationService.GetLocalizedString("WiLineNotFound"), 404);
                 }
 
                 var hasActiveLineSerials = await _unitOfWork.WiLineSerials
-                    .AsQueryable()
-                    .AnyAsync(ls => !ls.IsDeleted && ls.LineId == id);
+                    .Query()
+                    .AnyAsync(ls => ls.LineId == id);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("WiLineLineSerialsExist");
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var importLines = await _unitOfWork.WiImportLines.FindAsync(x => x.LineId == id && !x.IsDeleted);
+                var importLines = await _unitOfWork.WiImportLines.Query().Where(x => x.LineId == id).ToListAsync();
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("WiLineImportLinesExist");
@@ -179,11 +179,11 @@ namespace WMS_WEBAPI.Services
                     await _unitOfWork.WiLines.SoftDelete(id);
 
                     var hasOtherLines = await _unitOfWork.WiLines
-                        .AsQueryable()
-                        .AnyAsync(l => !l.IsDeleted && l.HeaderId == headerId);
+                        .Query()
+                        .AnyAsync(l => l.HeaderId == headerId);
                     var hasOtherImportLines = await _unitOfWork.WiImportLines
-                        .AsQueryable()
-                        .AnyAsync(il => !il.IsDeleted && il.HeaderId == headerId);
+                        .Query()
+                        .AnyAsync(il => il.HeaderId == headerId);
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.WiHeaders.SoftDelete(headerId);

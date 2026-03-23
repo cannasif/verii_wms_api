@@ -26,7 +26,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.SrtLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -48,7 +48,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.SrtLines.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.SrtLines.Query();
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -75,7 +75,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.SrtLines.Query().FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("SrtLineNotFound");
@@ -100,7 +100,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -119,7 +119,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtLines.FindAsync(x => x.StockCode == stockCode && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.StockCode == stockCode).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -138,7 +138,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtLines.FindAsync(x => x.ErpOrderNo == erpOrderNo && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.ErpOrderNo == erpOrderNo).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -175,7 +175,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.SrtLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtLineDto>.ErrorResult(_localizationService.GetLocalizedString("SrtLineNotFound"), _localizationService.GetLocalizedString("SrtLineNotFound"), 404);
@@ -196,22 +196,22 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtLines.GetByIdAsync(id);
+                var entity = await _unitOfWork.SrtLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SrtLineNotFound"), _localizationService.GetLocalizedString("SrtLineNotFound"), 404);
                 }
 
                 var hasActiveLineSerials = await _unitOfWork.SrtLineSerials
-                    .AsQueryable()
-                    .AnyAsync(ls => !ls.IsDeleted && ls.LineId == id);
+                    .Query()
+                    .AnyAsync(ls => ls.LineId == id);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("SrtLineLineSerialsExist");
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var importLines = await _unitOfWork.SrtImportLines.FindAsync(x => x.LineId == id && !x.IsDeleted);
+                var importLines = await _unitOfWork.SrtImportLines.Query().Where(x => x.LineId == id).ToListAsync();
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("SrtLineImportLinesExist");
