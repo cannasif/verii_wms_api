@@ -37,7 +37,6 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var user = await _unitOfWork.Users.Query()
-                    .AsNoTracking()
                     .Include(x => x.RoleNavigation)
                     .Where(x => x.Id == userId && !x.IsDeleted)
                     .FirstOrDefaultAsync();
@@ -51,7 +50,6 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var userGroupLinks = await _unitOfWork.UserPermissionGroups.Query()
-                    .AsNoTracking()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                     .Include(x => x.PermissionGroup)
                     .ThenInclude(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))

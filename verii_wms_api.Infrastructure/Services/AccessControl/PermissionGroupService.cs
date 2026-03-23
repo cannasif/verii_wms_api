@@ -29,7 +29,6 @@ namespace WMS_WEBAPI.Services
                 var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
                 var query = _unitOfWork.PermissionGroups.Query()
-                    .AsNoTracking()
                     .Include(x => x.CreatedByUser)
                     .Include(x => x.UpdatedByUser)
                     .Include(x => x.DeletedByUser)
@@ -96,7 +95,6 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var duplicate = await _unitOfWork.PermissionGroups.Query()
-                    .AsNoTracking()
                     .Where(x => !x.IsDeleted && x.Name == dto.Name)
                             .AnyAsync();
 
@@ -165,7 +163,6 @@ namespace WMS_WEBAPI.Services
                 if (!string.IsNullOrWhiteSpace(dto.Name) && !dto.Name.Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
                 {
                     var duplicate = await _unitOfWork.PermissionGroups.Query()
-                        .AsNoTracking()
                         .Where(x => !x.IsDeleted && x.Id != id && x.Name == dto.Name)
                             .AnyAsync();
 
@@ -285,7 +282,6 @@ namespace WMS_WEBAPI.Services
                 if (distinctPermissionIds.Count > 0)
                 {
                     var validCount = await _unitOfWork.PermissionDefinitions.Query()
-                        .AsNoTracking()
                         .Where(x => !x.IsDeleted && distinctPermissionIds.Contains(x.Id))
                             .CountAsync();
 

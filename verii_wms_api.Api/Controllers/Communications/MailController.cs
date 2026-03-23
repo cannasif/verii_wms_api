@@ -78,7 +78,6 @@ namespace WMS_WEBAPI.Controllers
                 if (string.IsNullOrWhiteSpace(to))
                 {
                     var user = await _unitOfWork.Users.Query()
-                        .AsNoTracking()
                         .Where(x => x.Id == userId && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 

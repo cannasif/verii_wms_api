@@ -32,7 +32,6 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var links = await _unitOfWork.UserPermissionGroups.Query()
-                    .AsNoTracking()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                     .Include(x => x.PermissionGroup)
                     .ToListAsync();
@@ -77,7 +76,6 @@ namespace WMS_WEBAPI.Services
                 if (distinctGroupIds.Count > 0)
                 {
                     var validCount = await _unitOfWork.PermissionGroups.Query()
-                        .AsNoTracking()
                         .Where(x => !x.IsDeleted && distinctGroupIds.Contains(x.Id))
                             .CountAsync();
 
@@ -90,7 +88,6 @@ namespace WMS_WEBAPI.Services
                     }
 
                     var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.Query()
-                        .AsNoTracking()
                         .Where(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id))
                             .AnyAsync();
 
@@ -154,7 +151,6 @@ namespace WMS_WEBAPI.Services
         private async Task<bool> IsAdminRoleAsync(long roleId)
         {
             var roleTitle = await _unitOfWork.UserAuthorities.Query()
-                .AsNoTracking()
                 .Where(x => !x.IsDeleted && x.Id == roleId)
                 .Select(x => x.Title)
                 .FirstOrDefaultAsync();

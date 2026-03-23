@@ -402,13 +402,11 @@ namespace WMS_WEBAPI.Services
         private async Task<(IReadOnlyCollection<string> Permissions, bool IsSystemAdmin)> GetPermissionClaimsAsync(long userId, long roleId)
         {
             var roleTitle = await _unitOfWork.UserAuthorities.Query()
-                .AsNoTracking()
                 .Where(x => !x.IsDeleted && x.Id == roleId)
                 .Select(x => x.Title)
                 .FirstOrDefaultAsync();
 
             var userGroupLinks = await _unitOfWork.UserPermissionGroups.Query()
-                .AsNoTracking()
                 .Where(x => x.UserId == userId && !x.IsDeleted)
                 .Include(x => x.PermissionGroup)
                     .ThenInclude(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
