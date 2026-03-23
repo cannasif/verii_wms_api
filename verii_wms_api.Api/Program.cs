@@ -26,6 +26,8 @@ using WMS_WEBAPI.Infrastructure.Hangfire;
 using WMS_WEBAPI.Options;
 using WMS_WEBAPI.Services.Jobs;
 using WMS_WEBAPI.Security;
+using Microsoft.AspNetCore.ResponseCompression;
+using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +52,29 @@ if (configuredCorsOrigins.Length == 0)
 }
 
 // Add services to the container.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/json",
+        "text/json",
+        "application/problem+json"
+    });
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+
 builder.Services.AddControllers(options =>
 {
     options.Conventions.Add(new PermissionAuthorizationConvention());
@@ -67,21 +92,28 @@ builder.Services
 // SignalR Configuration
 builder.Services.AddSignalR(options =>
 {
-    options.EnableDetailedErrors = true;
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 });
 
 // Entity Framework Configuration - Using SQL Server for WMS
-builder.Services.AddDbContext<WmsDbContext>(options =>
+builder.Services.AddDbContextPool<WmsDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=wms.db";
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure();
+    });
 });
 
 // ERP Database Configuration - Using SQL Server
-builder.Services.AddDbContext<ErpDbContext>(options =>
+builder.Services.AddDbContextPool<ErpDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("ErpConnection");
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure();
+    });
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 });
 
 // AutoMapper Configuration - discover profiles from API, Application and Infrastructure assemblies
@@ -546,6 +578,7 @@ app.UseExceptionHandler(errApp =>
 
 app.UseRouting();
 app.UseCors("DevCors");
+app.UseResponseCompression();
 
 // Static files for uploaded images - wwwroot folder (default)
 app.UseStaticFiles();
