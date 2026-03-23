@@ -69,8 +69,8 @@ namespace WMS_WEBAPI.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
-        [HttpGet("assigned/{userId}")]
-        public async Task<IActionResult> GetAssignedOrders(long userId, [FromQuery] PagedRequest request)
+        [HttpPost("assigned/{userId}/paged")]
+        public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request)
         {
             var result = await _service.GetAssignedOrdersAsync(userId);
             var pagedResult = result.ToPagedResponse(request);

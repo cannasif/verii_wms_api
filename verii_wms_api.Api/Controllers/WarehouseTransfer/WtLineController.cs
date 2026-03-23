@@ -48,8 +48,8 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <param name="headerId">Header ID</param>
         /// <returns>WtLine listesi</returns>
-        [HttpGet("header/{headerId}")]
-        public async Task<IActionResult> GetByHeaderId(long headerId, [FromQuery] PagedRequest request)
+        [HttpPost("header/{headerId}/paged")]
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request)
         {
             var result = await _wtLineService.GetByHeaderIdAsync(headerId);
             var pagedResult = result.ToPagedResponse(request);

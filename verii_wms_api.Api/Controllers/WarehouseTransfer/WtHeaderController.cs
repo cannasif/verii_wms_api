@@ -80,12 +80,11 @@ namespace WMS_WEBAPI.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
-        [HttpGet("assigned/{userId}")]
-        public async Task<IActionResult> GetAssignedTransferOrders(long userId, [FromQuery] PagedRequest request)
+        [HttpPost("assigned/{userId}/paged")]
+        public async Task<IActionResult> GetAssignedTransferOrders(long userId, [FromBody] PagedRequest request)
         {
-            var result = await _wtHeaderService.GetAssignedTransferOrdersAsync(userId);
-            var pagedResult = result.ToPagedResponse(request);
-            return StatusCode(pagedResult.StatusCode, pagedResult);
+            var result = await _wtHeaderService.GetAssignedTransferOrdersAsync(userId, request);
+            return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("getAssignedTransferOrderLines/{headerId}")]

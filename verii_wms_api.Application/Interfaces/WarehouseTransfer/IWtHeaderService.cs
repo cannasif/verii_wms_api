@@ -12,7 +12,7 @@ namespace WMS_WEBAPI.Interfaces
         Task<ApiResponse<WtHeaderDto>> UpdateAsync(long id, UpdateWtHeaderDto updateDto);
         Task<ApiResponse<bool>> SoftDeleteAsync(long id);
         Task<ApiResponse<bool>> CompleteAsync(long id);
-        Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAssignedTransferOrdersAsync(long userId);
+        Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetAssignedTransferOrdersAsync(long userId, PagedRequest request);
         Task<ApiResponse<WtAssignedTransferOrderLinesDto>> GetAssignedTransferOrderLinesAsync(long headerId);
         Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request);
         Task<ApiResponse<WtHeaderDto>> GenerateWarehouseTransferOrderAsync(GenerateWarehouseTransferOrderRequestDto request);

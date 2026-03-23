@@ -42,8 +42,8 @@ namespace WMS_WEBAPI.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
-        [HttpGet("line/{lineId}")]
-        public async Task<IActionResult> GetByLineId(long lineId, [FromQuery] PagedRequest request)
+        [HttpPost("line/{lineId}/paged")]
+        public async Task<IActionResult> GetByLineId(long lineId, [FromBody] PagedRequest request)
         {
             var result = await _service.GetByLineIdAsync(lineId);
             var pagedResult = result.ToPagedResponse(request);

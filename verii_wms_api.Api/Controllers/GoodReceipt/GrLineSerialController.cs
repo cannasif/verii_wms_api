@@ -20,8 +20,8 @@ namespace WMS_WEBAPI.Controllers
             _localizationService = localizationService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        [HttpPost("paged")]
+        public async Task<IActionResult> Get([FromBody] PagedRequest request)
         {
             var result = await _grLineSerialService.GetPagedAsync(request.PageNumber, request.PageSize, request.SortBy, request.SortDirection);
             return StatusCode(result.StatusCode, result);
@@ -34,8 +34,8 @@ namespace WMS_WEBAPI.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
-        [HttpGet("by-line/{lineId}")]
-        public async Task<IActionResult> GetByLineId(long lineId, [FromQuery] PagedRequest request)
+        [HttpPost("by-line/{lineId}/paged")]
+        public async Task<IActionResult> GetByLineId(long lineId, [FromBody] PagedRequest request)
         {
             var result = await _grLineSerialService.GetByLineIdAsync(lineId);
             var pagedResult = result.ToPagedResponse(request);
@@ -73,15 +73,6 @@ namespace WMS_WEBAPI.Controllers
 
         
 
-        [HttpGet("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<GrLineSerialDto>>>> GetPaged(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] string? sortDirection = "asc")
-        {
-            var result = await _grLineSerialService.GetPagedAsync(pageNumber, pageSize, sortBy, sortDirection);
-            return StatusCode(result.StatusCode, result);
-        }
+        
     }
 }

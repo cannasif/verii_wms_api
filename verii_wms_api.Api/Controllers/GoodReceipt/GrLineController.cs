@@ -48,8 +48,8 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <param name="headerId">GR Header ID</param>
         /// <returns>GR Line listesi</returns>
-        [HttpGet("by-header/{headerId}")]
-        public async Task<IActionResult> GetByHeaderId(long headerId, [FromQuery] PagedRequest request)
+        [HttpPost("by-header/{headerId}/paged")]
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request)
         {
             var result = await _grLineService.GetByHeaderIdAsync(headerId);
             var pagedResult = result.ToPagedResponse(request);

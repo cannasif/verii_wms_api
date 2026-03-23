@@ -451,37 +451,77 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAssignedTransferOrdersAsync(long userId)
+        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetAssignedTransferOrdersAsync(long userId, PagedRequest request)
         {
             try
             {
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                
-                // Daha performanslı: Subquery kullanarak EXISTS benzeri kontrol
-                // SQL'de daha verimli bir sorgu üretir ve Distinct() gerektirmez
-                // Header ve TerminalLine'ın silinmemiş olduğunu kontrol eder
+
+                if (request.PageNumber < 0) request.PageNumber = 0;
+                if (request.PageSize < 1) request.PageSize = 20;
+
                 var query = _unitOfWork.WtHeaders
                     .Query()
-                    .Where(h => !h.IsCompleted 
+                    .Where(h => !h.IsCompleted
                         && h.BranchCode == branchCode
                         && _unitOfWork.WtTerminalLines
                             .Query(false, false)
-                            .Any(t => t.HeaderId == h.Id 
+                            .Any(t => t.HeaderId == h.Id
                                 && t.TerminalUserId == userId));
 
-                var entities = await query.ToListAsync();
-                var dtos = _mapper.Map<IEnumerable<WtHeaderDto>>(entities);
-                var enriched = await _erpService.PopulateCustomerNamesAsync(dtos);
-                if (!enriched.Success)
+                query = query.ApplySearch(
+                    request.Search,
+                    nameof(WtHeader.DocumentNo),
+                    nameof(WtHeader.CustomerCode),
+                    nameof(WtHeader.SourceWarehouse),
+                    nameof(WtHeader.TargetWarehouse),
+                    nameof(WtHeader.Description1),
+                    nameof(WtHeader.Description2));
+                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+
+                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+
+                var totalCount = await query.CountAsync();
+                var entities = await query
+                    .ApplyPagination(request.PageNumber, request.PageSize)
+                    .ToListAsync();
+
+                var dtos = _mapper.Map<List<WtHeaderDto>>(entities);
+
+                var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
+                if (!enrichedCustomer.Success)
                 {
-                    return ApiResponse<IEnumerable<WtHeaderDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+                    return ApiResponse<PagedResponse<WtHeaderDto>>.ErrorResult(
+                        enrichedCustomer.Message,
+                        enrichedCustomer.ExceptionMessage,
+                        enrichedCustomer.StatusCode);
                 }
-                dtos = enriched.Data ?? dtos;
-                return ApiResponse<IEnumerable<WtHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievedSuccessfully"));
+
+                dtos = enrichedCustomer.Data?.ToList() ?? dtos;
+
+                var enrichedWarehouse = await _erpService.PopulateWarehouseNamesAsync(dtos);
+                if (!enrichedWarehouse.Success)
+                {
+                    return ApiResponse<PagedResponse<WtHeaderDto>>.ErrorResult(
+                        enrichedWarehouse.Message,
+                        enrichedWarehouse.ExceptionMessage,
+                        enrichedWarehouse.StatusCode);
+                }
+
+                dtos = enrichedWarehouse.Data?.ToList() ?? dtos;
+
+                var result = new PagedResponse<WtHeaderDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+                return ApiResponse<PagedResponse<WtHeaderDto>>.SuccessResult(
+                    result,
+                    _localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievedSuccessfully"));
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<WtHeaderDto>>.ErrorResult(_localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievalError"), ex.Message ?? string.Empty, 500);
+                return ApiResponse<PagedResponse<WtHeaderDto>>.ErrorResult(
+                    _localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievalError"),
+                    ex.Message ?? string.Empty,
+                    500);
             }
         }
 
