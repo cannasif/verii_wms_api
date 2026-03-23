@@ -64,7 +64,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageSize < 1) request.PageSize = 20;
 
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                var query = _unitOfWork.PrHeaders.Query().Where(x => !x.IsDeleted && x.BranchCode == branchCode);
+                var query = _unitOfWork.PrHeaders.Query().Where(x => x.BranchCode == branchCode);
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);

@@ -51,7 +51,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.UserAuthorities.Query().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.UserAuthorities.Query();
                 query = query.Where(x => IsAllowedAuthorityTitle(x.Title));
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);

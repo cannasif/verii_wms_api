@@ -38,7 +38,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.GrRoutes.Query().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.GrRoutes.Query();
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -94,7 +94,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.GrRoutes.Query().Where(x => !x.IsDeleted && x.ImportLine.HeaderId == headerId && x.ImportLine.IsDeleted == false);
+                var query = _unitOfWork.GrRoutes.Query().Where(x => x.ImportLine.HeaderId == headerId && x.ImportLine.IsDeleted == false);
                 var items = await query.ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<GrRouteDto>>(items);
                 return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
