@@ -2,11 +2,11 @@ using Hangfire;
 using Hangfire.States;
 using Hangfire.Storage;
 using Microsoft.Extensions.Options;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
 using WMS_WEBAPI.Options;
 using WMS_WEBAPI.Services.Jobs;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Infrastructure.Hangfire
 {
@@ -52,9 +52,9 @@ namespace WMS_WEBAPI.Infrastructure.Hangfire
                     try
                     {
                         using var scope = _scopeFactory.CreateScope();
-                        var db = scope.ServiceProvider.GetRequiredService<WmsDbContext>();
+                        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-                        db.JobFailureLogs.Add(new JobFailureLog
+                        unitOfWork.JobFailureLogs.AddAsync(new JobFailureLog
                         {
                             JobId = jobId,
                             JobName = jobName,
@@ -69,9 +69,9 @@ namespace WMS_WEBAPI.Infrastructure.Hangfire
                             RetryCount = retryCount,
                             CreatedDate = DateTimeProvider.Now,
                             IsDeleted = false
-                        });
+                        }).GetAwaiter().GetResult();
 
-                        db.SaveChanges();
+                        unitOfWork.SaveChangesAsync().GetAwaiter().GetResult();
                     }
                     catch (Exception ex)
                     {

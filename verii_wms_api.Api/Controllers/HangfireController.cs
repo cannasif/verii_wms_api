@@ -4,24 +4,24 @@ using Hangfire.Storage.Monitoring;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Controllers
 {
     [ApiController]
     [Route("api/hangfire")]
-    [Authorize]
+        [Authorize]
     public class HangfireController : ControllerBase
     {
         private readonly IMonitoringApi _monitoringApi;
-        private readonly WmsDbContext _dbContext;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public HangfireController(WmsDbContext dbContext)
+        public HangfireController(IUnitOfWork unitOfWork)
         {
             _monitoringApi = JobStorage.Current.GetMonitoringApi();
-            _dbContext = dbContext;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet("stats")]
@@ -95,9 +95,7 @@ namespace WMS_WEBAPI.Controllers
             if (pageSize <= 0) pageSize = 20;
             if (pageSize > 100) pageSize = 100;
 
-            var query = _dbContext.JobFailureLogs
-                .AsNoTracking()
-                .Where(x => !x.IsDeleted)
+            var query = _unitOfWork.JobFailureLogs.Query()
                 .OrderByDescending(x => x.FailedAt);
 
             var totalCount = await query.CountAsync();
