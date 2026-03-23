@@ -1,27 +1,27 @@
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Services.Jobs
 {
     [DisableConcurrentExecution(timeoutInSeconds: 300)]
-    [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 60, 120, 300 })]
+        [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 60, 120, 300 })]
     public class CustomerSyncJob : ICustomerSyncJob
     {
         private const string RecurringJobId = "erp-customer-sync-job";
-        private readonly ErpDbContext _erpDb;
-        private readonly WmsDbContext _db;
+        private readonly IErpUnitOfWork _erpUnitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<CustomerSyncJob> _logger;
 
         public CustomerSyncJob(
-            ErpDbContext erpDb,
-            WmsDbContext db,
+            IErpUnitOfWork erpUnitOfWork,
+            IUnitOfWork unitOfWork,
             ILogger<CustomerSyncJob> logger)
         {
-            _erpDb = erpDb;
-            _db = db;
+            _erpUnitOfWork = erpUnitOfWork;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
@@ -32,8 +32,7 @@ namespace WMS_WEBAPI.Services.Jobs
             List<RII_VW_CARI> erpCustomers;
             try
             {
-                erpCustomers = await _erpDb.Caris
-                    .AsNoTracking()
+                erpCustomers = await _erpUnitOfWork.Query<RII_VW_CARI>()
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -74,10 +73,9 @@ namespace WMS_WEBAPI.Services.Jobs
 
                 try
                 {
-                    var customer = await _db.Customers
-                        .IgnoreQueryFilters()
+                    var customer = await _unitOfWork.Customers.Query(tracking: true, ignoreQueryFilters: true)
                         .Where(x => x.CustomerCode == code)
-                            .FirstOrDefaultAsync();
+                        .FirstOrDefaultAsync();
 
                     var customerName = string.IsNullOrWhiteSpace(erpCustomer.CARI_ISIM) ? code : erpCustomer.CARI_ISIM!.Trim();
                     var taxOffice = EmptyToNull(erpCustomer.VERGI_DAIRESI);
@@ -99,7 +97,7 @@ namespace WMS_WEBAPI.Services.Jobs
 
                     if (customer == null)
                     {
-                        _db.Customers.Add(new Customer
+                        await _unitOfWork.Customers.AddAsync(new Customer
                         {
                             CustomerCode = code,
                             CustomerName = customerName,
@@ -126,7 +124,7 @@ namespace WMS_WEBAPI.Services.Jobs
                             IsDeleted = false
                         });
 
-                        await _db.SaveChangesAsync();
+                        await _unitOfWork.SaveChangesAsync();
                         createdCount++;
                         continue;
                     }
@@ -172,7 +170,7 @@ namespace WMS_WEBAPI.Services.Jobs
                     customer.UpdatedBy = null;
                     customer.LastSyncDate = DateTime.UtcNow;
 
-                    await _db.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync();
 
                     if (reactivated)
                     {
@@ -187,7 +185,7 @@ namespace WMS_WEBAPI.Services.Jobs
                 {
                     failedCount++;
                     await LogRecordFailureAsync(code, ex);
-                    _db.ChangeTracker.Clear();
+                    // create a clean scope on the next iteration via fresh tracked query
                 }
             }
 
@@ -207,7 +205,7 @@ namespace WMS_WEBAPI.Services.Jobs
 
             try
             {
-                _db.JobFailureLogs.Add(new JobFailureLog
+                await _unitOfWork.JobFailureLogs.AddAsync(new JobFailureLog
                 {
                     JobId = $"{RecurringJobId}:{code}:{DateTime.UtcNow:yyyyMMddHHmmssfff}",
                     JobName = $"{typeof(CustomerSyncJob).FullName}.ExecuteAsync",
@@ -222,7 +220,7 @@ namespace WMS_WEBAPI.Services.Jobs
                     IsDeleted = false
                 });
 
-                await _db.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
             }
             catch (Exception logEx)
             {

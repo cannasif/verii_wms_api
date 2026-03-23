@@ -1,8 +1,8 @@
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Services.Jobs
 {
@@ -11,17 +11,17 @@ namespace WMS_WEBAPI.Services.Jobs
     public class StockSyncJob : IStockSyncJob
     {
         private const string RecurringJobId = "erp-stock-sync-job";
-        private readonly ErpDbContext _erpDb;
-        private readonly WmsDbContext _db;
+        private readonly IErpUnitOfWork _erpUnitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<StockSyncJob> _logger;
 
         public StockSyncJob(
-            ErpDbContext erpDb,
-            WmsDbContext db,
+            IErpUnitOfWork erpUnitOfWork,
+            IUnitOfWork unitOfWork,
             ILogger<StockSyncJob> logger)
         {
-            _erpDb = erpDb;
-            _db = db;
+            _erpUnitOfWork = erpUnitOfWork;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
@@ -32,8 +32,7 @@ namespace WMS_WEBAPI.Services.Jobs
             List<RII_VW_STOK> erpStocks;
             try
             {
-                erpStocks = await _erpDb.Stoks
-                    .AsNoTracking()
+                erpStocks = await _erpUnitOfWork.Query<RII_VW_STOK>()
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -73,10 +72,9 @@ namespace WMS_WEBAPI.Services.Jobs
 
                 try
                 {
-                    var stock = await _db.Stocks
-                        .IgnoreQueryFilters()
+                    var stock = await _unitOfWork.Stocks.Query(tracking: true, ignoreQueryFilters: true)
                         .Where(x => x.ErpStockCode == code)
-                            .FirstOrDefaultAsync();
+                        .FirstOrDefaultAsync();
 
                     var stockName = string.IsNullOrWhiteSpace(erpStock.STOK_ADI) ? code : erpStock.STOK_ADI!.Trim();
                     var unit = EmptyToNull(erpStock.OLCU_BR1);
@@ -97,7 +95,7 @@ namespace WMS_WEBAPI.Services.Jobs
 
                     if (stock == null)
                     {
-                        _db.Stocks.Add(new Stock
+                        await _unitOfWork.Stocks.AddAsync(new Stock
                         {
                             ErpStockCode = code,
                             StockName = stockName,
@@ -121,7 +119,7 @@ namespace WMS_WEBAPI.Services.Jobs
                             IsDeleted = false
                         });
 
-                        await _db.SaveChangesAsync();
+                        await _unitOfWork.SaveChangesAsync();
                         createdCount++;
                         continue;
                     }
@@ -161,14 +159,13 @@ namespace WMS_WEBAPI.Services.Jobs
                     stock.UpdatedBy = null;
                     stock.LastSyncDate = DateTime.UtcNow;
 
-                    await _db.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync();
                     updatedCount++;
                 }
                 catch (Exception ex)
                 {
                     failedCount++;
                     await LogRecordFailureAsync(code, ex);
-                    _db.ChangeTracker.Clear();
                 }
             }
 
@@ -187,7 +184,7 @@ namespace WMS_WEBAPI.Services.Jobs
 
             try
             {
-                _db.JobFailureLogs.Add(new JobFailureLog
+                await _unitOfWork.JobFailureLogs.AddAsync(new JobFailureLog
                 {
                     JobId = $"{RecurringJobId}:{code}:{DateTime.UtcNow:yyyyMMddHHmmssfff}",
                     JobName = $"{typeof(StockSyncJob).FullName}.ExecuteAsync",
@@ -202,7 +199,7 @@ namespace WMS_WEBAPI.Services.Jobs
                     IsDeleted = false
                 });
 
-                await _db.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
             }
             catch (Exception logEx)
             {
