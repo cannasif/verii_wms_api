@@ -1,17 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Services
 {
     public class CustomerMirrorService : ICustomerMirrorService
     {
-        private readonly WmsDbContext _dbContext;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public CustomerMirrorService(WmsDbContext dbContext)
+        public CustomerMirrorService(IUnitOfWork unitOfWork)
         {
-            _dbContext = dbContext;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<ApiResponse<PagedResponse<CustomerPagedDto>>> GetPagedAsync(PagedRequest request)
@@ -27,8 +27,7 @@ namespace WMS_WEBAPI.Services
                     { "name", nameof(Models.Customer.CustomerName) }
                 };
 
-                var query = _dbContext.Customers
-                    .AsNoTracking()
+                var query = _unitOfWork.Customers.Query()
                     .ApplySearch(
                         request.Search,
                         nameof(Models.Customer.CustomerCode),

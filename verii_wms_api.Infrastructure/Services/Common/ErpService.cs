@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -11,20 +10,20 @@ namespace WMS_WEBAPI.Services
 {
     public class ErpService : IErpService
     {
-        private readonly ErpDbContext _erpContext;
+        private readonly IErpUnitOfWork _erpUnitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<ErpService> _logger;
 
         public ErpService(
-            ErpDbContext erpContext,
+            IErpUnitOfWork erpUnitOfWork,
             IMapper mapper,
             ILocalizationService localizationService,
             IHttpContextAccessor httpContextAccessor,
             ILogger<ErpService> logger)
         {
-            _erpContext = erpContext;
+            _erpUnitOfWork = erpUnitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
@@ -41,9 +40,7 @@ namespace WMS_WEBAPI.Services
                 var seriParam = string.IsNullOrWhiteSpace(seriNo) ? null : seriNo;
                 var projeParam = string.IsNullOrWhiteSpace(projeKodu) ? null : projeKodu;
 
-                var rows = await _erpContext.OnHandQuantities
-                .FromSqlRaw("SELECT * FROM dbo.RII_FN_ONHANDQUANTITY({0}, {1}, {2}, {3})", depoKodu, stokKodu, seriNo, projeKodu)
-                .AsNoTracking()
+                var rows = await _erpUnitOfWork.SqlQuery<RII_FN_ONHANDQUANTITY>("SELECT * FROM dbo.RII_FN_ONHANDQUANTITY({0}, {1}, {2}, {3})", depoKodu!, stokKodu!, seriNo!, projeKodu!)
                 .ToListAsync();
 
                 var mappedList = _mapper.Map<List<OnHandQuantityDto>>(rows);
@@ -64,9 +61,7 @@ namespace WMS_WEBAPI.Services
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
-                var result = await _erpContext.Caris
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", string.IsNullOrWhiteSpace(cariKodu) ? null : cariKodu, subeKodu)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", string.IsNullOrWhiteSpace(cariKodu) ? null! : cariKodu, subeKodu!)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<CariDto>>(result);
@@ -95,9 +90,7 @@ namespace WMS_WEBAPI.Services
                     ? null
                     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
-                var result = await _erpContext.Caris
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", cariParam, subeCsv)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", cariParam!, subeCsv!)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<CariDto>>(result);
@@ -117,9 +110,7 @@ namespace WMS_WEBAPI.Services
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
-                var result = await _erpContext.Stoks
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", string.IsNullOrWhiteSpace(stokKodu) ? null : stokKodu, subeKodu)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_VW_STOK>("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", string.IsNullOrWhiteSpace(stokKodu) ? null! : stokKodu, subeKodu!)
                     .ToListAsync();
                 var mappedResult = _mapper.Map<List<StokDto>>(result);
 
@@ -173,9 +164,7 @@ namespace WMS_WEBAPI.Services
                     ? null
                     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
-                var result = await _erpContext.Stoks
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", stokParam, subeCsv)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_VW_STOK>("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", stokParam!, subeCsv!)
                     .ToListAsync();
 
                 var data = _mapper.Map<List<StokDto>>(result);
@@ -184,9 +173,7 @@ namespace WMS_WEBAPI.Services
                     .GroupBy(s => s.StokKodu!.Trim(), StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(g => g.Key, g => g.First().StokAdi ?? string.Empty, StringComparer.OrdinalIgnoreCase);
 
-                var resultYapkod = await _erpContext.StokYapKod
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_STOKYAPKOD({0}, {1})", yapParam, subeCsv)
-                    .AsNoTracking()
+                var resultYapkod = await _erpUnitOfWork.SqlQuery<RII_FN_STOKYAPKOD>("SELECT * FROM dbo.RII_FN_STOKYAPKOD({0}, {1})", yapParam!, subeCsv!)
                     .ToListAsync();
 
                 var dataYapKod = _mapper.Map<List<StokYapKodDto>>(resultYapkod);
@@ -252,9 +239,7 @@ namespace WMS_WEBAPI.Services
                     ? null
                     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
-                var result = await _erpContext.Caris
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", cariParam, subeCsv)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", cariParam!, subeCsv!)
                     .ToListAsync();
 
                 var data = _mapper.Map<List<CariDto>>(result);
@@ -293,9 +278,7 @@ namespace WMS_WEBAPI.Services
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
-                var result = await _erpContext.Depos
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", depoKodu, subeKodu)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_VW_DEPO>("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", depoKodu!, subeKodu!)
                     .ToListAsync();
                 var mappedResult = _mapper.Map<List<DepoDto>>(result);
 
@@ -320,9 +303,7 @@ namespace WMS_WEBAPI.Services
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
-                var rows = await _erpContext.Depos
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", null, subeKodu)
-                    .AsNoTracking()
+                var rows = await _erpUnitOfWork.SqlQuery<RII_VW_DEPO>("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", null!, subeKodu!)
                     .ToListAsync();
 
                 var depos = _mapper.Map<List<DepoDto>>(rows);
@@ -368,7 +349,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.Projeler.ToListAsync();
+                var result = await _erpUnitOfWork.Query<RII_VW_PROJE>().ToListAsync();
                 var mappedResult = _mapper.Map<List<ProjeDto>>(result);
 
                 return ApiResponse<List<ProjeDto>>.SuccessResult(mappedResult, _localizationService.GetLocalizedString("ProjeRetrievedSuccessfully"));
@@ -382,9 +363,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var rows = await _erpContext.StokBarcodes
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_STOKBARCODE({0}, {1}, {2}, {3}, {4}, {5})", bar, depoKodu, modul, kullaniciId, barkodGrubu, hareketTuru)
-                    .AsNoTracking()
+                var rows = await _erpUnitOfWork.SqlQuery<RII_FN_STOKBARCODE>("SELECT * FROM dbo.RII_FN_STOKBARCODE({0}, {1}, {2}, {3}, {4}, {5})", bar, depoKodu, modul, kullaniciId, barkodGrubu, hareketTuru)
                     .ToListAsync();
 
                 var mappedList = _mapper.Map<List<StokBarcodeDto>>(rows);
@@ -400,7 +379,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var connectionString = _erpContext.Database.GetConnectionString();
+                var connectionString = _erpUnitOfWork.GetConnectionString();
                 if (string.IsNullOrWhiteSpace(connectionString))
                 {
                     _logger.LogWarning("GetBranchesAsync called but ErpConnection is not configured.");
@@ -414,9 +393,7 @@ namespace WMS_WEBAPI.Services
                     branchNo,
                     !string.IsNullOrWhiteSpace(connectionString));
 
-                var rows = await _erpContext.Branches
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_BRANCHES({0})", branchNo.HasValue ? branchNo.Value : DBNull.Value)
-                    .AsNoTracking()
+                var rows = await _erpUnitOfWork.SqlQuery<RII_FN_BRANCHES>("SELECT * FROM dbo.RII_FN_BRANCHES({0})", branchNo.HasValue ? branchNo.Value : DBNull.Value)
                     .ToListAsync();
 
                 _logger.LogInformation("ERP branch list retrieved successfully. Count: {Count}", rows.Count);
@@ -428,7 +405,7 @@ namespace WMS_WEBAPI.Services
             {
                 try
                 {
-                    var conn = _erpContext.Database.GetDbConnection();
+                    var conn = _erpUnitOfWork.GetDbConnection();
                     _logger.LogError(
                         ex,
                         "ERP branch list retrieval failed. BranchNo: {BranchNo}, ConnectionState: {ConnectionState}, DataSource: {DataSource}, Database: {Database}, InnerException: {InnerException}",
@@ -456,9 +433,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.WarehouseAndShelves
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_WAREHOUSE_SHELF({0}, {1})", depoKodu, raf)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_FN_WAREHOUSE_SHELF>("SELECT * FROM dbo.RII_FN_WAREHOUSE_SHELF({0}, {1})", depoKodu!, raf!)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<WarehouseAndShelvesDto>>(result);
@@ -475,9 +450,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.StockWarehouses
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_STOCK_WAREHOUSE({0}, {1})", depoKodu, raf)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_FN_STOCK_WAREHOUSE>("SELECT * FROM dbo.RII_FN_STOCK_WAREHOUSE({0}, {1})", depoKodu!, raf!)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<WarehouseShelvesWithStockInformationDto>>(result);
@@ -495,9 +468,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.ProductHeaders
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_PRODUCT_HEADER({0})", isemriNo)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_FN_PRODUCT_HEADER>("SELECT * FROM dbo.RII_FN_PRODUCT_HEADER({0})", isemriNo)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<ProductHeaderDto>>(result);
@@ -514,9 +485,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.ProductLines
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_PRODUCT_LINE({0}, {1}, {2})", isemriNo, fisNo, mamulKodu)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_FN_PRODUCT_LINE>("SELECT * FROM dbo.RII_FN_PRODUCT_LINE({0}, {1}, {2})", isemriNo!, fisNo!, mamulKodu!)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<ProductLineDto>>(result);
@@ -533,15 +502,11 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var shelvesRows = await _erpContext.WarehouseAndShelves
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_WAREHOUSE_SHELF({0}, {1})", depoKodu, null)
-                    .AsNoTracking()
+                var shelvesRows = await _erpUnitOfWork.SqlQuery<RII_FN_WAREHOUSE_SHELF>("SELECT * FROM dbo.RII_FN_WAREHOUSE_SHELF({0}, {1})", depoKodu, null!)
                     .ToListAsync();
                 var shelves = _mapper.Map<List<WarehouseAndShelvesDto>>(shelvesRows);
 
-                var stocksRows = await _erpContext.StockWarehouses
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_STOCK_WAREHOUSE({0}, {1})", depoKodu, null)
-                    .AsNoTracking()
+                var stocksRows = await _erpUnitOfWork.SqlQuery<RII_FN_STOCK_WAREHOUSE>("SELECT * FROM dbo.RII_FN_STOCK_WAREHOUSE({0}, {1})", depoKodu, null!)
                     .ToListAsync();
 
                 var stocksByShelf = stocksRows

@@ -1,23 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
 using Microsoft.AspNetCore.Http;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Services
 {
     public class GoodReciptFunctionsService : IGoodReciptFunctionsService
     {
-        private readonly WmsDbContext _wmsDbContext;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public GoodReciptFunctionsService(WmsDbContext wmsDbContext, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
+        public GoodReciptFunctionsService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
         {
-            _wmsDbContext = wmsDbContext;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
@@ -29,9 +29,7 @@ namespace WMS_WEBAPI.Services
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 
-                var headers = await _wmsDbContext.Set<FN_GoodsOpenOrders_Header>()
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_HEADER({0}, {1})", customerCode, branchCodeStr)
-                    .AsNoTracking()
+                var headers = await _unitOfWork.SqlQuery<FN_GoodsOpenOrders_Header>("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_HEADER({0}, {1})", customerCode, branchCodeStr)
                     .ToListAsync();
 
                 var headerDtos = _mapper.Map<List<GoodsOpenOrdersHeaderDto>>(headers);
@@ -50,9 +48,7 @@ namespace WMS_WEBAPI.Services
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var ordersCsv = string.IsNullOrWhiteSpace(siparisNoCsv) ? "" : siparisNoCsv;
-                var lines = await _wmsDbContext.Set<FN_GoodsOpenOrders_Line>()
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_LINE({0}, {1}, {2})", ordersCsv, customerCode, branchCodeStr)
-                    .AsNoTracking()
+                var lines = await _unitOfWork.SqlQuery<FN_GoodsOpenOrders_Line>("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_LINE({0}, {1}, {2})", ordersCsv, customerCode, branchCodeStr)
                     .ToListAsync();
 
                 var lineDtos = _mapper.Map<List<GoodsOpenOrdersLineDto>>(lines);
@@ -69,9 +65,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var lines = await _wmsDbContext.Set<FN_GoodsOpenOrders_Line>()
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_LINE({0}, {1}, {2})", null, customerCode, branchCode)
-                    .AsNoTracking()
+                var lines = await _unitOfWork.SqlQuery<FN_GoodsOpenOrders_Line>("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_LINE({0}, {1}, {2})", null!, customerCode, branchCode)
                     .ToListAsync();
 
                 var lineDtos = _mapper.Map<List<GoodsOpenOrdersLineDto>>(lines);

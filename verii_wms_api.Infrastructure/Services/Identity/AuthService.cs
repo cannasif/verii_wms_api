@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using System.Text;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Models;
 using WMS_WEBAPI.Interfaces;
@@ -16,7 +15,6 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
         private readonly ILocalizationService _localizationService;
-        private readonly WmsDbContext _context;
         private readonly IHubContext<WMS_WEBAPI.Hubs.AuthHub> _hubContext;
         private readonly IResetPasswordEmailJob _resetPasswordEmailJob;
 
@@ -24,14 +22,12 @@ namespace WMS_WEBAPI.Services
             IUnitOfWork unitOfWork,
             IJwtService jwtService,
             ILocalizationService localizationService,
-            WmsDbContext context,
             IHubContext<WMS_WEBAPI.Hubs.AuthHub> hubContext,
             IResetPasswordEmailJob resetPasswordEmailJob)
         {
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
             _localizationService = localizationService;
-            _context = context;
             _hubContext = hubContext;
             _resetPasswordEmailJob = resetPasswordEmailJob;
         }
@@ -151,11 +147,13 @@ namespace WMS_WEBAPI.Services
                 }
                 var token = tokenResponse.Data!;
 
-                var activeSession = _context.Set<UserSession>().FirstOrDefault(s => s.UserId == user.Id && s.RevokedAt == null);
+                var activeSession = await _unitOfWork.UserSessions.Query(tracking: true)
+                    .Where(s => s.UserId == user.Id && s.RevokedAt == null)
+                    .FirstOrDefaultAsync();
                 if (activeSession != null)
                 {
                     activeSession.RevokedAt = DateTimeProvider.Now;
-                    _context.SaveChanges();
+                    await _unitOfWork.SaveChangesAsync();
                     await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, user.Id.ToString());
                 }
 
@@ -168,8 +166,8 @@ namespace WMS_WEBAPI.Services
                     IsDeleted = false,
                     CreatedDate = DateTimeProvider.Now
                 };
-                _context.Set<UserSession>().Add(session);
-                _context.SaveChanges();
+                await _unitOfWork.UserSessions.AddAsync(session);
+                await _unitOfWork.SaveChangesAsync();
                 
                 return ApiResponse<string>.SuccessResult(token, _localizationService.GetLocalizedString("Success.User.LoginSuccessful"));
             }
@@ -230,8 +228,8 @@ namespace WMS_WEBAPI.Services
                         CreatedDate = DateTimeProvider.Now,
                         IsDeleted = false
                     };
-                    _context.Set<PasswordResetRequest>().Add(reset);
-                    await _context.SaveChangesAsync();
+                    await _unitOfWork.PasswordResetRequests.AddAsync(reset);
+                    await _unitOfWork.SaveChangesAsync();
                     
                     var fullName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
                     if (string.IsNullOrWhiteSpace(fullName))
@@ -258,9 +256,9 @@ namespace WMS_WEBAPI.Services
                 var tokenHash = ComputeSha256Hash(request.Token);
                 var now = DateTime.UtcNow;
 
-                var reset = await _context.Set<PasswordResetRequest>()
+                var reset = await _unitOfWork.PasswordResetRequests.Query(tracking: true)
                     .Include(r => r.User)
-                    .Where(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now && !r.IsDeleted)
+                    .Where(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now)
                     .FirstOrDefaultAsync();
 
                 if (reset == null || reset.User == null)
@@ -274,7 +272,7 @@ namespace WMS_WEBAPI.Services
                 reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
                 reset.User.UpdatedDate = now;
 
-                await _context.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
 
                 await InvalidateUserSessionsAsync(reset.User.Id);
 
@@ -349,8 +347,8 @@ namespace WMS_WEBAPI.Services
                     IsDeleted = false,
                     CreatedDate = DateTimeProvider.Now
                 };
-                _context.Set<UserSession>().Add(session);
-                await _context.SaveChangesAsync();
+                await _unitOfWork.UserSessions.AddAsync(session);
+                await _unitOfWork.SaveChangesAsync();
 
                 var displayName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
                 if (string.IsNullOrWhiteSpace(displayName))
@@ -382,7 +380,7 @@ namespace WMS_WEBAPI.Services
 
         private async Task InvalidateUserSessionsAsync(long userId)
         {
-            var sessions = await _context.Set<UserSession>()
+            var sessions = await _unitOfWork.UserSessions.Query(tracking: true)
                 .Where(s => s.UserId == userId && s.RevokedAt == null)
                 .ToListAsync();
 
@@ -394,7 +392,7 @@ namespace WMS_WEBAPI.Services
                     s.RevokedAt = now;
                     s.UpdatedDate = now;
                 }
-                await _context.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, userId.ToString());
             }
         }

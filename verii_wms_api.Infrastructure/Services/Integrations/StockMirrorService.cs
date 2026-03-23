@@ -1,17 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Services
 {
     public class StockMirrorService : IStockMirrorService
     {
-        private readonly WmsDbContext _dbContext;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public StockMirrorService(WmsDbContext dbContext)
+        public StockMirrorService(IUnitOfWork unitOfWork)
         {
-            _dbContext = dbContext;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<ApiResponse<PagedResponse<StockPagedDto>>> GetPagedAsync(PagedRequest request)
@@ -27,8 +27,7 @@ namespace WMS_WEBAPI.Services
                     { "name", nameof(Models.Stock.StockName) }
                 };
 
-                var query = _dbContext.Stocks
-                    .AsNoTracking()
+                var query = _unitOfWork.Stocks.Query()
                     .ApplySearch(
                         request.Search,
                         nameof(Models.Stock.ErpStockCode),

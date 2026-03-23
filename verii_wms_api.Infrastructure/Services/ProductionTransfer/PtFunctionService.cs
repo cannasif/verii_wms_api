@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
 
@@ -8,13 +7,13 @@ namespace WMS_WEBAPI.Services
 {
     public class PtFunctionService : IPtFunctionService
     {
-        private readonly ErpDbContext _erpContext;
+        private readonly IErpUnitOfWork _erpUnitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
 
-        public PtFunctionService(ErpDbContext erpContext, IMapper mapper, ILocalizationService localizationService)
+        public PtFunctionService(IErpUnitOfWork erpUnitOfWork, IMapper mapper, ILocalizationService localizationService)
         {
-            _erpContext = erpContext;
+            _erpUnitOfWork = erpUnitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
         }
@@ -23,9 +22,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.ProductHeaders
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_PRODUCT_HEADER({0})", isemriNo)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_FN_PRODUCT_HEADER>("SELECT * FROM dbo.RII_FN_PRODUCT_HEADER({0})", isemriNo)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<ProductHeaderDto>>(result);
@@ -42,9 +39,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var result = await _erpContext.ProductLines
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_PRODUCT_LINE({0}, {1}, {2})", isemriNo, fisNo, mamulKodu)
-                    .AsNoTracking()
+                var result = await _erpUnitOfWork.SqlQuery<RII_FN_PRODUCT_LINE>("SELECT * FROM dbo.RII_FN_PRODUCT_LINE({0}, {1}, {2})", isemriNo!, fisNo!, mamulKodu!)
                     .ToListAsync();
 
                 var mappedResult = _mapper.Map<List<ProductLineDto>>(result);

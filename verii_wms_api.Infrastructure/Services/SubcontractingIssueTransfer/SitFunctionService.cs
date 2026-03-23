@@ -1,23 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
-using WMS_WEBAPI.Data;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
 using Microsoft.AspNetCore.Http;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Services
 {
     public class SitFunctionService : ISitFunctionService
     {
-        private readonly WmsDbContext _wmsDbContext;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public SitFunctionService(WmsDbContext wmsDbContext, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
+        public SitFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
         {
-            _wmsDbContext = wmsDbContext;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
@@ -28,9 +28,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                var rows = await _wmsDbContext.Set<FN_SitOpenOrder_Header>()
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_SIT_HEADER({0}, {1})", customerCode, branchCodeStr)
-                    .AsNoTracking()
+                var rows = await _unitOfWork.SqlQuery<FN_SitOpenOrder_Header>("SELECT * FROM dbo.RII_FN_SIT_HEADER({0}, {1})", customerCode, branchCodeStr)
                     .ToListAsync();
                 var dtos = _mapper.Map<List<SitOpenOrderHeaderDto>>(rows);
                 return ApiResponse<List<SitOpenOrderHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitFunctionOpenOrderHeaderRetrievedSuccessfully"));
@@ -46,9 +44,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                var rows = await _wmsDbContext.Set<FN_SitOpenOrder_Line>()
-                    .FromSqlRaw("SELECT * FROM dbo.RII_FN_SIT_LINE({0}, {1})", siparisNoCsv, branchCodeStr)
-                    .AsNoTracking()
+                var rows = await _unitOfWork.SqlQuery<FN_SitOpenOrder_Line>("SELECT * FROM dbo.RII_FN_SIT_LINE({0}, {1})", siparisNoCsv, branchCodeStr)
                     .ToListAsync();
                 var dtos = _mapper.Map<List<SitOpenOrderLineDto>>(rows);
                 return ApiResponse<List<SitOpenOrderLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitFunctionOpenOrderLineRetrievedSuccessfully"));
