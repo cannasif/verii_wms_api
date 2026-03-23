@@ -93,7 +93,8 @@ namespace WMS_WEBAPI.Services
             {
                 var exists = await _unitOfWork.PermissionDefinitions.AsQueryable()
                     .AsNoTracking()
-                    .AnyAsync(x => !x.IsDeleted && x.Code == dto.Code);
+                    .Where(x => !x.IsDeleted && x.Code == dto.Code)
+                            .AnyAsync();
 
                 if (exists)
                 {
@@ -144,7 +145,8 @@ namespace WMS_WEBAPI.Services
                 {
                     var duplicate = await _unitOfWork.PermissionDefinitions.AsQueryable()
                         .AsNoTracking()
-                        .AnyAsync(x => !x.IsDeleted && x.Id != id && x.Code == dto.Code);
+                        .Where(x => !x.IsDeleted && x.Id != id && x.Code == dto.Code)
+                            .AnyAsync();
 
                     if (duplicate)
                     {

@@ -175,7 +175,8 @@ namespace WMS_WEBAPI.Services
 
                 var hasActiveLineSerials = await _unitOfWork.ShLineSerials
                     .Query()
-                    .AnyAsync(ls => ls.LineId == id);
+                    .Where(ls => ls.LineId == id)
+                            .AnyAsync();
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("ShLineLineSerialsExist");
@@ -197,10 +198,12 @@ namespace WMS_WEBAPI.Services
 
                     var hasOtherLines = await _unitOfWork.ShLines
                         .Query()
-                        .AnyAsync(l => l.HeaderId == headerId);
+                        .Where(l => l.HeaderId == headerId)
+                            .AnyAsync();
                     var hasOtherImportLines = await _unitOfWork.ShImportLines
                         .Query()
-                        .AnyAsync(il => il.HeaderId == headerId);
+                        .Where(il => il.HeaderId == headerId)
+                            .AnyAsync();
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.ShHeaders.SoftDelete(headerId);

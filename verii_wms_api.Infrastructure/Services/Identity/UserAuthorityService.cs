@@ -165,7 +165,8 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var hasUsersWithRole = await _unitOfWork.Users.AsQueryable()
-                    .AnyAsync(u => u.RoleId == id);
+                    .Where(u => u.RoleId == id)
+                            .AnyAsync();
                 if (hasUsersWithRole)
                 {
                     return ApiResponse<bool>.ErrorResult(

@@ -155,7 +155,8 @@ namespace WMS_WEBAPI.Repositories
 
         public async Task<bool> ExistsAsync(long id)
         {
-            return await _dbSet.AnyAsync(e => e.Id == id && !e.IsDeleted);
+            return await _dbSet.Where(e => e.Id == id && !e.IsDeleted)
+                            .AnyAsync();
         }
 
         public async Task<int> CountAsync()

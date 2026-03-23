@@ -205,7 +205,8 @@ namespace WMS_WEBAPI.Services
                 // ============================================
                 var hasRoutes = await _unitOfWork.WtRoutes
                     .AsQueryable()
-                    .AnyAsync(r => r.ImportLineId == id && !r.IsDeleted);
+                    .Where(r => r.ImportLineId == id && !r.IsDeleted)
+                            .AnyAsync();
                 if (hasRoutes)
                 {
                     var msg = _localizationService.GetLocalizedString("WtImportLineRoutesExist");
@@ -219,7 +220,8 @@ namespace WMS_WEBAPI.Services
                 {
                     var hasActiveLineSerials = await _unitOfWork.WtLineSerials
                         .AsQueryable()
-                        .AnyAsync(ls => !ls.IsDeleted && ls.LineId == entity.LineId.Value);
+                        .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId.Value)
+                            .AnyAsync();
                     if (hasActiveLineSerials)
                     {
                         var msg = _localizationService.GetLocalizedString("WtImportLineLineSerialsExist");
@@ -239,13 +241,15 @@ namespace WMS_WEBAPI.Services
                     var headerId = entity.HeaderId;
                     var hasOtherLines = await _unitOfWork.WtLines
                         .AsQueryable()
-                        .AnyAsync(l => !l.IsDeleted && l.HeaderId == headerId);
+                        .Where(l => !l.IsDeleted && l.HeaderId == headerId)
+                            .AnyAsync();
                     
                     if (!hasOtherLines)
                     {
                         var hasOtherImportLines = await _unitOfWork.WtImportLines
                             .AsQueryable()
-                            .AnyAsync(il => !il.IsDeleted && il.HeaderId == headerId);
+                            .Where(il => !il.IsDeleted && il.HeaderId == headerId)
+                            .AnyAsync();
                         
                         if (!hasOtherImportLines)
                         {

@@ -22,6 +22,8 @@ This project uses `Query(bool tracking = false, bool ignoreQueryFilters = false)
 - Avoid `AsQueryable()` directly on repositories in service code.
 - Avoid `FindAsync(...)` for normal read flows when the same logic can be expressed with `Query().Where(...)`.
 - Avoid `GetByIdAsync(...)` inside service methods for read flows; prefer `Query().Where(x => x.Id == id).FirstOrDefaultAsync()` so the tracking/filter intent is visible.
+- Avoid passing predicates directly into terminal operators such as `FirstOrDefaultAsync(...)`, `SingleOrDefaultAsync(...)`, or `AnyAsync(...)`.
+- Prefer keeping the filter in `Where(...)` and the terminal operator argument-free so the query chain reads consistently.
 
 ## Practical patterns
 
@@ -30,6 +32,20 @@ This project uses `Query(bool tracking = false, bool ignoreQueryFilters = false)
 var entity = await _unitOfWork.WtHeaders.Query()
     .Where(x => x.Id == id)
     .FirstOrDefaultAsync();
+```
+
+### Existence check
+```csharp
+var exists = await _unitOfWork.WtHeaders.Query()
+    .Where(x => x.DocumentNo == documentNo)
+    .AnyAsync();
+```
+
+### Single row expectation
+```csharp
+var entity = await _unitOfWork.WtHeaders.Query()
+    .Where(x => x.DocumentNo == documentNo)
+    .SingleOrDefaultAsync();
 ```
 
 ### Write flow
@@ -53,6 +69,7 @@ _unitOfWork.WtTerminalLines.Query(false, false)
 This avoids optional-argument issues in some LINQ expression scenarios.
 
 ## Team rule of thumb
-- Read path: `Query()`
-- Write path: `Query(tracking: true)`
-- Deleted data inspection: `Query(ignoreQueryFilters: true)`
+- Read path: `Query().Where(...).FirstOrDefaultAsync()/ToListAsync()/AnyAsync()`
+- Write path: `Query(tracking: true).Where(...).FirstOrDefaultAsync()`
+- Deleted data inspection: `Query(ignoreQueryFilters: true).Where(...).FirstOrDefaultAsync()`
+- Keep predicates in `Where(...)`, not inside terminal operators.

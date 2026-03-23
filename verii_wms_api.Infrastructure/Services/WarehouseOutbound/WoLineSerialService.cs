@@ -190,13 +190,14 @@ namespace WMS_WEBAPI.Services
                     {
                         var serialExistsInRoutes = await _unitOfWork.WoRoutes
                             .Query()
-                            .AnyAsync(r => r.ImportLine.LineId == entity.LineId
+                            .Where(r => r.ImportLine.LineId == entity.LineId
                                            && (
                                                (!string.IsNullOrWhiteSpace(s1) && (r.SerialNo ?? "").Trim() == s1) ||
                                                (!string.IsNullOrWhiteSpace(s2) && (r.SerialNo2 ?? "").Trim() == s2) ||
                                                (!string.IsNullOrWhiteSpace(s3) && (r.SerialNo3 ?? "").Trim() == s3) ||
                                                (!string.IsNullOrWhiteSpace(s4) && (r.SerialNo4 ?? "").Trim() == s4)
-                                           ));
+                                           ))
+                            .AnyAsync();
                         if (serialExistsInRoutes)
                         {
                             var msg = _localizationService.GetLocalizedString("WoLineSerialRoutesExist");
@@ -229,7 +230,8 @@ namespace WMS_WEBAPI.Services
 
                 var hasImportLines = await _unitOfWork.WoImportLines
                     .Query()
-                    .AnyAsync(il => il.LineId == entity.LineId);
+                    .Where(il => il.LineId == entity.LineId)
+                            .AnyAsync();
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
 
                 var headerWillBeDeleted = false;
@@ -245,7 +247,8 @@ namespace WMS_WEBAPI.Services
                     {
                         var hasHeaderImportLines = await _unitOfWork.WoImportLines
                             .Query()
-                            .AnyAsync(il => il.HeaderId == headerId);
+                            .Where(il => il.HeaderId == headerId)
+                            .AnyAsync();
                         if (!hasHeaderImportLines)
                         {
                             headerWillBeDeleted = true;

@@ -109,7 +109,8 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var usernameExists = await _unitOfWork.Users.Query()
-                    .AnyAsync(x => x.Username == dto.Username);
+                    .Where(x => x.Username == dto.Username)
+                            .AnyAsync();
                 if (usernameExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -119,7 +120,8 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var emailExists = await _unitOfWork.Users.Query()
-                    .AnyAsync(x => x.Email == dto.Email);
+                    .Where(x => x.Email == dto.Email)
+                            .AnyAsync();
                 if (emailExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -129,7 +131,8 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var roleExists = await _unitOfWork.UserAuthorities.Query()
-                    .AnyAsync(x => x.Id == dto.RoleId);
+                    .Where(x => x.Id == dto.RoleId)
+                            .AnyAsync();
                 if (!roleExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -214,7 +217,8 @@ namespace WMS_WEBAPI.Services
                 if (!string.IsNullOrWhiteSpace(dto.Email) && !dto.Email.Equals(entity.Email, StringComparison.OrdinalIgnoreCase))
                 {
                     var emailExists = await _unitOfWork.Users.Query()
-                        .AnyAsync(x => x.Id != id && x.Email == dto.Email);
+                        .Where(x => x.Id != id && x.Email == dto.Email)
+                            .AnyAsync();
                     if (emailExists)
                     {
                         return ApiResponse<UserDto>.ErrorResult(
@@ -227,7 +231,8 @@ namespace WMS_WEBAPI.Services
                 if (dto.RoleId.HasValue)
                 {
                     var roleExists = await _unitOfWork.UserAuthorities.Query()
-                        .AnyAsync(x => x.Id == dto.RoleId.Value);
+                        .Where(x => x.Id == dto.RoleId.Value)
+                            .AnyAsync();
                     if (!roleExists)
                     {
                         return ApiResponse<UserDto>.ErrorResult(
@@ -291,7 +296,8 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var exists = await _unitOfWork.Users.Query().AnyAsync(x => x.Id == id);
+                var exists = await _unitOfWork.Users.Query().Where(x => x.Id == id)
+                            .AnyAsync();
                 if (!exists)
                 {
                     return ApiResponse<object>.ErrorResult(
@@ -402,7 +408,8 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.Query()
-                    .AnyAsync(x => x.IsSystemAdmin && distinctGroupIds.Contains(x.Id));
+                    .Where(x => x.IsSystemAdmin && distinctGroupIds.Contains(x.Id))
+                            .AnyAsync();
 
                 if (!hasSystemAdminGroup)
                 {

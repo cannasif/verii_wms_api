@@ -201,7 +201,8 @@ namespace WMS_WEBAPI.Services
 
                 var hasActiveLineSerials = await _unitOfWork.WiLineSerials
                     .AsQueryable()
-                    .AnyAsync(ls => !ls.IsDeleted && ls.LineId == entity.LineId);
+                    .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
+                            .AnyAsync();
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("WiImportLineLineSerialsExist");
@@ -216,10 +217,12 @@ namespace WMS_WEBAPI.Services
                     var headerId = entity.HeaderId;
                     var hasOtherLines = await _unitOfWork.WiLines
                         .AsQueryable()
-                        .AnyAsync(l => !l.IsDeleted && l.HeaderId == headerId);
+                        .Where(l => !l.IsDeleted && l.HeaderId == headerId)
+                            .AnyAsync();
                     var hasOtherImportLines = await _unitOfWork.WiImportLines
                         .AsQueryable()
-                        .AnyAsync(il => !il.IsDeleted && il.HeaderId == headerId);
+                        .Where(il => !il.IsDeleted && il.HeaderId == headerId)
+                            .AnyAsync();
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.WiHeaders.SoftDelete(headerId);

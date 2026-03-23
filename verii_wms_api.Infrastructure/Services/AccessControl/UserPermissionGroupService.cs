@@ -90,7 +90,8 @@ namespace WMS_WEBAPI.Services
 
                     var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.AsQueryable()
                         .AsNoTracking()
-                        .AnyAsync(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id));
+                        .Where(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id))
+                            .AnyAsync();
 
                     if (hasSystemAdminGroup)
                     {
