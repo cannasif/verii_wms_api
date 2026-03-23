@@ -166,9 +166,5 @@ namespace WMS_WEBAPI.Repositories
                             .CountAsync();
         }
 
-        public IQueryable<T> AsQueryable()
-        {
-            return Query();
-        }
     }
 }

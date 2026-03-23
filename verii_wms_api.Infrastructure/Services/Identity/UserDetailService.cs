@@ -53,9 +53,8 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.UserDetails
-                    .AsQueryable()
-                    .AsNoTracking()  // Add AsNoTracking to prevent tracking conflicts
+                var entity = await _unitOfWork.UserDetails.Query()
+                      // Add AsNoTracking to prevent tracking conflicts
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 
@@ -83,8 +82,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var entities = await _unitOfWork.UserDetails.Query()
                     .Where(x => !x.IsDeleted)
                     .ToListAsync();
 
@@ -107,7 +105,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.UserDetails.AsQueryable()
+                var query = _unitOfWork.UserDetails.Query()
                     .Where(x => !x.IsDeleted);
 
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
@@ -149,8 +147,7 @@ namespace WMS_WEBAPI.Services
                 }
 
                 // Check if user detail already exists
-                var existingDetail = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var existingDetail = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == dto.UserId && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 

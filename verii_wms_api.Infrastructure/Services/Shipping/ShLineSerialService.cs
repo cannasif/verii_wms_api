@@ -42,7 +42,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.ShLineSerials.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.ShLineSerials.Query().Where(x => !x.IsDeleted);
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -158,8 +158,7 @@ namespace WMS_WEBAPI.Services
                     var anyEntitySerial = !string.IsNullOrWhiteSpace(s1) || !string.IsNullOrWhiteSpace(s2) || !string.IsNullOrWhiteSpace(s3) || !string.IsNullOrWhiteSpace(s4);
                     if (anyEntitySerial)
                     {
-                        var serialExistsInRoutes = await _unitOfWork.ShRoutes
-                            .AsQueryable()
+                        var serialExistsInRoutes = await _unitOfWork.ShRoutes.Query()
                             .Where(r => !r.IsDeleted
                                            && r.ImportLine.LineId == entity.LineId
                                            && (
@@ -177,13 +176,11 @@ namespace WMS_WEBAPI.Services
                     }
                 }
 
-                var totalLineSerialQty = await _unitOfWork.ShLineSerials
-                    .AsQueryable()
+                var totalLineSerialQty = await _unitOfWork.ShLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
                     .SumAsync(ls => ls.Quantity);
 
-                var totalRouteQty = await _unitOfWork.ShRoutes
-                    .AsQueryable()
+                var totalRouteQty = await _unitOfWork.ShRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLine.LineId == entity.LineId)
                     .SumAsync(r => r.Quantity);
 
@@ -194,14 +191,12 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var currentSerialCount = await _unitOfWork.ShLineSerials
-                    .AsQueryable()
+                var currentSerialCount = await _unitOfWork.ShLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
                             .CountAsync();
                 var remainingSerialCount = currentSerialCount - 1;
 
-                var hasImportLines = await _unitOfWork.ShImportLines
-                    .AsQueryable()
+                var hasImportLines = await _unitOfWork.ShImportLines.Query()
                     .Where(il => !il.IsDeleted && il.LineId == entity.LineId)
                             .AnyAsync();
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
@@ -211,15 +206,13 @@ namespace WMS_WEBAPI.Services
                 if (lineWillBeDeleted && lineEntity != null)
                 {
                     var headerId = lineEntity.HeaderId;
-                    var currentLinesUnderHeader = await _unitOfWork.ShLines
-                        .AsQueryable()
+                    var currentLinesUnderHeader = await _unitOfWork.ShLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .CountAsync();
                     var remainingLinesUnderHeader = currentLinesUnderHeader - 1;
                     if (remainingLinesUnderHeader == 0)
                     {
-                        var hasHeaderImportLines = await _unitOfWork.ShImportLines
-                            .AsQueryable()
+                        var hasHeaderImportLines = await _unitOfWork.ShImportLines.Query()
                             .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                         if (!hasHeaderImportLines)

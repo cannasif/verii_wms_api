@@ -29,7 +29,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.PtLines.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.PtLines.Query().Where(x => !x.IsDeleted);
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -174,8 +174,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("PtLineNotFound"), _localizationService.GetLocalizedString("PtLineNotFound"), 404);
                 }
 
-                var hasActiveLineSerials = await _unitOfWork.PtLineSerials
-                    .AsQueryable()
+                var hasActiveLineSerials = await _unitOfWork.PtLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == id)
                             .AnyAsync();
                 if (hasActiveLineSerials)
@@ -197,12 +196,10 @@ namespace WMS_WEBAPI.Services
                 {
                     await _unitOfWork.PtLines.SoftDelete(id);
 
-                    var hasOtherLines = await _unitOfWork.PtLines
-                        .AsQueryable()
+                    var hasOtherLines = await _unitOfWork.PtLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .AnyAsync();
-                    var hasOtherImportLines = await _unitOfWork.PtImportLines
-                        .AsQueryable()
+                    var hasOtherImportLines = await _unitOfWork.PtImportLines.Query()
                         .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                     if (!hasOtherLines && !hasOtherImportLines)

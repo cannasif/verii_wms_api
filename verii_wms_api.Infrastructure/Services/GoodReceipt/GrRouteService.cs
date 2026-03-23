@@ -38,7 +38,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.GrRoutes.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.GrRoutes.Query().Where(x => !x.IsDeleted);
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -94,7 +94,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.GrRoutes.AsQueryable().Where(x => !x.IsDeleted && x.ImportLine.HeaderId == headerId && x.ImportLine.IsDeleted == false);
+                var query = _unitOfWork.GrRoutes.Query().Where(x => !x.IsDeleted && x.ImportLine.HeaderId == headerId && x.ImportLine.IsDeleted == false);
                 var items = await query.ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<GrRouteDto>>(items);
                 return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
@@ -161,8 +161,7 @@ namespace WMS_WEBAPI.Services
                 var importLineId = route.ImportLineId;
 
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
-                var remainingRoutesCount = await _unitOfWork.GrRoutes
-                    .AsQueryable()
+                var remainingRoutesCount = await _unitOfWork.GrRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
                             .CountAsync();
 

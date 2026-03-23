@@ -29,7 +29,7 @@ namespace WMS_WEBAPI.Services
                 if (pageNumber < 1) pageNumber = 1;
                 if (pageSize < 1) pageSize = 10;
 
-                var query = _unitOfWork.GrLineSerials.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.GrLineSerials.Query().Where(x => !x.IsDeleted);
                 sortBy = string.IsNullOrWhiteSpace(sortBy) ? "Id" : sortBy.Trim();
                 bool desc = sortDirection?.Equals("desc", StringComparison.OrdinalIgnoreCase) == true;
                 query = query.ApplySorting(sortBy, desc);

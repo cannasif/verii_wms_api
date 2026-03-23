@@ -102,7 +102,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.SrtRoutes.AsQueryable().Where(r => ((r.ImportLine.StockCode ?? "").Trim() == (stockCode ?? "").Trim()) && !r.IsDeleted);
+                var query = _unitOfWork.SrtRoutes.Query().Where(r => ((r.ImportLine.StockCode ?? "").Trim() == (stockCode ?? "").Trim()) && !r.IsDeleted);
                 var entities = await query.ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
@@ -212,8 +212,7 @@ namespace WMS_WEBAPI.Services
                 var importLineId = route.ImportLineId;
 
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
-                var remainingRoutesCount = await _unitOfWork.SrtRoutes
-                    .AsQueryable()
+                var remainingRoutesCount = await _unitOfWork.SrtRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
                             .CountAsync();
 

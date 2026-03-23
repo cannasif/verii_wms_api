@@ -40,7 +40,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.Users.AsQueryable().Include(u => u.RoleNavigation);
+                var query = _unitOfWork.Users.Query().Include(u => u.RoleNavigation);
                 var user = await query.Where(u => u.Username == username)
                             .FirstOrDefaultAsync();
                 
@@ -63,7 +63,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var user = await _unitOfWork.Users.AsQueryable().Include(u => u.RoleNavigation)
+                var user = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation)
                     .Where(u => u.Id == id)
                     .FirstOrDefaultAsync();
                 
@@ -126,7 +126,7 @@ namespace WMS_WEBAPI.Services
                     Password = request.Password
                 };
                 // Email veya username ile kullanıcı arama
-                var user = await _unitOfWork.Users.AsQueryable()
+                var user = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Username == loginDto.Username || u.Email == loginDto.Username)
                     .FirstOrDefaultAsync();
@@ -183,7 +183,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var users = await _unitOfWork.Users.AsQueryable().Include(u => u.RoleNavigation).ToListAsync();
+                var users = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation).ToListAsync();
                 var dtos = users.Select(MapToUserDto).ToList();
                 return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
             }
@@ -197,7 +197,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var users = await _unitOfWork.Users.AsQueryable()
+                var users = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.IsActive == true)
                     .ToListAsync();
@@ -214,7 +214,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var user = await _unitOfWork.Users.AsQueryable().Where(u => u.Email == request.Email)
+                var user = await _unitOfWork.Users.Query().Where(u => u.Email == request.Email)
                             .FirstOrDefaultAsync();
                 var token = Guid.NewGuid().ToString("N");
                 var tokenHash = ComputeSha256Hash(token);
@@ -298,7 +298,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var user = await _unitOfWork.Users.AsQueryable()
+                var user = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Id == userId)
                     .FirstOrDefaultAsync();
@@ -401,13 +401,13 @@ namespace WMS_WEBAPI.Services
 
         private async Task<(IReadOnlyCollection<string> Permissions, bool IsSystemAdmin)> GetPermissionClaimsAsync(long userId, long roleId)
         {
-            var roleTitle = await _unitOfWork.UserAuthorities.AsQueryable()
+            var roleTitle = await _unitOfWork.UserAuthorities.Query()
                 .AsNoTracking()
                 .Where(x => !x.IsDeleted && x.Id == roleId)
                 .Select(x => x.Title)
                 .FirstOrDefaultAsync();
 
-            var userGroupLinks = await _unitOfWork.UserPermissionGroups.AsQueryable()
+            var userGroupLinks = await _unitOfWork.UserPermissionGroups.Query()
                 .AsNoTracking()
                 .Where(x => x.UserId == userId && !x.IsDeleted)
                 .Include(x => x.PermissionGroup)

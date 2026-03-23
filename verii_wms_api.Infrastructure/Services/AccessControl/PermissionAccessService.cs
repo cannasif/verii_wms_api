@@ -36,7 +36,7 @@ namespace WMS_WEBAPI.Services
                         StatusCodes.Status401Unauthorized);
                 }
 
-                var user = await _unitOfWork.Users.AsQueryable()
+                var user = await _unitOfWork.Users.Query()
                     .AsNoTracking()
                     .Include(x => x.RoleNavigation)
                     .Where(x => x.Id == userId && !x.IsDeleted)
@@ -50,7 +50,7 @@ namespace WMS_WEBAPI.Services
                         StatusCodes.Status404NotFound);
                 }
 
-                var userGroupLinks = await _unitOfWork.UserPermissionGroups.AsQueryable()
+                var userGroupLinks = await _unitOfWork.UserPermissionGroups.Query()
                     .AsNoTracking()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                     .Include(x => x.PermissionGroup)

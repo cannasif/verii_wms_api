@@ -65,8 +65,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SmtpSettings
-                    .AsQueryable()
+                var entity = await _unitOfWork.SmtpSettings.Query()
                     .OrderBy(x => x.Id)
                     .Where(x => !x.IsDeleted)
                             .FirstOrDefaultAsync();
@@ -74,9 +73,8 @@ namespace WMS_WEBAPI.Services
                 if (entity == null)
                 {
                     // Soft-deleted record exists: revive and reuse it instead of inserting explicit Id.
-                    entity = await _unitOfWork.SmtpSettings
-                        .AsQueryable()
-                        .IgnoreQueryFilters()
+                    entity = await _unitOfWork.SmtpSettings.Query(ignoreQueryFilters: true)
+                        
                         .OrderBy(x => x.Id)
                         .FirstOrDefaultAsync();
 
@@ -174,8 +172,7 @@ namespace WMS_WEBAPI.Services
 
         private async Task<SmtpSetting> EnsureSeededSettingsAsync()
         {
-            var entity = await _unitOfWork.SmtpSettings
-                .AsQueryable()
+            var entity = await _unitOfWork.SmtpSettings.Query()
                 .OrderBy(x => x.Id)
                 .Where(x => !x.IsDeleted)
                             .FirstOrDefaultAsync();
@@ -186,9 +183,8 @@ namespace WMS_WEBAPI.Services
             }
 
             // If there is a soft-deleted SMTP row, revive and update defaults instead of creating a new identity row.
-            entity = await _unitOfWork.SmtpSettings
-                .AsQueryable()
-                .IgnoreQueryFilters()
+            entity = await _unitOfWork.SmtpSettings.Query(ignoreQueryFilters: true)
+                
                 .OrderBy(x => x.Id)
                 .FirstOrDefaultAsync();
 

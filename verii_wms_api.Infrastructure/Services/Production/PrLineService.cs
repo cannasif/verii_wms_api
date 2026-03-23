@@ -29,7 +29,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.PrLines.AsQueryable().Where(x => !x.IsDeleted);
+                var query = _unitOfWork.PrLines.Query().Where(x => !x.IsDeleted);
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -173,8 +173,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("PrLineNotFound"), _localizationService.GetLocalizedString("PrLineNotFound"), 404);
                 }
                 
-                var hasActiveLineSerials = await _unitOfWork.PrLineSerials
-                    .AsQueryable()
+                var hasActiveLineSerials = await _unitOfWork.PrLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == id)
                             .AnyAsync();
                 if (hasActiveLineSerials)
@@ -196,12 +195,10 @@ namespace WMS_WEBAPI.Services
                 {
                     await _unitOfWork.PrLines.SoftDelete(id);
 
-                    var hasOtherLines = await _unitOfWork.PrLines
-                        .AsQueryable()
+                    var hasOtherLines = await _unitOfWork.PrLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .AnyAsync();
-                    var hasOtherImportLines = await _unitOfWork.PrImportLines
-                        .AsQueryable()
+                    var hasOtherImportLines = await _unitOfWork.PrImportLines.Query()
                         .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                     if (!hasOtherLines && !hasOtherImportLines)

@@ -231,12 +231,10 @@ namespace WMS_WEBAPI.Services
                 {
                     await _unitOfWork.SrtLines.SoftDelete(id);
 
-                    var hasOtherLines = await _unitOfWork.SrtLines
-                        .AsQueryable()
+                    var hasOtherLines = await _unitOfWork.SrtLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .AnyAsync();
-                    var hasOtherImportLines = await _unitOfWork.SrtImportLines
-                        .AsQueryable()
+                    var hasOtherImportLines = await _unitOfWork.SrtImportLines.Query()
                         .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                     if (!hasOtherLines && !hasOtherImportLines)

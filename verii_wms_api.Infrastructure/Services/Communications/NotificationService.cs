@@ -105,7 +105,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var baseQuery = _unitOfWork.Notifications.AsQueryable()
+                var baseQuery = _unitOfWork.Notifications.Query()
                     .Where(x => x.RecipientUserId == userId && !x.IsDeleted);
 
                 baseQuery = baseQuery.ApplyFilters(request.Filters, request.FilterLogic);
@@ -175,8 +175,7 @@ namespace WMS_WEBAPI.Services
                 }
 
                 // Get all notifications that are not deleted and match the provided IDs
-                var entities = await _unitOfWork.Notifications
-                    .AsQueryable()
+                var entities = await _unitOfWork.Notifications.Query()
                     .Where(x => ids.Contains(x.Id) && !x.IsDeleted)
                     .ToListAsync();
 
@@ -212,8 +211,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 // Get all unread notifications for the user
-                var entities = await _unitOfWork.Notifications
-                    .AsQueryable()
+                var entities = await _unitOfWork.Notifications.Query()
                     .Where(x => x.RecipientUserId == userId && !x.IsDeleted && !x.IsRead)
                     .ToListAsync();
 

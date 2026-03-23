@@ -376,7 +376,7 @@ namespace WMS_WEBAPI.Services
             request ??= new PagedRequest();
             request.Filters ??= new List<Filter>();
 
-            var query = (source.Data ?? Enumerable.Empty<T>()).AsQueryable();
+            var query = (source.Data ?? Enumerable.Empty<T>());
             var columns = searchableColumns.Length > 0
                 ? searchableColumns
                 : typeof(T)
@@ -386,13 +386,14 @@ namespace WMS_WEBAPI.Services
                     .ToArray();
 
             query = query
+            .AsQueryable()
                 .ApplySearch(request.Search, columns)
                 .ApplyFilters(request.Filters, request.FilterLogic);
 
             bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(request.SortDirection, "descending", StringComparison.OrdinalIgnoreCase);
 
-            query = query.ApplySorting(request.SortBy ?? "Id", desc);
+            query = query.AsQueryable().ApplySorting(request.SortBy ?? "Id", desc);
 
             var pageNumber = Math.Max(request.PageNumber, 0);
             var pageSize = request.PageSize <= 0 ? 20 : request.PageSize;

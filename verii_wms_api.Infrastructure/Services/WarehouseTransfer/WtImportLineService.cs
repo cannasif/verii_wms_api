@@ -203,8 +203,7 @@ namespace WMS_WEBAPI.Services
                 // ============================================
                 // VALIDATION: Check for dependent routes
                 // ============================================
-                var hasRoutes = await _unitOfWork.WtRoutes
-                    .AsQueryable()
+                var hasRoutes = await _unitOfWork.WtRoutes.Query()
                     .Where(r => r.ImportLineId == id && !r.IsDeleted)
                             .AnyAsync();
                 if (hasRoutes)
@@ -218,8 +217,7 @@ namespace WMS_WEBAPI.Services
                 // ============================================
                 if (entity.LineId.HasValue)
                 {
-                    var hasActiveLineSerials = await _unitOfWork.WtLineSerials
-                        .AsQueryable()
+                    var hasActiveLineSerials = await _unitOfWork.WtLineSerials.Query()
                         .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId.Value)
                             .AnyAsync();
                     if (hasActiveLineSerials)
@@ -239,15 +237,13 @@ namespace WMS_WEBAPI.Services
 
                     // Check if header should also be deleted
                     var headerId = entity.HeaderId;
-                    var hasOtherLines = await _unitOfWork.WtLines
-                        .AsQueryable()
+                    var hasOtherLines = await _unitOfWork.WtLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .AnyAsync();
                     
                     if (!hasOtherLines)
                     {
-                        var hasOtherImportLines = await _unitOfWork.WtImportLines
-                            .AsQueryable()
+                        var hasOtherImportLines = await _unitOfWork.WtImportLines.Query()
                             .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                         
@@ -336,8 +332,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<IEnumerable<WtImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("WtHeaderNotFound"), _localizationService.GetLocalizedString("WtHeaderNotFound"), 404);
                 }
 
-                var importLines = await _unitOfWork.WtImportLines
-                    .AsQueryable()
+                var importLines = await _unitOfWork.WtImportLines.Query()
                     .Where(x => x.HeaderId == headerId && !x.IsDeleted)
                     .ToListAsync();
 
@@ -350,8 +345,7 @@ namespace WMS_WEBAPI.Services
 
                 // 1. Tüm routes'ları tek sorguda çek - N+1 problemi çözüldü
                 var importLineIds = importLines.Select(il => il.Id).ToList();
-                var routes = await _unitOfWork.WtRoutes
-                    .AsQueryable()
+                var routes = await _unitOfWork.WtRoutes.Query()
                     .Where(r => importLineIds.Contains(r.ImportLineId) && !r.IsDeleted)
                     .ToListAsync();
 
@@ -366,9 +360,9 @@ namespace WMS_WEBAPI.Services
                 {
                     var routeIds = routes.Select(r => r.Id).ToList();
                     var packageInfoList = await (
-                        from pl in _unitOfWork.PLines.AsQueryable()
-                        join p in _unitOfWork.PPackages.AsQueryable() on pl.PackageId equals p.Id
-                        join ph in _unitOfWork.PHeaders.AsQueryable() on p.PackingHeaderId equals ph.Id
+                        from pl in _unitOfWork.PLines.Query()
+                        join p in _unitOfWork.PPackages.Query() on pl.PackageId equals p.Id
+                        join ph in _unitOfWork.PHeaders.Query() on p.PackingHeaderId equals ph.Id
                         where !pl.IsDeleted
                               && !p.IsDeleted
                               && !ph.IsDeleted
@@ -480,8 +474,7 @@ namespace WMS_WEBAPI.Services
                         var reqStock = (request.StockCode ?? "").Trim();
                         var reqYap = (request.YapKod ?? "").Trim();
                         
-                        var matchingLines = await _unitOfWork.WtLines
-                            .AsQueryable()
+                        var matchingLines = await _unitOfWork.WtLines.Query()
                             .Where(l => l.HeaderId == request.HeaderId 
                                 && !l.IsDeleted
                                 && ((l.StockCode ?? "").Trim() == reqStock)
@@ -505,8 +498,7 @@ namespace WMS_WEBAPI.Services
 
                         // Eşleşen Line'ların (StockCode + YapKod ile eşleşen) LineSerial'larını kontrol et
                         var lineIds = matchingLines.Select(l => l.Id).ToList();
-                        var lineSerials = await _unitOfWork.WtLineSerials
-                            .AsQueryable()
+                        var lineSerials = await _unitOfWork.WtLineSerials.Query()
                             .Where(ls => !ls.IsDeleted && lineIds.Contains(ls.LineId))
                             .ToListAsync();
 
@@ -515,8 +507,7 @@ namespace WMS_WEBAPI.Services
                             !string.IsNullOrWhiteSpace(ls.SerialNo));
 
                         // Get WtParameter for validation rules
-                        var wtParameter = await _unitOfWork.WtParameters
-                            .AsQueryable()
+                        var wtParameter = await _unitOfWork.WtParameters.Query()
                             .Where(p => !p.IsDeleted)
                             .FirstOrDefaultAsync();
 
@@ -542,8 +533,7 @@ namespace WMS_WEBAPI.Services
                                 // Seri bazlı miktar kontrolü
                                 var totalLineSerialQuantity = matchingLineSerials.Sum(ls => ls.Quantity);
                                 
-                                var totalRouteQuantity = await _unitOfWork.WtRoutes
-                                    .AsQueryable()
+                                var totalRouteQuantity = await _unitOfWork.WtRoutes.Query()
                                     .Where(r => !r.IsDeleted
                                         && lineIds.Contains(r.ImportLine.LineId ?? 0)
                                         && !r.ImportLine.IsDeleted
@@ -577,8 +567,7 @@ namespace WMS_WEBAPI.Services
                                 var totalLineSerialQuantity = lineSerials.Sum(ls => ls.Quantity);
 
                                 // Tüm Route'ların toplam miktarı (eşleşen Line'lar için)
-                                var totalRouteQuantity = await _unitOfWork.WtRoutes
-                                    .AsQueryable()
+                                var totalRouteQuantity = await _unitOfWork.WtRoutes.Query()
                                     .Where(r => !r.IsDeleted
                                         && lineIds.Contains(r.ImportLine.LineId ?? 0)
                                         && !r.ImportLine.IsDeleted)
@@ -639,8 +628,7 @@ namespace WMS_WEBAPI.Services
                                     .Sum(ls => ls.Quantity);
 
                                 // Route toplam miktarı (bu Line'a bağlı ImportLine'ların Route'ları)
-                                var routeTotal = await _unitOfWork.WtRoutes
-                                    .AsQueryable()
+                                var routeTotal = await _unitOfWork.WtRoutes.Query()
                                     .Where(r => !r.IsDeleted
                                         && r.ImportLine.LineId == line.Id
                                         && !r.ImportLine.IsDeleted)
@@ -676,8 +664,7 @@ namespace WMS_WEBAPI.Services
                                 400);
                         }
 
-                        WtImportLine? importLine = await _unitOfWork.WtImportLines
-                            .AsQueryable()
+                        WtImportLine? importLine = await _unitOfWork.WtImportLines.Query()
                             .Where(il => il.HeaderId == request.HeaderId
                                 && il.LineId == selectedLineId.Value
                                 && ((il.StockCode ?? "").Trim() == reqStock)

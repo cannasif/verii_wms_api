@@ -101,7 +101,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var query = _unitOfWork.SitRoutes.AsQueryable().Where(r => ((r.ImportLine.StockCode ?? "").Trim() == (stockCode ?? "").Trim()) && !r.IsDeleted);
+                var query = _unitOfWork.SitRoutes.Query().Where(r => ((r.ImportLine.StockCode ?? "").Trim() == (stockCode ?? "").Trim()) && !r.IsDeleted);
                 var entities = await query.ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SitRouteDto>>(entities);
                 return ApiResponse<IEnumerable<SitRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
@@ -216,8 +216,7 @@ namespace WMS_WEBAPI.Services
                 var importLineId = route.ImportLineId;
 
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
-                var remainingRoutesCount = await _unitOfWork.SitRoutes
-                    .AsQueryable()
+                var remainingRoutesCount = await _unitOfWork.SitRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
                             .CountAsync();
 

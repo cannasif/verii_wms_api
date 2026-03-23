@@ -214,8 +214,7 @@ namespace WMS_WEBAPI.Services
                 var importLineId = route.ImportLineId;
 
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
-                var remainingRoutesCount = await _unitOfWork.PtRoutes
-                    .AsQueryable()
+                var remainingRoutesCount = await _unitOfWork.PtRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
                             .CountAsync();
 

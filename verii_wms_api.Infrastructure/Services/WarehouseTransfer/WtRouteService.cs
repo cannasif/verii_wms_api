@@ -174,21 +174,20 @@ namespace WMS_WEBAPI.Services
                 var importLineId = route.ImportLineId;
 
 
-                var headerId = await _unitOfWork.WtImportLines.AsQueryable()
+                var headerId = await _unitOfWork.WtImportLines.Query()
                     .Where(il => il.Id == importLineId && !il.IsDeleted)
                     .Select(il => il.HeaderId)
                     .FirstOrDefaultAsync();
 
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
-                var remainingRoutesCount = await _unitOfWork.WtRoutes
-                    .AsQueryable()
+                var remainingRoutesCount = await _unitOfWork.WtRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
                             .CountAsync();
 
                     var packageInfoList = await (
-                        from pl in _unitOfWork.PLines.AsQueryable()
-                        join p in _unitOfWork.PPackages.AsQueryable() on pl.PackageId equals p.Id
-                        join ph in _unitOfWork.PHeaders.AsQueryable() on p.PackingHeaderId equals ph.Id
+                        from pl in _unitOfWork.PLines.Query()
+                        join p in _unitOfWork.PPackages.Query() on pl.PackageId equals p.Id
+                        join ph in _unitOfWork.PHeaders.Query() on p.PackingHeaderId equals ph.Id
                         where !pl.IsDeleted
                               && !p.IsDeleted
                               && !ph.IsDeleted

@@ -67,7 +67,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageSize < 1) request.PageSize = 20;
 
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                var query = _unitOfWork.PtHeaders.AsQueryable().Where(x => !x.IsDeleted && x.BranchCode == branchCode);
+                var query = _unitOfWork.PtHeaders.Query().Where(x => !x.IsDeleted && x.BranchCode == branchCode);
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
@@ -280,8 +280,7 @@ namespace WMS_WEBAPI.Services
                 // ============================================
                 // CHECK ERP APPROVAL REQUIREMENT
                 // ============================================
-                var ptParameter = await _unitOfWork.PtParameters
-                    .AsQueryable()
+                var ptParameter = await _unitOfWork.PtParameters.Query()
                     .Where(p => !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -298,22 +297,19 @@ namespace WMS_WEBAPI.Services
 
                 if (!skipValidation)
                 {
-                    var lines = await _unitOfWork.PtLines
-                        .AsQueryable()
+                    var lines = await _unitOfWork.PtLines.Query()
                         .Where(l => l.HeaderId == id && !l.IsDeleted)
                         .ToListAsync();
 
                     foreach (var line in lines)
                     {
                         // Get total quantity of LineSerials for this Line
-                        var totalLineSerialQuantity = await _unitOfWork.PtLineSerials
-                            .AsQueryable()
+                        var totalLineSerialQuantity = await _unitOfWork.PtLineSerials.Query()
                             .Where(ls => !ls.IsDeleted && ls.LineId == line.Id)
                             .SumAsync(ls => ls.Quantity);
 
                         // Get total quantity of Routes for ImportLines linked to this Line
-                        var totalRouteQuantity = await _unitOfWork.PtRoutes
-                            .AsQueryable()
+                        var totalRouteQuantity = await _unitOfWork.PtRoutes.Query()
                             .Where(r => !r.IsDeleted 
                                 && r.ImportLine.LineId == line.Id 
                                 && !r.ImportLine.IsDeleted)
@@ -425,7 +421,7 @@ namespace WMS_WEBAPI.Services
                     _unitOfWork.PtHeaders.Update(entity);
 
                     // Update package status to Shipped
-                    var package = _unitOfWork.PHeaders.AsQueryable()
+                    var package = _unitOfWork.PHeaders.Query()
                         .Where(p => p.SourceHeaderId == entity.Id && !p.IsDeleted && p.SourceType == PHeaderSourceType.PT)
                         .FirstOrDefault();
                     if (package != null)
@@ -487,8 +483,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
-                var entity = await _unitOfWork.PtHeaders
-                    .AsQueryable()
+                var entity = await _unitOfWork.PtHeaders.Query()
                     .Where(e => e.Id == id && !e.IsDeleted)
                             .FirstOrDefaultAsync();
                     
@@ -536,7 +531,7 @@ namespace WMS_WEBAPI.Services
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.PtHeaders.AsQueryable()
+                var query = _unitOfWork.PtHeaders.Query()
                     .Where(x => !x.IsDeleted && x.IsCompleted && x.IsPendingApproval && !x.IsERPIntegrated && x.ApprovalStatus == null);
 
                 query = query.ApplyFilters(request.Filters, request.FilterLogic);
@@ -579,13 +574,11 @@ namespace WMS_WEBAPI.Services
                 // Daha performanslı: Subquery kullanarak EXISTS benzeri kontrol
                 // SQL'de daha verimli bir sorgu üretir ve Distinct() gerektirmez
                 // Header ve TerminalLine'ın silinmemiş olduğunu kontrol eder
-                var query = _unitOfWork.PtHeaders
-                    .AsQueryable()
+                var query = _unitOfWork.PtHeaders.Query()
                     .Where(h => !h.IsDeleted 
                         && !h.IsCompleted 
                         && h.BranchCode == branchCode
-                        && _unitOfWork.PtTerminalLines
-                            .AsQueryable()
+                        && _unitOfWork.PtTerminalLines.Query(false, false)
                             .Any(t => t.HeaderId == h.Id 
                                 && !t.IsDeleted 
                                 && t.TerminalUserId == userId));
@@ -833,8 +826,7 @@ namespace WMS_WEBAPI.Services
                         // ============================================
                         // 1.1. CHECK ERP APPROVAL REQUIREMENT
                         // ============================================
-                        var ptParameter = await _unitOfWork.PtParameters
-                            .AsQueryable()
+                        var ptParameter = await _unitOfWork.PtParameters.Query()
                             .Where(p => !p.IsDeleted)
                             .FirstOrDefaultAsync();
 

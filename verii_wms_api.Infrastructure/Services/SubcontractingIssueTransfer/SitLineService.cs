@@ -197,12 +197,10 @@ namespace WMS_WEBAPI.Services
                 {
                     await _unitOfWork.SitLines.SoftDelete(id);
 
-                    var hasOtherLines = await _unitOfWork.SitLines
-                        .AsQueryable()
+                    var hasOtherLines = await _unitOfWork.SitLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .AnyAsync();
-                    var hasOtherImportLines = await _unitOfWork.SitImportLines
-                        .AsQueryable()
+                    var hasOtherImportLines = await _unitOfWork.SitImportLines.Query()
                         .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                     if (!hasOtherLines && !hasOtherImportLines)

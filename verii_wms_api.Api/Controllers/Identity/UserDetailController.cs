@@ -132,9 +132,8 @@ namespace WMS_WEBAPI.Controllers
             }
 
             // Check if UserDetail exists by querying directly with AsNoTracking (to avoid tracking conflicts)
-            var existingDetail = await _unitOfWork.UserDetails
-                .AsQueryable()
-                .AsNoTracking()
+            var existingDetail = await _unitOfWork.UserDetails.Query()
+                
                 .Where(x => x.UserId == userIdLong && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 
@@ -278,20 +277,17 @@ namespace WMS_WEBAPI.Controllers
                 }
 
                 // Get all UserDetail records for this user
-                var allUserDetails = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var allUserDetails = await _unitOfWork.UserDetails.Query()
                     .Where(ud => ud.UserId == userId)
                     .ToListAsync();
 
                 // Get active UserDetail
-                var activeDetail = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var activeDetail = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 
                 // Test the exact query used by GetByUserIdAsync
-                var queryResult = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var queryResult = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 
@@ -379,14 +375,12 @@ namespace WMS_WEBAPI.Controllers
             try
             {
                 // Get all user details for this user (including deleted ones)
-                var allDetails = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var allDetails = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userIdLong)
                     .ToListAsync();
 
                 // Get non-deleted user detail
-                var activeDetail = await _unitOfWork.UserDetails
-                    .AsQueryable()
+                var activeDetail = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userIdLong && !x.IsDeleted)
                             .FirstOrDefaultAsync();
 

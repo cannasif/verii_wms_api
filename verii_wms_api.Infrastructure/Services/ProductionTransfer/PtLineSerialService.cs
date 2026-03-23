@@ -186,8 +186,7 @@ namespace WMS_WEBAPI.Services
                     var anyEntitySerial = !string.IsNullOrWhiteSpace(s1) || !string.IsNullOrWhiteSpace(s2) || !string.IsNullOrWhiteSpace(s3) || !string.IsNullOrWhiteSpace(s4);
                     if (anyEntitySerial)
                     {
-                        var serialExistsInRoutes = await _unitOfWork.PtRoutes
-                            .AsQueryable()
+                        var serialExistsInRoutes = await _unitOfWork.PtRoutes.Query()
                             .Where(r => !r.IsDeleted
                                            && r.ImportLine.LineId == entity.LineId
                                            && (
@@ -205,13 +204,11 @@ namespace WMS_WEBAPI.Services
                     }
                 }
 
-                var totalLineSerialQty = await _unitOfWork.PtLineSerials
-                    .AsQueryable()
+                var totalLineSerialQty = await _unitOfWork.PtLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
                     .SumAsync(ls => ls.Quantity);
 
-                var totalRouteQty = await _unitOfWork.PtRoutes
-                    .AsQueryable()
+                var totalRouteQty = await _unitOfWork.PtRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLine.LineId == entity.LineId)
                     .SumAsync(r => r.Quantity);
 
@@ -222,14 +219,12 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var currentSerialCount = await _unitOfWork.PtLineSerials
-                    .AsQueryable()
+                var currentSerialCount = await _unitOfWork.PtLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
                             .CountAsync();
                 var remainingSerialCount = currentSerialCount - 1;
 
-                var hasImportLines = await _unitOfWork.PtImportLines
-                    .AsQueryable()
+                var hasImportLines = await _unitOfWork.PtImportLines.Query()
                     .Where(il => !il.IsDeleted && il.LineId == entity.LineId)
                             .AnyAsync();
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
@@ -239,15 +234,13 @@ namespace WMS_WEBAPI.Services
                 if (lineWillBeDeleted && lineEntity != null)
                 {
                     var headerId = lineEntity.HeaderId;
-                    var currentLinesUnderHeader = await _unitOfWork.PtLines
-                        .AsQueryable()
+                    var currentLinesUnderHeader = await _unitOfWork.PtLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
                             .CountAsync();
                     var remainingLinesUnderHeader = currentLinesUnderHeader - 1;
                     if (remainingLinesUnderHeader == 0)
                     {
-                        var hasHeaderImportLines = await _unitOfWork.PtImportLines
-                            .AsQueryable()
+                        var hasHeaderImportLines = await _unitOfWork.PtImportLines.Query()
                             .Where(il => !il.IsDeleted && il.HeaderId == headerId)
                             .AnyAsync();
                         if (!hasHeaderImportLines)

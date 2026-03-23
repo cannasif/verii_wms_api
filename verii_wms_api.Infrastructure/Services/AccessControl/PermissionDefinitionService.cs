@@ -28,7 +28,7 @@ namespace WMS_WEBAPI.Services
                 var sortBy = string.IsNullOrWhiteSpace(request.SortBy) ? nameof(PermissionDefinition.Id) : request.SortBy;
                 var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-                var query = _unitOfWork.PermissionDefinitions.AsQueryable()
+                var query = _unitOfWork.PermissionDefinitions.Query()
                     .AsNoTracking()
                     .Include(x => x.CreatedByUser)
                     .Include(x => x.UpdatedByUser)
@@ -91,7 +91,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var exists = await _unitOfWork.PermissionDefinitions.AsQueryable()
+                var exists = await _unitOfWork.PermissionDefinitions.Query()
                     .AsNoTracking()
                     .Where(x => !x.IsDeleted && x.Code == dto.Code)
                             .AnyAsync();
@@ -143,7 +143,7 @@ namespace WMS_WEBAPI.Services
 
                 if (!string.IsNullOrWhiteSpace(dto.Code) && !dto.Code.Equals(entity.Code, StringComparison.OrdinalIgnoreCase))
                 {
-                    var duplicate = await _unitOfWork.PermissionDefinitions.AsQueryable()
+                    var duplicate = await _unitOfWork.PermissionDefinitions.Query()
                         .AsNoTracking()
                         .Where(x => !x.IsDeleted && x.Id != id && x.Code == dto.Code)
                             .AnyAsync();
@@ -218,7 +218,7 @@ namespace WMS_WEBAPI.Services
                         _localizationService.GetLocalizedString("OperationSuccessful"));
                 }
 
-                var existingAll = await _unitOfWork.PermissionDefinitions.AsQueryable()
+                var existingAll = await _unitOfWork.PermissionDefinitions.Query()
                     .IgnoreQueryFilters()
                     .Where(x => distinctCodes.Contains(x.Code))
                     .ToListAsync();

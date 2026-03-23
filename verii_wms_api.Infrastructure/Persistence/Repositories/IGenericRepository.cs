@@ -21,6 +21,5 @@ namespace WMS_WEBAPI.Repositories
         void SoftDeleteRange(IEnumerable<long> ids);
         Task<bool> ExistsAsync(long id);
         Task<int> CountAsync();
-        IQueryable<T> AsQueryable();
     }
 }
