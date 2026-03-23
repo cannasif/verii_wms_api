@@ -34,6 +34,10 @@ namespace WMS_WEBAPI.Services
                     .Include(x => x.DeletedByUser)
                     .Include(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
                     .ThenInclude(x => x.PermissionDefinition)
+                    .ApplySearch(
+                        request.Search,
+                        nameof(PermissionGroup.Name),
+                        nameof(PermissionGroup.Description))
                     .ApplyFilters(request.Filters)
                     .ApplySorting(sortBy, desc);
 

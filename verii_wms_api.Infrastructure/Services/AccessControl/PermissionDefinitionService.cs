@@ -32,6 +32,11 @@ namespace WMS_WEBAPI.Services
                     .Include(x => x.CreatedByUser)
                     .Include(x => x.UpdatedByUser)
                     .Include(x => x.DeletedByUser)
+                    .ApplySearch(
+                        request.Search,
+                        nameof(PermissionDefinition.Code),
+                        nameof(PermissionDefinition.Name),
+                        nameof(PermissionDefinition.Description))
                     .ApplyFilters(request.Filters)
                     .ApplySorting(sortBy, desc);
 

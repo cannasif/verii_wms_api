@@ -25,6 +25,13 @@ namespace WMS_WEBAPI.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
+        [HttpPost("paged")]
+        public async Task<ActionResult<ApiResponse<PagedResponse<PermissionGroupDto>>>> GetPaged([FromBody] PagedRequest request)
+        {
+            var result = await _permissionGroupService.GetAllAsync(request);
+            return StatusCode(result.StatusCode, result);
+        }
+
         [HttpGet("{id:long}")]
         public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> GetById(long id)
         {
