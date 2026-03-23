@@ -96,7 +96,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var grHeader = await _unitOfWork.GrHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var grHeader = await _unitOfWork.GrHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (grHeader == null || grHeader.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("GrHeaderNotFound");
@@ -158,7 +160,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var grHeader = await _unitOfWork.GrHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var grHeader = await _unitOfWork.GrHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (grHeader == null || grHeader.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("GrHeaderNotFound");
@@ -515,7 +519,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.GrHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     var notFound = _localizationService.GetLocalizedString("GrHeaderNotFound");
@@ -869,7 +875,8 @@ namespace WMS_WEBAPI.Services
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
                 var entity = await _unitOfWork.GrHeaders
                     .Query(tracking: true)
-                    .FirstOrDefaultAsync(e => e.Id == id);
+                    .Where(e => e.Id == id)
+                    .FirstOrDefaultAsync();
                     
                 if (entity == null)
                 {

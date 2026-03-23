@@ -79,7 +79,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SrtTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("SrtTerminalLineNotFound"), _localizationService.GetLocalizedString("SrtTerminalLineNotFound"), 404);
@@ -142,7 +144,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SrtTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("SrtTerminalLineNotFound"), _localizationService.GetLocalizedString("SrtTerminalLineNotFound"), 404);

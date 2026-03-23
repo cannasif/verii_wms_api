@@ -73,7 +73,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.ShTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.ShTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null) { var nf = _localizationService.GetLocalizedString("ShTerminalLineNotFound"); return ApiResponse<ShTerminalLineDto>.ErrorResult(nf, nf, 404); }
                 var dto = _mapper.Map<ShTerminalLineDto>(entity);
                 return ApiResponse<ShTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShTerminalLineRetrievedSuccessfully"));
@@ -133,7 +135,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.ShTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var existing = await _unitOfWork.ShTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existing == null) { var nf = _localizationService.GetLocalizedString("ShTerminalLineNotFound"); return ApiResponse<ShTerminalLineDto>.ErrorResult(nf, nf, 404); }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.ShTerminalLines.Update(entity);

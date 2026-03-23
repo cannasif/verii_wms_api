@@ -85,7 +85,8 @@ namespace WMS_WEBAPI.Services
             {
                 var entity = await _unitOfWork.WtLines
                     .Query()
-                    .FirstOrDefaultAsync(x => x.Id == id);
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -154,7 +155,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WtLineDto>.ErrorResult(_localizationService.GetLocalizedString("WtLineNotFound"), _localizationService.GetLocalizedString("WtLineNotFound"), 404);
@@ -179,7 +182,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WtLineNotFound"), _localizationService.GetLocalizedString("WtLineNotFound"), 404);

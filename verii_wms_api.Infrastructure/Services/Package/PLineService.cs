@@ -83,7 +83,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var line = await _unitOfWork.PLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var line = await _unitOfWork.PLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (line == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PLineNotFound");
@@ -155,7 +157,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 // Validate PackingHeader exists
-                var header = await _unitOfWork.PHeaders.Query().FirstOrDefaultAsync(x => x.Id == createDto.PackingHeaderId);
+                var header = await _unitOfWork.PHeaders.Query()
+                    .Where(x => x.Id == createDto.PackingHeaderId)
+                    .FirstOrDefaultAsync();
                 if (header == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PHeaderNotFound");
@@ -163,7 +167,9 @@ namespace WMS_WEBAPI.Services
                 }
 
                 // Validate Package exists
-                var package = await _unitOfWork.PPackages.Query().FirstOrDefaultAsync(x => x.Id == createDto.PackageId);
+                var package = await _unitOfWork.PPackages.Query()
+                    .Where(x => x.Id == createDto.PackageId)
+                    .FirstOrDefaultAsync();
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");
@@ -635,7 +641,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var line = await _unitOfWork.PLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var line = await _unitOfWork.PLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (line == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PLineNotFound");
@@ -666,7 +674,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var line = await _unitOfWork.PLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var line = await _unitOfWork.PLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (line == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PLineNotFound");
@@ -674,7 +684,9 @@ namespace WMS_WEBAPI.Services
                 }
 
                 // PHeader kontrolü - SourceType ve SourceRouteId kontrolü
-                var packingHeader = await _unitOfWork.PHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == line.PackingHeaderId);
+                var packingHeader = await _unitOfWork.PHeaders.Query(tracking: true)
+                    .Where(x => x.Id == line.PackingHeaderId)
+                    .FirstOrDefaultAsync();
                 bool shouldRetireRoute = false;
                 string? sourceType = null;
                 long? routeIdToRetire = null;
@@ -695,7 +707,9 @@ namespace WMS_WEBAPI.Services
                         switch (sourceType.ToUpperInvariant())
                         {
                             case PHeaderSourceType.GR:
-                                var grRoute = await _unitOfWork.GrRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var grRoute = await _unitOfWork.GrRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (grRoute != null)
                                 {
                                     await _unitOfWork.GrRoutes.SoftDelete(routeIdToRetire.Value);
@@ -703,7 +717,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.WT:
-                                var wtRoute = await _unitOfWork.WtRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var wtRoute = await _unitOfWork.WtRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (wtRoute != null)
                                 {
                                     await _unitOfWork.WtRoutes.SoftDelete(routeIdToRetire.Value);
@@ -711,7 +727,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.WO:
-                                var woRoute = await _unitOfWork.WoRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var woRoute = await _unitOfWork.WoRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (woRoute != null)
                                 {
                                     await _unitOfWork.WoRoutes.SoftDelete(routeIdToRetire.Value);
@@ -719,7 +737,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.WI:
-                                var wiRoute = await _unitOfWork.WiRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var wiRoute = await _unitOfWork.WiRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (wiRoute != null)
                                 {
                                     await _unitOfWork.WiRoutes.SoftDelete(routeIdToRetire.Value);
@@ -727,7 +747,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.SH:
-                                var shRoute = await _unitOfWork.ShRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var shRoute = await _unitOfWork.ShRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (shRoute != null)
                                 {
                                     await _unitOfWork.ShRoutes.SoftDelete(routeIdToRetire.Value);
@@ -735,7 +757,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.PR:
-                                var prRoute = await _unitOfWork.PrRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var prRoute = await _unitOfWork.PrRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (prRoute != null)
                                 {
                                     await _unitOfWork.PrRoutes.SoftDelete(routeIdToRetire.Value);
@@ -743,7 +767,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.PT:
-                                var ptRoute = await _unitOfWork.PtRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var ptRoute = await _unitOfWork.PtRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (ptRoute != null)
                                 {
                                     await _unitOfWork.PtRoutes.SoftDelete(routeIdToRetire.Value);
@@ -751,7 +777,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.SIT:
-                                var sitRoute = await _unitOfWork.SitRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var sitRoute = await _unitOfWork.SitRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (sitRoute != null)
                                 {
                                     await _unitOfWork.SitRoutes.SoftDelete(routeIdToRetire.Value);
@@ -759,7 +787,9 @@ namespace WMS_WEBAPI.Services
                                 break;
 
                             case PHeaderSourceType.SRT:
-                                var srtRoute = await _unitOfWork.SrtRoutes.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == routeIdToRetire.Value);
+                                var srtRoute = await _unitOfWork.SrtRoutes.Query(tracking: true)
+                    .Where(x => x.Id == routeIdToRetire.Value)
+                    .FirstOrDefaultAsync();
                                 if (srtRoute != null)
                                 {
                                     await _unitOfWork.SrtRoutes.SoftDelete(routeIdToRetire.Value);

@@ -72,7 +72,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null) return ApiResponse<WoLineDto>.ErrorResult(_localizationService.GetLocalizedString("WoLineNotFound"), _localizationService.GetLocalizedString("WoLineNotFound"), 404);
                 var dto = _mapper.Map<WoLineDto>(entity);
                 var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
@@ -132,7 +134,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.WoLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var existing = await _unitOfWork.WoLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existing == null) return ApiResponse<WoLineDto>.ErrorResult(_localizationService.GetLocalizedString("WoLineNotFound"), _localizationService.GetLocalizedString("WoLineNotFound"), 404);
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WoLines.Update(entity);
@@ -150,7 +154,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WoLineNotFound"), _localizationService.GetLocalizedString("WoLineNotFound"), 404);

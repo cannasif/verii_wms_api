@@ -26,7 +26,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.UserDetails.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.UserDetails.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<UserDetailDto>.ErrorResult(
@@ -178,7 +180,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.UserDetails.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.UserDetails.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<UserDetailDto>.ErrorResult(
@@ -218,7 +222,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.UserDetails.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.UserDetails.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(

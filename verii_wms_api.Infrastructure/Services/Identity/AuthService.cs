@@ -62,7 +62,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var user = await _unitOfWork.Users.AsQueryable().Include(u => u.RoleNavigation).FirstOrDefaultAsync(u => u.Id == id);
+                var user = await _unitOfWork.Users.AsQueryable().Include(u => u.RoleNavigation)
+                    .Where(u => u.Id == id)
+                    .FirstOrDefaultAsync();
                 
                 if (user == null)
                 {
@@ -125,7 +127,8 @@ namespace WMS_WEBAPI.Services
                 // Email veya username ile kullanıcı arama
                 var user = await _unitOfWork.Users.AsQueryable()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Username == loginDto.Username || u.Email == loginDto.Username);
+                    .Where(u => u.Username == loginDto.Username || u.Email == loginDto.Username)
+                    .FirstOrDefaultAsync();
                 
                 if (user == null)
                 {
@@ -255,7 +258,8 @@ namespace WMS_WEBAPI.Services
 
                 var reset = await _context.Set<PasswordResetRequest>()
                     .Include(r => r.User)
-                    .FirstOrDefaultAsync(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now && !r.IsDeleted);
+                    .Where(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
 
                 if (reset == null || reset.User == null)
                 {
@@ -294,7 +298,8 @@ namespace WMS_WEBAPI.Services
             {
                 var user = await _unitOfWork.Users.AsQueryable()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == userId);
+                    .Where(u => u.Id == userId)
+                    .FirstOrDefaultAsync();
                 if (user == null)
                 {
                     var nf = _localizationService.GetLocalizedString("AuthUserNotFound");

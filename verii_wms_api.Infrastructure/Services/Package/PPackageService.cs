@@ -65,7 +65,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var package = await _unitOfWork.PPackages.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var package = await _unitOfWork.PPackages.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");
@@ -100,7 +102,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 // Validate PackingHeader exists
-                var header = await _unitOfWork.PHeaders.Query().FirstOrDefaultAsync(x => x.Id == createDto.PackingHeaderId);
+                var header = await _unitOfWork.PHeaders.Query()
+                    .Where(x => x.Id == createDto.PackingHeaderId)
+                    .FirstOrDefaultAsync();
                 if (header == null || header.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("PHeaderNotFound");
@@ -133,7 +137,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var package = await _unitOfWork.PPackages.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var package = await _unitOfWork.PPackages.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");
@@ -157,7 +163,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var package = await _unitOfWork.PPackages.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var package = await _unitOfWork.PPackages.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (package == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PPackageNotFound");

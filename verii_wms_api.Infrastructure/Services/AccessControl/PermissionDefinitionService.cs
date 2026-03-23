@@ -63,7 +63,8 @@ namespace WMS_WEBAPI.Services
                     .Include(x => x.CreatedByUser)
                     .Include(x => x.UpdatedByUser)
                     .Include(x => x.DeletedByUser)
-                    .FirstOrDefaultAsync(x => x.Id == id);
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null)
                 {
@@ -128,7 +129,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.PermissionDefinitions.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.PermissionDefinitions.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     return ApiResponse<PermissionDefinitionDto>.ErrorResult(

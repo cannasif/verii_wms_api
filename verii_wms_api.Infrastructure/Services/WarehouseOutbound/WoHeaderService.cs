@@ -115,7 +115,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null) { var nf = _localizationService.GetLocalizedString("WoHeaderNotFound"); return ApiResponse<WoHeaderDto>.ErrorResult(nf, nf, 404); }
                 var dto = _mapper.Map<WoHeaderDto>(entity);
                 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(new[] { dto });
@@ -164,7 +166,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.WoHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var existing = await _unitOfWork.WoHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existing == null) { var nf = _localizationService.GetLocalizedString("WoHeaderNotFound"); return ApiResponse<WoHeaderDto>.ErrorResult(nf, nf, 404); }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WoHeaders.Update(entity);
@@ -203,7 +207,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFound = _localizationService.GetLocalizedString("WoHeaderNotFound");
@@ -564,7 +570,8 @@ namespace WMS_WEBAPI.Services
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
                 var entity = await _unitOfWork.WoHeaders
                     .Query(tracking: true)
-                    .FirstOrDefaultAsync(e => e.Id == id);
+                    .Where(e => e.Id == id)
+                    .FirstOrDefaultAsync();
                     
                 if (entity == null)
                 {

@@ -72,7 +72,8 @@ namespace WMS_WEBAPI.Services
                 var user = await _unitOfWork.Users
                     .Query()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == id);
+                    .Where(u => u.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (user == null)
                 {
@@ -176,7 +177,8 @@ namespace WMS_WEBAPI.Services
 
                 var created = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == entity.Id);
+                    .Where(u => u.Id == entity.Id)
+                    .FirstOrDefaultAsync();
 
                 BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
                     job.SendUserCreatedEmailAsync(dto.Email, dto.Username, plainPassword, dto.FirstName, dto.LastName));
@@ -198,7 +200,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.Users.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.Users.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -267,7 +271,8 @@ namespace WMS_WEBAPI.Services
 
                 var updated = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
-                    .FirstOrDefaultAsync(u => u.Id == entity.Id);
+                    .Where(u => u.Id == entity.Id)
+                    .FirstOrDefaultAsync();
 
                 return ApiResponse<UserDto>.SuccessResult(
                     _mapper.Map<UserDto>(updated ?? entity),

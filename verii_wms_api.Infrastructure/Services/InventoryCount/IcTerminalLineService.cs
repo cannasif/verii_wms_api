@@ -79,7 +79,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.IcTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.IcTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<IcTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("IcTerminalLineNotFound"), _localizationService.GetLocalizedString("IcTerminalLineNotFound"), 404);
@@ -130,7 +132,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.IcTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.IcTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<IcTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("IcTerminalLineNotFound"), _localizationService.GetLocalizedString("IcTerminalLineNotFound"), 404);

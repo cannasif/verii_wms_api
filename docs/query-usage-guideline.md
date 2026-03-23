@@ -21,20 +21,22 @@ This project uses `Query(bool tracking = false, bool ignoreQueryFilters = false)
 ## What to avoid
 - Avoid `AsQueryable()` directly on repositories in service code.
 - Avoid `FindAsync(...)` for normal read flows when the same logic can be expressed with `Query().Where(...)`.
-- Avoid `GetByIdAsync(...)` inside service methods for read flows; prefer `Query().FirstOrDefaultAsync(x => x.Id == id)` so the tracking/filter intent is visible.
+- Avoid `GetByIdAsync(...)` inside service methods for read flows; prefer `Query().Where(x => x.Id == id).FirstOrDefaultAsync()` so the tracking/filter intent is visible.
 
 ## Practical patterns
 
 ### Read-only detail
 ```csharp
 var entity = await _unitOfWork.WtHeaders.Query()
-    .FirstOrDefaultAsync(x => x.Id == id);
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync();
 ```
 
 ### Write flow
 ```csharp
 var entity = await _unitOfWork.WtHeaders.Query(tracking: true)
-    .FirstOrDefaultAsync(x => x.Id == id);
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync();
 ```
 
 ### Paged/list flow

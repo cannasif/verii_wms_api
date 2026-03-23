@@ -39,7 +39,8 @@ namespace WMS_WEBAPI.Services
                 var user = await _unitOfWork.Users.AsQueryable()
                     .AsNoTracking()
                     .Include(x => x.RoleNavigation)
-                    .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+                    .Where(x => x.Id == userId && !x.IsDeleted)
+                    .FirstOrDefaultAsync();
 
                 if (user == null)
                 {

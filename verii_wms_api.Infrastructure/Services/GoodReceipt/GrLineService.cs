@@ -85,7 +85,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var line = await _unitOfWork.GrLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var line = await _unitOfWork.GrLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (line == null)
                 {
                     return ApiResponse<GrLineDto>.ErrorResult(
@@ -166,7 +168,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existingLine = await _unitOfWork.GrLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var existingLine = await _unitOfWork.GrLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existingLine == null)
                 {
                     return ApiResponse<GrLineDto>.ErrorResult(
@@ -205,7 +209,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrLines.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.GrLines.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(

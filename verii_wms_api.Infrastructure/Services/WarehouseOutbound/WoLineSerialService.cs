@@ -80,7 +80,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WoLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("WoLineSerialNotFound"), _localizationService.GetLocalizedString("WoLineSerialNotFound"), 404);
@@ -135,7 +137,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoLineSerials.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoLineSerials.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WoLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("WoLineSerialNotFound"), _localizationService.GetLocalizedString("WoLineSerialNotFound"), 404);
@@ -165,12 +169,16 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoLineSerials.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoLineSerials.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WoLineSerialNotFound"), _localizationService.GetLocalizedString("WoLineSerialNotFound"), 404);
                 }
-                var lineEntity = await _unitOfWork.WoLines.Query().FirstOrDefaultAsync(x => x.Id == entity.LineId);
+                var lineEntity = await _unitOfWork.WoLines.Query()
+                    .Where(x => x.Id == entity.LineId)
+                    .FirstOrDefaultAsync();
 
                 {
                     var s1 = (entity.SerialNo ?? "").Trim();

@@ -83,7 +83,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var header = await _unitOfWork.PHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var header = await _unitOfWork.PHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (header == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PHeaderNotFound");
@@ -115,7 +117,8 @@ namespace WMS_WEBAPI.Services
                 {
                     var existingHeader = await _unitOfWork.PHeaders
                         .Query()
-                        .FirstOrDefaultAsync(h => h.PackingNo == createDto.PackingNo);
+                    .Where(h => h.PackingNo == createDto.PackingNo)
+                    .FirstOrDefaultAsync();
 
                     if (existingHeader != null)
                     {
@@ -153,7 +156,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var header = await _unitOfWork.PHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var header = await _unitOfWork.PHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (header == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PHeaderNotFound");
@@ -184,7 +189,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var header = await _unitOfWork.PHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var header = await _unitOfWork.PHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (header == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PHeaderNotFound");
@@ -213,7 +220,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 // 1. Gelen datayı id ile getle ve SourceType al, eğer boş değilse
-                var pHeader = await _unitOfWork.PHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == pHeaderId);
+                var pHeader = await _unitOfWork.PHeaders.Query(tracking: true)
+                    .Where(x => x.Id == pHeaderId)
+                    .FirstOrDefaultAsync();
                 if (pHeader == null)
                 {
                     return ApiResponse<bool>.ErrorResult(

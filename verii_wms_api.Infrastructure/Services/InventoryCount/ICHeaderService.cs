@@ -79,7 +79,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.ICHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.ICHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<IcHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("IcHeaderNotFound"), _localizationService.GetLocalizedString("IcHeaderNotFound"), 404);
@@ -115,7 +117,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.ICHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.ICHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<IcHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("IcHeaderNotFound"), _localizationService.GetLocalizedString("IcHeaderNotFound"), 404);

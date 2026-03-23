@@ -74,7 +74,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var group = await _unitOfWork.PlatformPageGroups.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var group = await _unitOfWork.PlatformPageGroups.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (group == null)
                 {
                     var notFoundMessage = _localizationService.GetLocalizedString("PlatformPageGroupNotFound");
@@ -113,7 +115,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existingGroup = await _unitOfWork.PlatformPageGroups.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var existingGroup = await _unitOfWork.PlatformPageGroups.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existingGroup == null)
                 {
                     var notFoundMessage = _localizationService.GetLocalizedString("PlatformPageGroupNotFound");
@@ -143,7 +147,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var group = await _unitOfWork.PlatformPageGroups.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var group = await _unitOfWork.PlatformPageGroups.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (group == null)
                 {
                     var notFoundMessage = _localizationService.GetLocalizedString("PlatformPageGroupNotFound");

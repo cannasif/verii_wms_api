@@ -80,7 +80,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SitLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SitLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SitLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineSerialNotFound"), _localizationService.GetLocalizedString("SitLineSerialNotFound"), 404);
@@ -135,7 +137,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SitLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SitLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SitLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineSerialNotFound"), _localizationService.GetLocalizedString("SitLineSerialNotFound"), 404);
@@ -165,7 +169,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SitLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SitLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SitLineSerialNotFound"), _localizationService.GetLocalizedString("SitLineSerialNotFound"), 404);

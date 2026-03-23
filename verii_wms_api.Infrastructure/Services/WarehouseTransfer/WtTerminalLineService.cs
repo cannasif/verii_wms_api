@@ -82,7 +82,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var entity = await _unitOfWork.WtTerminalLines
-                    .Query().FirstOrDefaultAsync(x => x.Id == id);
+                    .Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -169,7 +171,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var entity = await _unitOfWork.WtTerminalLines
-                    .Query().FirstOrDefaultAsync(x => x.Id == id);
+                    .Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null || entity.IsDeleted)
                 {

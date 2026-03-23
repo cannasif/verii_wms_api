@@ -73,7 +73,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.ShLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.ShLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null) { var nf = _localizationService.GetLocalizedString("ShLineSerialNotFound"); return ApiResponse<ShLineSerialDto>.ErrorResult(nf, nf, 404); }
                 var dto = _mapper.Map<ShLineSerialDto>(entity);
                 return ApiResponse<ShLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineSerialRetrievedSuccessfully"));
@@ -118,7 +120,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.ShLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var existing = await _unitOfWork.ShLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existing == null) { var nf = _localizationService.GetLocalizedString("ShLineSerialNotFound"); return ApiResponse<ShLineSerialDto>.ErrorResult(nf, nf, 404); }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.ShLineSerials.Update(entity);
@@ -136,7 +140,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.ShLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.ShLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("ShLineSerialNotFound");

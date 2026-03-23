@@ -86,7 +86,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.PrImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.PrImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<PrImportLineDto>.ErrorResult(_localizationService.GetLocalizedString("PrImportLineNotFound"), _localizationService.GetLocalizedString("PrImportLineNotFound"), 404);
@@ -167,7 +169,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.PrImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.PrImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<PrImportLineDto>.ErrorResult(_localizationService.GetLocalizedString("PrImportLineNotFound"), _localizationService.GetLocalizedString("PrImportLineNotFound"), 404);
@@ -189,7 +193,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.PrImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.PrImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("PrImportLineNotFound"), _localizationService.GetLocalizedString("PrImportLineNotFound"), 404);

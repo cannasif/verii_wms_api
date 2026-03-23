@@ -83,7 +83,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.UserAuthorities.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.UserAuthorities.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || !IsAllowedAuthorityTitle(entity.Title))
                 {
                     return ApiResponse<UserAuthorityDto>.ErrorResult(_localizationService.GetLocalizedString("UserAuthorityNotFound"), _localizationService.GetLocalizedString("UserAuthorityNotFound"), 404);
@@ -130,7 +132,9 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<UserAuthorityDto>.ErrorResult(_localizationService.GetLocalizedString("OnlyUserAndAdminRolesAllowed"), _localizationService.GetLocalizedString("OnlyUserAndAdminRolesAllowed"), 400);
                 }
 
-                var entity = await _unitOfWork.UserAuthorities.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.UserAuthorities.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     return ApiResponse<UserAuthorityDto>.ErrorResult(_localizationService.GetLocalizedString("UserAuthorityNotFound"), _localizationService.GetLocalizedString("UserAuthorityNotFound"), 404);

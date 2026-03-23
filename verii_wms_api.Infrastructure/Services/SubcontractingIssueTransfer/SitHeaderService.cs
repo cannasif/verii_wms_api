@@ -100,7 +100,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SitHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SitHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("SitHeaderNotFound");
@@ -299,7 +301,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SitHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SitHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     return ApiResponse<SitHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("SitHeaderNotFound"), _localizationService.GetLocalizedString("SitHeaderNotFound"), 404);
@@ -346,7 +350,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SitHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SitHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     var notFound = _localizationService.GetLocalizedString("SitHeaderNotFound");
@@ -713,7 +719,8 @@ namespace WMS_WEBAPI.Services
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
                 var entity = await _unitOfWork.SitHeaders
                     .Query(tracking: true)
-                    .FirstOrDefaultAsync(e => e.Id == id);
+                    .Where(e => e.Id == id)
+                    .FirstOrDefaultAsync();
                     
                 if (entity == null)
                 {

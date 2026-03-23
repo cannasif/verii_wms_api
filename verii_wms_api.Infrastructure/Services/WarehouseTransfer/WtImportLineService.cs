@@ -91,7 +91,9 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var entity = await _unitOfWork.WtImportLines
-                    .Query().FirstOrDefaultAsync(x => x.Id == id);
+                    .Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -159,7 +161,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WtImportLineDto>.ErrorResult(_localizationService.GetLocalizedString("WtImportLineNotFound"), _localizationService.GetLocalizedString("WtImportLineNotFound"), 404);
@@ -187,7 +191,9 @@ namespace WMS_WEBAPI.Services
                 // ============================================
                 // VALIDATION: Entity existence check
                 // ============================================
-                var entity = await _unitOfWork.WtImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFoundMsg = _localizationService.GetLocalizedString("WtImportLineNotFound");

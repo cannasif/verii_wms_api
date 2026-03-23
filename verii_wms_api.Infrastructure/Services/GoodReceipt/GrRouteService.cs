@@ -59,7 +59,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var item = await _unitOfWork.GrRoutes.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var item = await _unitOfWork.GrRoutes.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (item == null || item.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("GrRouteNotFound");
@@ -123,7 +125,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrRoutes.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.GrRoutes.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("GrRouteNotFound");
@@ -145,7 +149,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var route = await _unitOfWork.GrRoutes.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var route = await _unitOfWork.GrRoutes.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (route == null || route.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("GrRouteNotFound");

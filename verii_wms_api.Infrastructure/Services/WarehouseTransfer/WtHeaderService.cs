@@ -111,7 +111,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -182,7 +184,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFound = _localizationService.GetLocalizedString("WtHeaderNotFound");
@@ -237,7 +241,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WtHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WtHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFound = _localizationService.GetLocalizedString("WtHeaderNotFound");
@@ -585,7 +591,8 @@ namespace WMS_WEBAPI.Services
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
                 var entity = await _unitOfWork.WtHeaders
                     .Query(tracking: true)
-                    .FirstOrDefaultAsync(e => e.Id == id);
+                    .Where(e => e.Id == id)
+                    .FirstOrDefaultAsync();
                     
                 if (entity == null)
                 {

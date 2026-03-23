@@ -73,7 +73,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var match = await _unitOfWork.PlatformUserGroupMatches.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var match = await _unitOfWork.PlatformUserGroupMatches.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (match == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PlatformUserGroupMatchNotFound");
@@ -114,7 +116,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existingMatch = await _unitOfWork.PlatformUserGroupMatches.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var existingMatch = await _unitOfWork.PlatformUserGroupMatches.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existingMatch == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PlatformUserGroupMatchNotFound");
@@ -143,7 +147,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var match = await _unitOfWork.PlatformUserGroupMatches.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var match = await _unitOfWork.PlatformUserGroupMatches.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (match == null)
                 {
                     var nf = _localizationService.GetLocalizedString("PlatformUserGroupMatchNotFound");

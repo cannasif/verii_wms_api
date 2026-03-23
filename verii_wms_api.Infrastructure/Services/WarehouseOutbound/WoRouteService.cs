@@ -73,7 +73,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WoRoutes.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WoRoutes.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null) { var nf = _localizationService.GetLocalizedString("WoRouteNotFound"); return ApiResponse<WoRouteDto>.ErrorResult(nf, nf, 404); }
                 var dto = _mapper.Map<WoRouteDto>(entity);
                 return ApiResponse<WoRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
@@ -166,7 +168,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.WoRoutes.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var existing = await _unitOfWork.WoRoutes.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existing == null) { var nf = _localizationService.GetLocalizedString("WoRouteNotFound"); return ApiResponse<WoRouteDto>.ErrorResult(nf, nf, 404); }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WoRoutes.Update(entity);
@@ -184,7 +188,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var route = await _unitOfWork.WoRoutes.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var route = await _unitOfWork.WoRoutes.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (route == null || route.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WoRouteNotFound"), _localizationService.GetLocalizedString("WoRouteNotFound"), 404);

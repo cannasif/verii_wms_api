@@ -79,7 +79,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.GrTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<GrTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrTerminalLineNotFound"), _localizationService.GetLocalizedString("GrTerminalLineNotFound"), 404);
@@ -143,7 +145,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrTerminalLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.GrTerminalLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<GrTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrTerminalLineNotFound"), _localizationService.GetLocalizedString("GrTerminalLineNotFound"), 404);

@@ -97,7 +97,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiHeaders.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WiHeaders.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null) return ApiResponse<WiHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("WiHeaderNotFound"), _localizationService.GetLocalizedString("WiHeaderNotFound"), 404);
                 var dto = _mapper.Map<WiHeaderDto>(entity);
                 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(new[] { dto });
@@ -195,7 +197,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existing = await _unitOfWork.WiHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var existing = await _unitOfWork.WiHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (existing == null) return ApiResponse<WiHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("WiHeaderNotFound"), _localizationService.GetLocalizedString("WiHeaderNotFound"), 404);
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WiHeaders.Update(entity);
@@ -234,7 +238,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.WiHeaders.Query(tracking: true).FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.WiHeaders.Query(tracking: true)
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFound = _localizationService.GetLocalizedString("WiHeaderNotFound");
@@ -593,7 +599,8 @@ namespace WMS_WEBAPI.Services
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
                 var entity = await _unitOfWork.WiHeaders
                     .Query(tracking: true)
-                    .FirstOrDefaultAsync(e => e.Id == id);
+                    .Where(e => e.Id == id)
+                    .FirstOrDefaultAsync();
                     
                 if (entity == null)
                 {

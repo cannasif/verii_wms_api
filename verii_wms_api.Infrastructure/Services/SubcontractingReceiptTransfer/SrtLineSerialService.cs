@@ -80,7 +80,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SrtLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SrtLineSerialNotFound"), _localizationService.GetLocalizedString("SrtLineSerialNotFound"), 404);
@@ -135,7 +137,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SrtLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SrtLineSerialNotFound"), _localizationService.GetLocalizedString("SrtLineSerialNotFound"), 404);
@@ -165,7 +169,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.SrtLineSerials.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.SrtLineSerials.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SrtLineSerialNotFound"), _localizationService.GetLocalizedString("SrtLineSerialNotFound"), 404);

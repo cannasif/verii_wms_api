@@ -67,7 +67,8 @@ namespace WMS_WEBAPI.Services
                     .Include(x => x.DeletedByUser)
                     .Include(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
                     .ThenInclude(x => x.PermissionDefinition)
-                    .FirstOrDefaultAsync(x => x.Id == id);
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null)
                 {
@@ -141,7 +142,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.PermissionGroups.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.PermissionGroups.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     return ApiResponse<PermissionGroupDto>.ErrorResult(
@@ -206,7 +209,9 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<PermissionGroupDto>> SetPermissionsAsync(long id, SetPermissionGroupPermissionsDto dto)
         {
-            var group = await _unitOfWork.PermissionGroups.Query().FirstOrDefaultAsync(x => x.Id == id);
+            var group = await _unitOfWork.PermissionGroups.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
             if (group != null && group.IsSystemAdmin)
             {
                 return ApiResponse<PermissionGroupDto>.ErrorResult(
@@ -228,7 +233,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.PermissionGroups.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.PermissionGroups.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null)
                 {
                     return ApiResponse<bool>.ErrorResult(

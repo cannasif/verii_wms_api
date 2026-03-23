@@ -67,7 +67,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var document = await _unitOfWork.GrImportDocuments.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var document = await _unitOfWork.GrImportDocuments.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (document == null)
                 {
                     return ApiResponse<GrImportDocumentDto>.ErrorResult(
@@ -133,7 +135,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var document = await _unitOfWork.GrImportDocuments.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var document = await _unitOfWork.GrImportDocuments.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (document == null)
                 {
                     return ApiResponse<GrImportDocumentDto>.ErrorResult(
@@ -171,7 +175,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var document = await _unitOfWork.GrImportDocuments.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var document = await _unitOfWork.GrImportDocuments.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (document == null)
                 {
                     return ApiResponse<bool>.ErrorResult(

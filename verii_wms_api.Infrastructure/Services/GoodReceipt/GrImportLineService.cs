@@ -74,7 +74,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var grImportLine = await _unitOfWork.GrImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var grImportLine = await _unitOfWork.GrImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 
                 if (grImportLine == null)
                 {
@@ -396,7 +398,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var existingGrImportLine = await _unitOfWork.GrImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var existingGrImportLine = await _unitOfWork.GrImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 
                 if (existingGrImportLine == null)
                 {
@@ -424,7 +428,9 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entity = await _unitOfWork.GrImportLines.Query().FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.GrImportLines.Query()
+                    .Where(x => x.Id == id)
+                    .FirstOrDefaultAsync();
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
