@@ -1,22 +1,22 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using WMS_WEBAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using WMS_WEBAPI.Models;
+using WMS_WEBAPI.UnitOfWork;
 
 namespace WMS_WEBAPI.Hubs
 {
     [Authorize]
     public class AuthHub : Hub
     {
-        private readonly WmsDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private static readonly Dictionary<string, string> _userConnections = new();
         private static readonly Dictionary<string, string> _connectionUsers = new();
 
-        public AuthHub(WmsDbContext context)
+        public AuthHub(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         public override async Task OnConnectedAsync()
@@ -27,9 +27,9 @@ namespace WMS_WEBAPI.Hubs
             if (userId != null && sessionId != null)
             {
                 // Mevcut aktif oturumu kontrol et
-                var activeSession = await _context.Set<UserSession>()
+                var activeSession = await _unitOfWork.UserSessions.Query()
                     .Where(us => us.UserId == long.Parse(userId) && us.RevokedAt == null)
-                            .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync();
 
                 if (activeSession != null)
                 {
