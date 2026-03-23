@@ -25,7 +25,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtRoutes.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.PtRoutes.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
             }
@@ -100,7 +100,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtRoutes.FindAsync(x => x.ImportLineId == importLineId && !x.IsDeleted);
+                var entities = await _unitOfWork.PtRoutes.Query().Where(x => x.ImportLineId == importLineId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
             }
@@ -129,7 +129,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtRoutes.FindAsync(x => x.SourceWarehouse == sourceWarehouse && !x.IsDeleted);
+                var entities = await _unitOfWork.PtRoutes.Query().Where(x => x.SourceWarehouse == sourceWarehouse).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
             }
@@ -143,7 +143,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtRoutes.FindAsync(x => x.TargetWarehouse == targetWarehouse && !x.IsDeleted);
+                var entities = await _unitOfWork.PtRoutes.Query().Where(x => x.TargetWarehouse == targetWarehouse).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<PtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtRouteRetrievedSuccessfully"));
             }

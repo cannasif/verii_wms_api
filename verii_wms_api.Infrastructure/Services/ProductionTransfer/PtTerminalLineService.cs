@@ -25,7 +25,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtTerminalLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.PtTerminalLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<PtTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtTerminalLineRetrievedSuccessfully"));
             }
@@ -99,7 +99,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtTerminalLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.PtTerminalLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<PtTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtTerminalLineRetrievedSuccessfully"));
             }
@@ -113,7 +113,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PtTerminalLines.FindAsync(x => x.TerminalUserId == userId && !x.IsDeleted);
+                var entities = await _unitOfWork.PtTerminalLines.Query().Where(x => x.TerminalUserId == userId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PtTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<PtTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PtTerminalLineRetrievedSuccessfully"));
             }

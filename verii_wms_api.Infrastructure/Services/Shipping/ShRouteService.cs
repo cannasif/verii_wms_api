@@ -122,7 +122,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.ShRoutes.FindAsync(x => x.SourceWarehouse == sourceWarehouse && !x.IsDeleted);
+                var entities = await _unitOfWork.ShRoutes.Query().Where(x => x.SourceWarehouse == sourceWarehouse).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<ShRouteDto>>(entities);
                 return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
             }
@@ -136,7 +136,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.ShRoutes.FindAsync(x => x.TargetWarehouse == targetWarehouse && !x.IsDeleted);
+                var entities = await _unitOfWork.ShRoutes.Query().Where(x => x.TargetWarehouse == targetWarehouse).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<ShRouteDto>>(entities);
                 return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
             }

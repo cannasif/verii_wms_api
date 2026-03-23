@@ -27,7 +27,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PrImportLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.PrImportLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PrImportLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -112,7 +112,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PrImportLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.PrImportLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PrImportLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -131,7 +131,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.PrImportLines.FindAsync(x => x.LineId == lineId && !x.IsDeleted);
+                var entities = await _unitOfWork.PrImportLines.Query().Where(x => x.LineId == lineId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PrImportLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -200,7 +200,7 @@ namespace WMS_WEBAPI.Services
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("PrImportLineNotFound"), _localizationService.GetLocalizedString("PrImportLineNotFound"), 404);
                 }
-                var routes = await _unitOfWork.PrRoutes.FindAsync(x => x.ImportLineId == id && !x.IsDeleted);
+                var routes = await _unitOfWork.PrRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync();
                 if (routes.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("PrImportLineRoutesExist");

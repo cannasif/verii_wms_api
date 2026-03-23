@@ -24,7 +24,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var items = await _unitOfWork.GrRoutes.FindAsync(x => !x.IsDeleted);
+                var items = await _unitOfWork.GrRoutes.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<GrRouteDto>>(items);
                 return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
             }
@@ -80,7 +80,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var items = await _unitOfWork.GrRoutes.FindAsync(x => x.ImportLineId == importLineId && !x.IsDeleted);
+                var items = await _unitOfWork.GrRoutes.Query().Where(x => x.ImportLineId == importLineId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<GrRouteDto>>(items);
                 return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
             }

@@ -299,7 +299,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var routes = await _unitOfWork.WtRoutes.FindAsync(r => r.Id == routeId && !r.IsDeleted);
+                var routes = await _unitOfWork.WtRoutes.Query().Where(r => r.Id == routeId && !r.IsDeleted).ToListAsync();
                 var importLineIds = routes.Select(r => r.ImportLineId).ToList();
 
                 var entities = importLineIds.Count == 0

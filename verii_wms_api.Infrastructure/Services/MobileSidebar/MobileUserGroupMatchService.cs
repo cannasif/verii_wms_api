@@ -97,7 +97,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.MobileUserGroupMatches.FindAsync(x => x.UserId == userId && !x.IsDeleted);
+                var entities = await _unitOfWork.MobileUserGroupMatches.Query().Where(x => x.UserId == userId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<MobileUserGroupMatchDto>>(entities);
                 return ApiResponse<IEnumerable<MobileUserGroupMatchDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("MobileUserGroupMatchRetrievedSuccessfully"));
             }
@@ -112,7 +112,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.MobileUserGroupMatches.FindAsync(x => x.GroupCode == groupCode && !x.IsDeleted);
+                var entities = await _unitOfWork.MobileUserGroupMatches.Query().Where(x => x.GroupCode == groupCode).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<MobileUserGroupMatchDto>>(entities);
                 return ApiResponse<IEnumerable<MobileUserGroupMatchDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("MobileUserGroupMatchRetrievedSuccessfully"));
             }

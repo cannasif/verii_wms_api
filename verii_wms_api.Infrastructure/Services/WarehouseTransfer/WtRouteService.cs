@@ -26,7 +26,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.WtRoutes.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.WtRoutes.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
             }
@@ -102,7 +102,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.WtRoutes.FindAsync(x => x.SerialNo == serialNo && !x.IsDeleted);
+                var entities = await _unitOfWork.WtRoutes.Query().Where(x => x.SerialNo == serialNo).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<WtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
             }

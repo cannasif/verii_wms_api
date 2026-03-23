@@ -27,7 +27,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtImportLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.SrtImportLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtImportLineDto>>(entities);
 
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
@@ -109,7 +109,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtImportLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtImportLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtImportLineDto>>(entities);
                 return ApiResponse<IEnumerable<SrtImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtImportLineRetrievedSuccessfully"));
             }
@@ -123,7 +123,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtImportLines.FindAsync(x => x.LineId == lineId && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtImportLines.Query().Where(x => x.LineId == lineId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtImportLineDto>>(entities);
 
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
@@ -196,7 +196,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(nf, nf, 404);
                 }
 
-                var routes = await _unitOfWork.SrtRoutes.FindAsync(x => x.ImportLineId == id && !x.IsDeleted);
+                var routes = await _unitOfWork.SrtRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync();
                 if (routes.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("SrtImportLineRoutesExist");

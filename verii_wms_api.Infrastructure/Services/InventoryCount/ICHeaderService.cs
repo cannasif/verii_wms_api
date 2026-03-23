@@ -25,7 +25,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.ICHeaders.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.ICHeaders.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<IcHeaderDto>>(entities);
                 return ApiResponse<IEnumerable<IcHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("IcHeaderRetrievedSuccessfully"));
             }
@@ -146,7 +146,7 @@ namespace WMS_WEBAPI.Services
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("IcHeaderNotFound"), _localizationService.GetLocalizedString("IcHeaderNotFound"), 404);
                 }
-                var importLines = await _unitOfWork.IcImportLines.FindAsync(x => x.HeaderId == id && !x.IsDeleted);
+                var importLines = await _unitOfWork.IcImportLines.Query().Where(x => x.HeaderId == id).ToListAsync();
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("IcHeaderImportLinesExist");

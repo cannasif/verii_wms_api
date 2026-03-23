@@ -33,7 +33,7 @@ namespace WMS_WEBAPI.Services
             try
             {
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
-                var entities = await _unitOfWork.PrHeaders.FindAsync(x => !x.IsDeleted && x.BranchCode == branchCode);
+                var entities = await _unitOfWork.PrHeaders.Query().Where(x => x.BranchCode == branchCode).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<PrHeaderDto>>(entities);
 
                 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -185,7 +185,7 @@ namespace WMS_WEBAPI.Services
                     var notFound = _localizationService.GetLocalizedString("PrHeaderNotFound");
                     return ApiResponse<bool>.ErrorResult(notFound, notFound, 404);
                 }
-                var importLines = await _unitOfWork.PrImportLines.FindAsync(x => x.HeaderId == id && !x.IsDeleted);
+                var importLines = await _unitOfWork.PrImportLines.Query().Where(x => x.HeaderId == id).ToListAsync();
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("PrHeaderImportLinesExist");
@@ -861,7 +861,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var lines = await _unitOfWork.PrLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var lines = await _unitOfWork.PrLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var lineDtos = _mapper.Map<IEnumerable<PrLineDto>>(lines);
                 if (lineDtos.Any())
                 {

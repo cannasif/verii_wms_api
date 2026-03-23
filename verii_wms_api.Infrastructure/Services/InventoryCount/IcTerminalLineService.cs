@@ -25,7 +25,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.IcTerminalLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.IcTerminalLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<IcTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<IcTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("IcTerminalLineRetrievedSuccessfully"));
             }
@@ -99,7 +99,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.IcTerminalLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.IcTerminalLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<IcTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<IcTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("IcTerminalLineRetrievedSuccessfully"));
             }

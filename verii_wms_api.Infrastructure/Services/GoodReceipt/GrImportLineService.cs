@@ -432,7 +432,7 @@ namespace WMS_WEBAPI.Services
                     var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
                     return ApiResponse<bool>.ErrorResult(nf, nf, 404);
                 }
-                var routes = await _unitOfWork.GrRoutes.FindAsync(x => x.ImportLineId == id && !x.IsDeleted);
+                var routes = await _unitOfWork.GrRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync();
                 if (routes.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("GrImportLineRoutesExist");

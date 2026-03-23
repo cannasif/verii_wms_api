@@ -26,7 +26,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var items = await _unitOfWork.SrtLineSerials.FindAsync(x => !x.IsDeleted);
+                var items = await _unitOfWork.SrtLineSerials.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
             }
@@ -100,7 +100,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var items = await _unitOfWork.SrtLineSerials.FindAsync(x => x.LineId == lineId && !x.IsDeleted);
+                var items = await _unitOfWork.SrtLineSerials.Query().Where(x => x.LineId == lineId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
             }

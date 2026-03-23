@@ -97,7 +97,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.MobilePageGroups.FindAsync(x => x.GroupCode == groupCode && !x.IsDeleted);
+                var entities = await _unitOfWork.MobilePageGroups.Query().Where(x => x.GroupCode == groupCode).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<MobilePageGroupDto>>(entities);
                 return ApiResponse<IEnumerable<MobilePageGroupDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("MobilePageGroupRetrievedSuccessfully"));
             }

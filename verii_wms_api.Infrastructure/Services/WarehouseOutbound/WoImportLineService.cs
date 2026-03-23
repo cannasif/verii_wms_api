@@ -196,7 +196,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(nf, nf, 404);
                 }
 
-                var routes = await _unitOfWork.WoRoutes.FindAsync(x => x.ImportLineId == id && !x.IsDeleted);
+                var routes = await _unitOfWork.WoRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync();
                 if (routes.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("WoImportLineRoutesExist");

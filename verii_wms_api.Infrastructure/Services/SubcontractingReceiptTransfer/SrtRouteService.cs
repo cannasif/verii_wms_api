@@ -25,7 +25,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtRoutes.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.SrtRoutes.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
             }
@@ -132,7 +132,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtRoutes.FindAsync(x => x.SourceWarehouse == sourceWarehouse && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtRoutes.Query().Where(x => x.SourceWarehouse == sourceWarehouse).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
             }
@@ -146,7 +146,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.SrtRoutes.FindAsync(x => x.TargetWarehouse == targetWarehouse && !x.IsDeleted);
+                var entities = await _unitOfWork.SrtRoutes.Query().Where(x => x.TargetWarehouse == targetWarehouse).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<SrtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
             }

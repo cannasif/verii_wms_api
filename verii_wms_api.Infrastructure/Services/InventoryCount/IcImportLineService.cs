@@ -27,7 +27,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.IcImportLines.FindAsync(x => !x.IsDeleted);
+                var entities = await _unitOfWork.IcImportLines.Query().ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<IcImportLineDto>>(entities);
 
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
@@ -114,7 +114,7 @@ namespace WMS_WEBAPI.Services
         {
             try
             {
-                var entities = await _unitOfWork.IcImportLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var entities = await _unitOfWork.IcImportLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var dtos = _mapper.Map<IEnumerable<IcImportLineDto>>(entities);
 
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
@@ -141,12 +141,12 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<IEnumerable<IcImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("IcHeaderNotFound"), _localizationService.GetLocalizedString("IcHeaderNotFound"), 404);
                 }
 
-                var importLines = await _unitOfWork.IcImportLines.FindAsync(x => x.HeaderId == headerId && !x.IsDeleted);
+                var importLines = await _unitOfWork.IcImportLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
                 var items = new List<IcImportLineWithRoutesDto>();
 
                 foreach (var il in importLines)
                 {
-                    var routes = await _unitOfWork.IcRoutes.FindAsync(r => r.ImportLineId == il.Id && !r.IsDeleted);
+                    var routes = await _unitOfWork.IcRoutes.Query().Where(r => r.ImportLineId == il.Id && !r.IsDeleted).ToListAsync();
                     var dto = new IcImportLineWithRoutesDto
                     {
                         ImportLine = _mapper.Map<IcImportLineDto>(il),
@@ -232,7 +232,7 @@ namespace WMS_WEBAPI.Services
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("IcImportLineNotFound"), _localizationService.GetLocalizedString("IcImportLineNotFound"), 404);
                 }
-                var routes = await _unitOfWork.IcRoutes.FindAsync(x => x.ImportLineId == id && !x.IsDeleted);
+                var routes = await _unitOfWork.IcRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync();
                 if (routes.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("IcImportLineRoutesExist");
