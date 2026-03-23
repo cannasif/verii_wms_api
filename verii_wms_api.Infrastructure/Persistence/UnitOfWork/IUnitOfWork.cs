@@ -11,6 +11,8 @@ namespace WMS_WEBAPI.UnitOfWork
         // Repository properties
         IGenericRepository<User> Users { get; }
         IGenericRepository<UserDetail> UserDetails { get; }
+        IGenericRepository<UserSession> UserSessions { get; }
+        IGenericRepository<PasswordResetRequest> PasswordResetRequests { get; }
         IGenericRepository<BaseEntity> BaseEntities { get; }
         IGenericRepository<BaseHeaderEntity> BaseHeaderEntities { get; }
         
@@ -110,6 +112,9 @@ namespace WMS_WEBAPI.UnitOfWork
 
         // Notification repositories
         IGenericRepository<Notification> Notifications { get; }
+        IGenericRepository<Customer> Customers { get; }
+        IGenericRepository<Stock> Stocks { get; }
+        IGenericRepository<JobFailureLog> JobFailureLogs { get; }
 
         // Package repositories
         IGenericRepository<PHeader> PHeaders { get; }
@@ -130,6 +135,7 @@ namespace WMS_WEBAPI.UnitOfWork
         IGenericRepository<PParameter> PParameters { get; }
 
         // Methods
+        IQueryable<TEntity> SqlQuery<TEntity>(string sql, params object[] parameters) where TEntity : class;
         Task<long> SaveChangesAsync();
         long SaveChanges();
 

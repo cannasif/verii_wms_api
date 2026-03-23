@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using WMS_WEBAPI.Data;
 using WMS_WEBAPI.Models;
@@ -18,6 +19,8 @@ namespace WMS_WEBAPI.UnitOfWork
         // Repository instances
         private IGenericRepository<User>? _users;
         private IGenericRepository<UserDetail>? _userDetails;
+        private IGenericRepository<UserSession>? _userSessions;
+        private IGenericRepository<PasswordResetRequest>? _passwordResetRequests;
         private IGenericRepository<BaseEntity>? _baseEntities;
         private IGenericRepository<BaseHeaderEntity>? _baseHeaderEntities;
         
@@ -109,6 +112,9 @@ namespace WMS_WEBAPI.UnitOfWork
         private IGenericRepository<IcRoute>? _icRoutes;
         private IGenericRepository<IcTerminalLine>? _icTerminalLines;
         private IGenericRepository<Notification>? _notifications;
+        private IGenericRepository<Customer>? _customers;
+        private IGenericRepository<Stock>? _stocks;
+        private IGenericRepository<JobFailureLog>? _jobFailureLogs;
 
         // Package repository instances
         private IGenericRepository<PHeader>? _pHeaders;
@@ -141,6 +147,12 @@ namespace WMS_WEBAPI.UnitOfWork
 
         public IGenericRepository<UserDetail> UserDetails =>
             _userDetails ??= new GenericRepository<UserDetail>(_context, _httpContextAccessor);
+
+        public IGenericRepository<UserSession> UserSessions =>
+            _userSessions ??= new GenericRepository<UserSession>(_context, _httpContextAccessor);
+
+        public IGenericRepository<PasswordResetRequest> PasswordResetRequests =>
+            _passwordResetRequests ??= new GenericRepository<PasswordResetRequest>(_context, _httpContextAccessor);
 
         public IGenericRepository<BaseEntity> BaseEntities =>
             _baseEntities ??= new GenericRepository<BaseEntity>(_context, _httpContextAccessor);
@@ -367,6 +379,15 @@ namespace WMS_WEBAPI.UnitOfWork
         public IGenericRepository<Notification> Notifications =>
             _notifications ??= new GenericRepository<Notification>(_context, _httpContextAccessor);
 
+        public IGenericRepository<Customer> Customers =>
+            _customers ??= new GenericRepository<Customer>(_context, _httpContextAccessor);
+
+        public IGenericRepository<Stock> Stocks =>
+            _stocks ??= new GenericRepository<Stock>(_context, _httpContextAccessor);
+
+        public IGenericRepository<JobFailureLog> JobFailureLogs =>
+            _jobFailureLogs ??= new GenericRepository<JobFailureLog>(_context, _httpContextAccessor);
+
         // Package repository properties
         public IGenericRepository<PHeader> PHeaders =>
             _pHeaders ??= new GenericRepository<PHeader>(_context, _httpContextAccessor);
@@ -410,6 +431,13 @@ namespace WMS_WEBAPI.UnitOfWork
 
         public IGenericRepository<PParameter> PParameters =>
             _pParameters ??= new GenericRepository<PParameter>(_context, _httpContextAccessor);
+
+        public IQueryable<TEntity> SqlQuery<TEntity>(string sql, params object[] parameters) where TEntity : class
+        {
+            return _context.Set<TEntity>()
+                .FromSqlRaw(sql, parameters)
+                .AsNoTracking();
+        }
 
         public async Task<long> SaveChangesAsync()
         {
