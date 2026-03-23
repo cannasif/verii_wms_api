@@ -155,6 +155,7 @@ builder.Services.AddHangfireServer(options =>
 
 // Register Core Services
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IErpUnitOfWork, ErpUnitOfWork>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
 // Register Authentication & Authorization Services
