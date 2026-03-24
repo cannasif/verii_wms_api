@@ -85,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, WMS_WEBAPI.UnitOfWork.UnitOfWork>();
         services.AddScoped<IErpUnitOfWork, WMS_WEBAPI.UnitOfWork.ErpUnitOfWork>();
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<IExecutionContextAccessor, HttpExecutionContextAccessor>();
         services.AddScoped<IRequestCancellationAccessor, HttpRequestCancellationAccessor>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IJwtService, JwtService>();
