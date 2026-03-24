@@ -136,12 +136,12 @@ namespace WMS_WEBAPI.UnitOfWork
 
         // Methods
         IQueryable<TEntity> SqlQuery<TEntity>(string sql, params object[] parameters) where TEntity : class;
-        Task<long> SaveChangesAsync();
+        Task<long> SaveChangesAsync(CancellationToken cancellationToken = default);
         long SaveChanges();
 
         // Transactions
-        Task<IDbContextTransaction> BeginTransactionAsync();
-        Task CommitTransactionAsync();
-        Task RollbackTransactionAsync();
+        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+        Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+        Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using WMS_WEBAPI.Data;
+using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
 
 namespace WMS_WEBAPI.Repositories
@@ -15,12 +16,22 @@ namespace WMS_WEBAPI.Repositories
         protected readonly WmsDbContext _context;
         protected readonly DbSet<T> _dbSet;
         protected readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GenericRepository(WmsDbContext context, IHttpContextAccessor httpContextAccessor)
+        public GenericRepository(
+            WmsDbContext context,
+            IHttpContextAccessor httpContextAccessor,
+            IRequestCancellationAccessor requestCancellationAccessor)
         {
             _context = context;
             _dbSet = context.Set<T>();
             _httpContextAccessor = httpContextAccessor;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+
+        private CancellationToken ResolveCancellationToken(CancellationToken cancellationToken = default)
+        {
+            return _requestCancellationAccessor.Get(cancellationToken);
         }
         private long? GetCurrentUserId()
         {
@@ -48,19 +59,23 @@ namespace WMS_WEBAPI.Repositories
             return query;
         }
         
-        public async Task<T?> GetByIdAsync(long id)
+        public async Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
+
             return await _dbSet
                 .Include(e => e.CreatedByUser)
                 .Include(e => e.UpdatedByUser)
                 .Include(e => e.DeletedByUser)
                 .AsNoTracking()
                 .Where(e => e.Id == id && !e.IsDeleted)
-                            .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
+        public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
+
             return await _dbSet
                 .Where(e => !e.IsDeleted)
                 .Include(e => e.CreatedByUser)
@@ -68,23 +83,13 @@ namespace WMS_WEBAPI.Repositories
                 .Include(e => e.DeletedByUser)
                 .Where(e => !e.IsDeleted)
                 .AsNoTracking()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> expression)
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> expression, CancellationToken cancellationToken = default)
         {
-            return await _dbSet
-                .Include(e => e.CreatedByUser)
-                .Include(e => e.UpdatedByUser)
-                .Include(e => e.DeletedByUser)
-                .Where(expression)
-                .Where(e => !e.IsDeleted)
-                .AsNoTracking()
-                .ToListAsync();
-        }
+            cancellationToken = ResolveCancellationToken(cancellationToken);
 
-        public async Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> expression)
-        {
             return await _dbSet
                 .Include(e => e.CreatedByUser)
                 .Include(e => e.UpdatedByUser)
@@ -92,22 +97,38 @@ namespace WMS_WEBAPI.Repositories
                 .Where(expression)
                 .Where(e => !e.IsDeleted)
                 .AsNoTracking()
-                .FirstOrDefaultAsync();
+                .ToListAsync(cancellationToken);
         }
 
-        public async Task<T> AddAsync(T entity)
+        public async Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> expression, CancellationToken cancellationToken = default)
         {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
+
+            return await _dbSet
+                .Include(e => e.CreatedByUser)
+                .Include(e => e.UpdatedByUser)
+                .Include(e => e.DeletedByUser)
+                .Where(expression)
+                .Where(e => !e.IsDeleted)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
             entity.CreatedDate = DateTimeProvider.Now;
             var userId = GetCurrentUserId();
             entity.CreatedBy = userId;
             entity.IsDeleted = false;
 
-            await _dbSet.AddAsync(entity);
+            await _dbSet.AddAsync(entity, cancellationToken);
             return entity;
         }
 
-        public async Task AddRangeAsync(IEnumerable<T> entities)
+        public async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
         {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
             foreach (var entity in entities)
             {
                 entity.CreatedDate = DateTimeProvider.Now;
@@ -115,12 +136,14 @@ namespace WMS_WEBAPI.Repositories
                 entity.CreatedBy = userId;
                 entity.IsDeleted = false;
             }
-            await _dbSet.AddRangeAsync(entities);
+            await _dbSet.AddRangeAsync(entities, cancellationToken);
         }
 
-        public async Task SoftDelete(long id)
+        public async Task SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbSet.FindAsync(id);
+            cancellationToken = ResolveCancellationToken(cancellationToken);
+
+            var entity = await _dbSet.FindAsync(new object[] { id }, cancellationToken);
             if (entity != null)
             {
                 entity.IsDeleted = true;
@@ -154,16 +177,20 @@ namespace WMS_WEBAPI.Repositories
             _dbSet.Update(entity);
         }
 
-        public async Task<bool> ExistsAsync(long id)
+        public async Task<bool> ExistsAsync(long id, CancellationToken cancellationToken = default)
         {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
+
             return await _dbSet.Where(e => e.Id == id && !e.IsDeleted)
-                            .AnyAsync();
+                .AnyAsync(cancellationToken);
         }
 
-        public async Task<int> CountAsync()
+        public async Task<int> CountAsync(CancellationToken cancellationToken = default)
         {
+            cancellationToken = ResolveCancellationToken(cancellationToken);
+
             return await _dbSet.Where(e => !e.IsDeleted)
-                            .CountAsync();
+                .CountAsync(cancellationToken);
         }
 
     }

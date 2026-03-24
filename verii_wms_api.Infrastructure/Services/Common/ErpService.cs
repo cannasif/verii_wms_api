@@ -5,6 +5,7 @@ using WMS_WEBAPI.Interfaces;
 using Microsoft.AspNetCore.Http;
 using WMS_WEBAPI.Models;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace WMS_WEBAPI.Services
 {
@@ -14,6 +15,7 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private readonly ILogger<ErpService> _logger;
 
         public ErpService(
@@ -21,27 +23,35 @@ namespace WMS_WEBAPI.Services
             IMapper mapper,
             ILocalizationService localizationService,
             IHttpContextAccessor httpContextAccessor,
+            IRequestCancellationAccessor requestCancellationAccessor,
             ILogger<ErpService> logger)
         {
             _erpUnitOfWork = erpUnitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
+            _requestCancellationAccessor = requestCancellationAccessor;
             _logger = logger;
+        }
+
+        private CancellationToken ResolveCancellationToken(CancellationToken cancellationToken = default)
+        {
+            return _requestCancellationAccessor.Get(cancellationToken);
         }
 
         // OnHandQuantity işlemleri
 
-        public async Task<ApiResponse<List<OnHandQuantityDto>>> GetOnHandQuantitiesAsync(int? depoKodu = null, string? stokKodu = null, string? seriNo = null, string? projeKodu = null)
+        public async Task<ApiResponse<List<OnHandQuantityDto>>> GetOnHandQuantitiesAsync(int? depoKodu = null, string? stokKodu = null, string? seriNo = null, string? projeKodu = null, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var stokParam = string.IsNullOrWhiteSpace(stokKodu) ? null : stokKodu;
                 var seriParam = string.IsNullOrWhiteSpace(seriNo) ? null : seriNo;
                 var projeParam = string.IsNullOrWhiteSpace(projeKodu) ? null : projeKodu;
 
                 var rows = await _erpUnitOfWork.SqlQuery<RII_FN_ONHANDQUANTITY>("SELECT * FROM dbo.RII_FN_ONHANDQUANTITY({0}, {1}, {2}, {3})", depoKodu!, stokKodu!, seriNo!, projeKodu!)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
                 var mappedList = _mapper.Map<List<OnHandQuantityDto>>(rows);
 
@@ -54,15 +64,16 @@ namespace WMS_WEBAPI.Services
         }
 
         // Cari işlemleri
-        public async Task<ApiResponse<List<CariDto>>> GetCarisAsync(string? cariKodu)
+        public async Task<ApiResponse<List<CariDto>>> GetCarisAsync(string? cariKodu, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
                 var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", string.IsNullOrWhiteSpace(cariKodu) ? null! : cariKodu, subeKodu!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedResult = _mapper.Map<List<CariDto>>(result);
                 return ApiResponse<List<CariDto>>.SuccessResult(mappedResult, _localizationService.GetLocalizedString("CariRetrievedSuccessfully"));
@@ -73,10 +84,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<CariDto>>> GetCarisByCodesAsync(IEnumerable<string> cariKodlari)
+        public async Task<ApiResponse<List<CariDto>>> GetCarisByCodesAsync(IEnumerable<string> cariKodlari, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var codes = (cariKodlari ?? Array.Empty<string>())
                     .Where(s => !string.IsNullOrWhiteSpace(s))
                     .Select(s => s.Trim())
@@ -91,7 +103,7 @@ namespace WMS_WEBAPI.Services
                     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
                 var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", cariParam!, subeCsv!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedResult = _mapper.Map<List<CariDto>>(result);
                 return ApiResponse<List<CariDto>>.SuccessResult(mappedResult, _localizationService.GetLocalizedString("CariRetrievedSuccessfully"));
@@ -103,15 +115,16 @@ namespace WMS_WEBAPI.Services
         }
 
         // Stok işlemleri
-        public async Task<ApiResponse<List<StokDto>>> GetStoksAsync(string? stokKodu)
+        public async Task<ApiResponse<List<StokDto>>> GetStoksAsync(string? stokKodu, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
                 var result = await _erpUnitOfWork.SqlQuery<RII_VW_STOK>("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", string.IsNullOrWhiteSpace(stokKodu) ? null! : stokKodu, subeKodu!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
                 var mappedResult = _mapper.Map<List<StokDto>>(result);
 
                 return ApiResponse<List<StokDto>>.SuccessResult(mappedResult, _localizationService.GetLocalizedString("StokRetrievedSuccessfully"));
@@ -126,10 +139,11 @@ namespace WMS_WEBAPI.Services
 
         
 
-        public async Task<ApiResponse<IEnumerable<T>>> PopulateStockNamesAsync<T>(IEnumerable<T> dtos)
+        public async Task<ApiResponse<IEnumerable<T>>> PopulateStockNamesAsync<T>(IEnumerable<T> dtos, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 
                 var codeProp = typeof(T).GetProperty("StockCode");
                 var nameProp = typeof(T).GetProperty("StockName");
@@ -165,7 +179,7 @@ namespace WMS_WEBAPI.Services
                     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
                 var result = await _erpUnitOfWork.SqlQuery<RII_VW_STOK>("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", stokParam!, subeCsv!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var data = _mapper.Map<List<StokDto>>(result);
                 var stockNameByCode = data
@@ -174,7 +188,7 @@ namespace WMS_WEBAPI.Services
                     .ToDictionary(g => g.Key, g => g.First().StokAdi ?? string.Empty, StringComparer.OrdinalIgnoreCase);
 
                 var resultYapkod = await _erpUnitOfWork.SqlQuery<RII_FN_STOKYAPKOD>("SELECT * FROM dbo.RII_FN_STOKYAPKOD({0}, {1})", yapParam!, subeCsv!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var dataYapKod = _mapper.Map<List<StokYapKodDto>>(resultYapkod);
                 
@@ -215,10 +229,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<T>>> PopulateCustomerNamesAsync<T>(IEnumerable<T> dtos)
+        public async Task<ApiResponse<IEnumerable<T>>> PopulateCustomerNamesAsync<T>(IEnumerable<T> dtos, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var list = (dtos ?? Array.Empty<T>()).ToList();
                 var codeProp = typeof(T).GetProperty("CustomerCode");
                 var nameProp = typeof(T).GetProperty("CustomerName");
@@ -240,7 +255,7 @@ namespace WMS_WEBAPI.Services
                     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
                 var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", cariParam!, subeCsv!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var data = _mapper.Map<List<CariDto>>(result);
                 var nameByCode = data
@@ -271,15 +286,16 @@ namespace WMS_WEBAPI.Services
         }
 
         // Depo işlemleri
-        public async Task<ApiResponse<List<DepoDto>>> GetDeposAsync(short? depoKodu)
+        public async Task<ApiResponse<List<DepoDto>>> GetDeposAsync(short? depoKodu, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
                 var result = await _erpUnitOfWork.SqlQuery<RII_VW_DEPO>("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", depoKodu!, subeKodu!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
                 var mappedResult = _mapper.Map<List<DepoDto>>(result);
 
                 return ApiResponse<List<DepoDto>>.SuccessResult(mappedResult, _localizationService.GetLocalizedString("DepoRetrievedSuccessfully"));
@@ -290,10 +306,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<T>>> PopulateWarehouseNamesAsync<T>(IEnumerable<T> dtos)
+        public async Task<ApiResponse<IEnumerable<T>>> PopulateWarehouseNamesAsync<T>(IEnumerable<T> dtos, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var list = (dtos ?? Array.Empty<T>()).ToList();
                 var srcCodeProp = typeof(T).GetProperty("SourceWarehouse");
                 var srcNameProp = typeof(T).GetProperty("SourceWarehouseName");
@@ -304,7 +321,7 @@ namespace WMS_WEBAPI.Services
                 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
                 var rows = await _erpUnitOfWork.SqlQuery<RII_VW_DEPO>("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", null!, subeKodu!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var depos = _mapper.Map<List<DepoDto>>(rows);
                 var nameByCode = depos
@@ -345,11 +362,12 @@ namespace WMS_WEBAPI.Services
         }
 
         // Proje işlemleri
-        public async Task<ApiResponse<List<ProjeDto>>> GetProjelerAsync()
+        public async Task<ApiResponse<List<ProjeDto>>> GetProjelerAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var result = await _erpUnitOfWork.Query<RII_VW_PROJE>().ToListAsync();
+                cancellationToken = ResolveCancellationToken(cancellationToken);
+                var result = await _erpUnitOfWork.Query<RII_VW_PROJE>().ToListAsync(cancellationToken);
                 var mappedResult = _mapper.Map<List<ProjeDto>>(result);
 
                 return ApiResponse<List<ProjeDto>>.SuccessResult(mappedResult, _localizationService.GetLocalizedString("ProjeRetrievedSuccessfully"));
@@ -359,12 +377,13 @@ namespace WMS_WEBAPI.Services
                 return ApiResponse<List<ProjeDto>>.ErrorResult(_localizationService.GetLocalizedString("ProjeRetrievalError"), ex.Message, 500, "Error retrieving Proje data");
             }
         }
-        public async Task<ApiResponse<List<StokBarcodeDto>>> GetStokBarcodeAsync(string bar, int depoKodu, int modul, int kullaniciId, string barkodGrubu, int hareketTuru)
+        public async Task<ApiResponse<List<StokBarcodeDto>>> GetStokBarcodeAsync(string bar, int depoKodu, int modul, int kullaniciId, string barkodGrubu, int hareketTuru, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var rows = await _erpUnitOfWork.SqlQuery<RII_FN_STOKBARCODE>("SELECT * FROM dbo.RII_FN_STOKBARCODE({0}, {1}, {2}, {3}, {4}, {5})", bar, depoKodu, modul, kullaniciId, barkodGrubu, hareketTuru)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedList = _mapper.Map<List<StokBarcodeDto>>(rows);
                 return ApiResponse<List<StokBarcodeDto>>.SuccessResult(mappedList, _localizationService.GetLocalizedString("StokBarcodeRetrievedSuccessfully"));
@@ -375,10 +394,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<BranchDto>>> GetBranchesAsync(int? branchNo = null)
+        public async Task<ApiResponse<List<BranchDto>>> GetBranchesAsync(int? branchNo = null, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var connectionString = _erpUnitOfWork.GetConnectionString();
                 if (string.IsNullOrWhiteSpace(connectionString))
                 {
@@ -394,7 +414,7 @@ namespace WMS_WEBAPI.Services
                     !string.IsNullOrWhiteSpace(connectionString));
 
                 var rows = await _erpUnitOfWork.SqlQuery<RII_FN_BRANCHES>("SELECT * FROM dbo.RII_FN_BRANCHES({0})", branchNo.HasValue ? branchNo.Value : DBNull.Value)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 _logger.LogInformation("ERP branch list retrieved successfully. Count: {Count}", rows.Count);
 
@@ -429,12 +449,13 @@ namespace WMS_WEBAPI.Services
         }
 
         // Depo ve Raf işlemleri
-        public async Task<ApiResponse<List<WarehouseAndShelvesDto>>> GetWarehouseAndShelvesAsync(string? depoKodu = null, string? raf = null)
+        public async Task<ApiResponse<List<WarehouseAndShelvesDto>>> GetWarehouseAndShelvesAsync(string? depoKodu = null, string? raf = null, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var result = await _erpUnitOfWork.SqlQuery<RII_FN_WAREHOUSE_SHELF>("SELECT * FROM dbo.RII_FN_WAREHOUSE_SHELF({0}, {1})", depoKodu!, raf!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedResult = _mapper.Map<List<WarehouseAndShelvesDto>>(result);
 
@@ -446,12 +467,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<WarehouseShelvesWithStockInformationDto>>> GetWarehouseShelvesWithStockInformationAsync(string? depoKodu = null, string? raf = null)
+        public async Task<ApiResponse<List<WarehouseShelvesWithStockInformationDto>>> GetWarehouseShelvesWithStockInformationAsync(string? depoKodu = null, string? raf = null, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var result = await _erpUnitOfWork.SqlQuery<RII_FN_STOCK_WAREHOUSE>("SELECT * FROM dbo.RII_FN_STOCK_WAREHOUSE({0}, {1})", depoKodu!, raf!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedResult = _mapper.Map<List<WarehouseShelvesWithStockInformationDto>>(result);
 
@@ -464,12 +486,13 @@ namespace WMS_WEBAPI.Services
         }
 
         // Üretim Emri işlemleri
-        public async Task<ApiResponse<List<ProductHeaderDto>>> GetProductHeaderAsync(string isemriNo)
+        public async Task<ApiResponse<List<ProductHeaderDto>>> GetProductHeaderAsync(string isemriNo, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var result = await _erpUnitOfWork.SqlQuery<RII_FN_PRODUCT_HEADER>("SELECT * FROM dbo.RII_FN_PRODUCT_HEADER({0})", isemriNo)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedResult = _mapper.Map<List<ProductHeaderDto>>(result);
 
@@ -481,12 +504,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<ProductLineDto>>> GetProductLinesAsync(string? isemriNo = null, string? fisNo = null, string? mamulKodu = null)
+        public async Task<ApiResponse<List<ProductLineDto>>> GetProductLinesAsync(string? isemriNo = null, string? fisNo = null, string? mamulKodu = null, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var result = await _erpUnitOfWork.SqlQuery<RII_FN_PRODUCT_LINE>("SELECT * FROM dbo.RII_FN_PRODUCT_LINE({0}, {1}, {2})", isemriNo!, fisNo!, mamulKodu!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var mappedResult = _mapper.Map<List<ProductLineDto>>(result);
 
@@ -498,16 +522,17 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<WarehouseShelfStocksDto>>> GetWarehouseShelvesNestedAsync(string depoKodu)
+        public async Task<ApiResponse<List<WarehouseShelfStocksDto>>> GetWarehouseShelvesNestedAsync(string depoKodu, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken = ResolveCancellationToken(cancellationToken);
                 var shelvesRows = await _erpUnitOfWork.SqlQuery<RII_FN_WAREHOUSE_SHELF>("SELECT * FROM dbo.RII_FN_WAREHOUSE_SHELF({0}, {1})", depoKodu, null!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
                 var shelves = _mapper.Map<List<WarehouseAndShelvesDto>>(shelvesRows);
 
                 var stocksRows = await _erpUnitOfWork.SqlQuery<RII_FN_STOCK_WAREHOUSE>("SELECT * FROM dbo.RII_FN_STOCK_WAREHOUSE({0}, {1})", depoKodu, null!)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 var stocksByShelf = stocksRows
                     .Where(r => !string.IsNullOrWhiteSpace(r.HUCRE_KODU))
