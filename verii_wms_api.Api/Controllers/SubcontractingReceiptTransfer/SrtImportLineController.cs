@@ -21,38 +21,38 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(request);
+            var result = await _service.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<SrtImportLineDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<SrtImportLineDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(request);
+            var result = await _service.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SrtImportLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<SrtImportLineDto>>>> GetByHeaderId(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByHeaderIdAsync(headerId);
+            var result = await _service.GetByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("line/{lineId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SrtImportLineDto>>>> GetByLineId(long lineId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<SrtImportLineDto>>>> GetByLineId(long lineId, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByLineIdAsync(lineId);
+            var result = await _service.GetByLineIdAsync(lineId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -60,37 +60,37 @@ namespace WMS_WEBAPI.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> Create([FromBody] CreateSrtImportLineDto createDto)
+        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> Create([FromBody] CreateSrtImportLineDto createDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.CreateAsync(createDto);
+            var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> Update(long id, [FromBody] UpdateSrtImportLineDto updateDto)
+        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> Update(long id, [FromBody] UpdateSrtImportLineDto updateDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.UpdateAsync(id, updateDto);
+            var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.SoftDeleteAsync(id);
+            var result = await _service.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("addBarcodeBasedonAssignedOrder")]
-        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> AddBarcodeBasedonAssignedOrder([FromBody] AddSrtImportBarcodeRequestDto request)
+        public async Task<ActionResult<ApiResponse<SrtImportLineDto>>> AddBarcodeBasedonAssignedOrder([FromBody] AddSrtImportBarcodeRequestDto request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.AddBarcodeBasedonAssignedOrderAsync(request);
+            var result = await _service.AddBarcodeBasedonAssignedOrderAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("subcontractingReceiptTransferOrderCollectedBarcodes/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SrtImportLineWithRoutesDto>>>> SubcontractingReceiptTransferOrderCollectedBarcodes(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<SrtImportLineWithRoutesDto>>>> SubcontractingReceiptTransferOrderCollectedBarcodes(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetCollectedBarcodesByHeaderIdAsync(headerId);
+            var result = await _service.GetCollectedBarcodesByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

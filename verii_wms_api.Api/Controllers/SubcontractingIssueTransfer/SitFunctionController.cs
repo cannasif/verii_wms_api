@@ -18,16 +18,16 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("headers/{customerCode}")]
-        public async Task<ActionResult<ApiResponse<List<SitOpenOrderHeaderDto>>>> GetSitOpenOrderHeader(string customerCode)
+        public async Task<ActionResult<ApiResponse<List<SitOpenOrderHeaderDto>>>> GetSitOpenOrderHeader(string customerCode, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetSitOpenOrderHeaderAsync(customerCode);
+            var result = await _service.GetSitOpenOrderHeaderAsync(customerCode, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("lines/{siparisNoCsv}")]
-        public async Task<ActionResult<ApiResponse<List<SitOpenOrderLineDto>>>> GetSitOpenOrderLine(string siparisNoCsv)
+        public async Task<ActionResult<ApiResponse<List<SitOpenOrderLineDto>>>> GetSitOpenOrderLine(string siparisNoCsv, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetSitOpenOrderLineAsync(siparisNoCsv);
+            var result = await _service.GetSitOpenOrderLineAsync(siparisNoCsv, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

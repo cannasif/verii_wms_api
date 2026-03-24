@@ -4,20 +4,20 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface IWiHeaderService
     {
-        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAllAsync();
-        Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetPagedAsync(PagedRequest request);
-        Task<ApiResponse<WiHeaderDto>> GetByIdAsync(long id);
-        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetByInboundTypeAsync(string inboundType);
-        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetByAccountCodeAsync(string accountCode);
-        Task<ApiResponse<WiHeaderDto>> CreateAsync(CreateWiHeaderDto createDto);
-        Task<ApiResponse<WiHeaderDto>> UpdateAsync(long id, UpdateWiHeaderDto updateDto);
-        Task<ApiResponse<bool>> SoftDeleteAsync(long id);
-        Task<ApiResponse<bool>> CompleteAsync(long id);
-        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAssignedOrdersAsync(long userId);
-        Task<ApiResponse<WiAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId);
-        Task<ApiResponse<WiHeaderDto>> GenerateWarehouseInboundOrderAsync(GenerateWarehouseInboundOrderRequestDto request);
-        Task<ApiResponse<int>> BulkCreateWarehouseInboundAsync(BulkCreateWiRequestDto request);
-        Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request);
-        Task<ApiResponse<WiHeaderDto>> SetApprovalAsync(long id, bool approved);
+        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WiHeaderDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetByInboundTypeAsync(string inboundType, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetByAccountCodeAsync(string accountCode, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WiHeaderDto>> CreateAsync(CreateWiHeaderDto createDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WiHeaderDto>> UpdateAsync(long id, UpdateWiHeaderDto updateDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> CompleteAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WiAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WiHeaderDto>> GenerateWarehouseInboundOrderAsync(GenerateWarehouseInboundOrderRequestDto request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<int>> BulkCreateWarehouseInboundAsync(BulkCreateWiRequestDto request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WiHeaderDto>> SetApprovalAsync(long id, bool approved, CancellationToken cancellationToken = default);
     }
 }

@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>GR Line listesi</returns>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineService.GetPagedAsync(request);
+            var result = await _grLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -37,9 +37,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">GR Line ID</param>
         /// <returns>GR Line detayı</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<GrLineDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<GrLineDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineService.GetByIdAsync(id);
+            var result = await _grLineService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -49,9 +49,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="headerId">GR Header ID</param>
         /// <returns>GR Line listesi</returns>
         [HttpPost("by-header/{headerId}/paged")]
-        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request)
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineService.GetByHeaderIdAsync(headerId);
+            var result = await _grLineService.GetByHeaderIdAsync(headerId, cancellationToken);
             var pagedResult = result.ToPagedResponse(request);
             return StatusCode(pagedResult.StatusCode, pagedResult);
         }
@@ -62,14 +62,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="createDto">Oluşturulacak GR Line bilgileri</param>
         /// <returns>Oluşturulan GR Line</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<GrLineDto>>> Create([FromBody] CreateGrLineDto createDto)
+        public async Task<ActionResult<ApiResponse<GrLineDto>>> Create([FromBody] CreateGrLineDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrLineDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _grLineService.CreateAsync(createDto);
+            var result = await _grLineService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -80,14 +80,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="updateDto">Güncellenecek GR Line bilgileri</param>
         /// <returns>Güncellenmiş GR Line</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<GrLineDto>>> Update(long id, [FromBody] UpdateGrLineDto updateDto)
+        public async Task<ActionResult<ApiResponse<GrLineDto>>> Update(long id, [FromBody] UpdateGrLineDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrLineDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _grLineService.UpdateAsync(id, updateDto);
+            var result = await _grLineService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -97,18 +97,18 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">Silinecek GR Line ID</param>
         /// <returns>Silme işlemi sonucu</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineService.SoftDeleteAsync(id);
+            var result = await _grLineService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<GrLineDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<GrLineDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineService.GetPagedAsync(request);
+            var result = await _grLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

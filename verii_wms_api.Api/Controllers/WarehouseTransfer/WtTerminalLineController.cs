@@ -25,16 +25,16 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtTerminalLine listesi</returns>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtTerminalLineService.GetPagedAsync(request);
+            var result = await _wtTerminalLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<WtTerminalLineDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<WtTerminalLineDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtTerminalLineService.GetPagedAsync(request);
+            var result = await _wtTerminalLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -46,9 +46,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">WtTerminalLine ID</param>
         /// <returns>WtTerminalLine detayı</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<WtTerminalLineDto?>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<WtTerminalLineDto?>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtTerminalLineService.GetByIdAsync(id);
+            var result = await _wtTerminalLineService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -58,9 +58,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="lineId">Line ID</param>
         /// <returns>WtTerminalLine listesi</returns>
         [HttpGet("header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtTerminalLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtTerminalLineDto>>>> GetByHeaderId(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _wtTerminalLineService.GetByHeaderIdAsync(headerId);
+            var result = await _wtTerminalLineService.GetByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
         
@@ -71,9 +71,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="userId">Kullanıcı ID</param>
         /// <returns>WtTerminalLine listesi</returns>
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtTerminalLineDto>>>> GetByUserId(long userId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtTerminalLineDto>>>> GetByUserId(long userId, CancellationToken cancellationToken = default)
         {
-            var result = await _wtTerminalLineService.GetByUserIdAsync(userId);
+            var result = await _wtTerminalLineService.GetByUserIdAsync(userId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -93,14 +93,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="createDto">Oluşturulacak WtTerminalLine bilgileri</param>
         /// <returns>Oluşturulan WtTerminalLine</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<WtTerminalLineDto>>> Create([FromBody] CreateWtTerminalLineDto createDto)        
+        public async Task<ActionResult<ApiResponse<WtTerminalLineDto>>> Create([FromBody] CreateWtTerminalLineDto createDto, CancellationToken cancellationToken = default)        
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtTerminalLineService.CreateAsync(createDto);
+            var result = await _wtTerminalLineService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -111,14 +111,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="updateDto">Güncellenecek WtTerminalLine bilgileri</param>
         /// <returns>Güncellenmiş WtTerminalLine</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<WtTerminalLineDto>>> Update(long id, [FromBody] UpdateWtTerminalLineDto updateDto)
+        public async Task<ActionResult<ApiResponse<WtTerminalLineDto>>> Update(long id, [FromBody] UpdateWtTerminalLineDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtTerminalLineService.UpdateAsync(id, updateDto);
+            var result = await _wtTerminalLineService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -128,9 +128,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">Silinecek WtTerminalLine ID</param>
         /// <returns>Silme işlemi sonucu</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtTerminalLineService.SoftDeleteAsync(id);
+            var result = await _wtTerminalLineService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 

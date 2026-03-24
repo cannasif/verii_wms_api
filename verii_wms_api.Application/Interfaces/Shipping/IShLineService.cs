@@ -4,12 +4,12 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface IShLineService
     {
-        Task<ApiResponse<IEnumerable<ShLineDto>>> GetAllAsync();
-        Task<ApiResponse<PagedResponse<ShLineDto>>> GetPagedAsync(PagedRequest request);
-        Task<ApiResponse<ShLineDto>> GetByIdAsync(long id);
-        Task<ApiResponse<IEnumerable<ShLineDto>>> GetByHeaderIdAsync(long headerId);
-        Task<ApiResponse<ShLineDto>> CreateAsync(CreateShLineDto createDto);
-        Task<ApiResponse<ShLineDto>> UpdateAsync(long id, UpdateShLineDto updateDto);
-        Task<ApiResponse<bool>> SoftDeleteAsync(long id);
+        Task<ApiResponse<IEnumerable<ShLineDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<ShLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<ShLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<ShLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default);
+        Task<ApiResponse<ShLineDto>> CreateAsync(CreateShLineDto createDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<ShLineDto>> UpdateAsync(long id, UpdateShLineDto updateDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }

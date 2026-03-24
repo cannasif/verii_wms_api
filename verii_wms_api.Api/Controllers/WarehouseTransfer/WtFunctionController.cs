@@ -18,17 +18,17 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("headers/{customerCode}")]
-        public async Task<ActionResult<ApiResponse<List<TransferOpenOrderHeaderDto>>>> GetTransferOpenOrderHeader(string customerCode)
+        public async Task<ActionResult<ApiResponse<List<TransferOpenOrderHeaderDto>>>> GetTransferOpenOrderHeader(string customerCode, CancellationToken cancellationToken = default)
         {
-            var result = await _wtFunctionService.GetTransferOpenOrderHeaderAsync(customerCode);
+            var result = await _wtFunctionService.GetTransferOpenOrderHeaderAsync(customerCode, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
 
         [HttpGet("lines/{siparisNoCsv}")]
-        public async Task<ActionResult<ApiResponse<List<TransferOpenOrderLineDto>>>> GetTransferOpenOrderLine(string siparisNoCsv)
+        public async Task<ActionResult<ApiResponse<List<TransferOpenOrderLineDto>>>> GetTransferOpenOrderLine(string siparisNoCsv, CancellationToken cancellationToken = default)
         {
-            var result = await _wtFunctionService.GetTransferOpenOrderLineAsync(siparisNoCsv);
+            var result = await _wtFunctionService.GetTransferOpenOrderLineAsync(siparisNoCsv, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

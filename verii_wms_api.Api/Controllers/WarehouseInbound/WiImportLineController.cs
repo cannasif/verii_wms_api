@@ -20,30 +20,30 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetAllAsync(cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(long id)
+        public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("line/{lineId}")]
-        public async Task<IActionResult> GetByLineId(long lineId)
+        public async Task<IActionResult> GetByLineId(long lineId, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByLineIdAsync(lineId);
+            var result = await _service.GetByLineIdAsync(lineId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("header/{headerId}")]
-        public async Task<IActionResult> GetByHeaderId(long headerId)
+        public async Task<IActionResult> GetByHeaderId(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByHeaderIdAsync(headerId);
+            var result = await _service.GetByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -52,37 +52,37 @@ namespace WMS_WEBAPI.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateWiImportLineDto createDto)
+        public async Task<IActionResult> Create([FromBody] CreateWiImportLineDto createDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.CreateAsync(createDto);
+            var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(long id, [FromBody] UpdateWiImportLineDto updateDto)
+        public async Task<IActionResult> Update(long id, [FromBody] UpdateWiImportLineDto updateDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.UpdateAsync(id, updateDto);
+            var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> SoftDelete(long id)
+        public async Task<IActionResult> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.SoftDeleteAsync(id);
+            var result = await _service.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("addBarcodeBasedonAssignedOrder")]
-        public async Task<IActionResult> AddBarcodeBasedonAssignedOrder([FromBody] AddWiImportBarcodeRequestDto request)
+        public async Task<IActionResult> AddBarcodeBasedonAssignedOrder([FromBody] AddWiImportBarcodeRequestDto request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.AddBarcodeBasedonAssignedOrderAsync(request);
+            var result = await _service.AddBarcodeBasedonAssignedOrderAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("warehouseInboundOrderCollectedBarcodes/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WiImportLineWithRoutesDto>>>> WarehouseInboundOrderCollectedBarcodes(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WiImportLineWithRoutesDto>>>> WarehouseInboundOrderCollectedBarcodes(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetCollectedBarcodesByHeaderIdAsync(headerId);
+            var result = await _service.GetCollectedBarcodesByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

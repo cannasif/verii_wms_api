@@ -21,61 +21,61 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(request);
+            var result = await _service.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<WtLineSerialDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<WtLineSerialDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(request);
+            var result = await _service.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("line/{lineId}/paged")]
-        public async Task<IActionResult> GetByLineId(long lineId, [FromBody] PagedRequest request)
+        public async Task<IActionResult> GetByLineId(long lineId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByLineIdAsync(lineId);
+            var result = await _service.GetByLineIdAsync(lineId, cancellationToken);
             var pagedResult = result.ToPagedResponse(request);
             return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> Create([FromBody] CreateWtLineSerialDto createDto)
+        public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> Create([FromBody] CreateWtLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
-            var result = await _service.CreateAsync(createDto);
+            var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> Update(long id, [FromBody] UpdateWtLineSerialDto updateDto)
+        public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> Update(long id, [FromBody] UpdateWtLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
-            var result = await _service.UpdateAsync(id, updateDto);
+            var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.SoftDeleteAsync(id);
+            var result = await _service.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

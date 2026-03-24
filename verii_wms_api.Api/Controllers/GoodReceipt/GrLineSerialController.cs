@@ -21,53 +21,53 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpPost("paged")]
-        public async Task<IActionResult> Get([FromBody] PagedRequest request)
+        public async Task<IActionResult> Get([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineSerialService.GetPagedAsync(request.PageNumber, request.PageSize, request.SortBy, request.SortDirection);
+            var result = await _grLineSerialService.GetPagedAsync(request.PageNumber, request.PageSize, request.SortBy, request.SortDirection, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<GrLineSerialDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<GrLineSerialDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineSerialService.GetByIdAsync(id);
+            var result = await _grLineSerialService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("by-line/{lineId}/paged")]
-        public async Task<IActionResult> GetByLineId(long lineId, [FromBody] PagedRequest request)
+        public async Task<IActionResult> GetByLineId(long lineId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineSerialService.GetByLineIdAsync(lineId);
+            var result = await _grLineSerialService.GetByLineIdAsync(lineId, cancellationToken);
             var pagedResult = result.ToPagedResponse(request);
             return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<GrLineSerialDto>>> Create([FromBody] CreateGrLineSerialDto createDto)
+        public async Task<ActionResult<ApiResponse<GrLineSerialDto>>> Create([FromBody] CreateGrLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
-            var result = await _grLineSerialService.CreateAsync(createDto);
+            var result = await _grLineSerialService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<GrLineSerialDto>>> Update(long id, [FromBody] UpdateGrLineSerialDto updateDto)
+        public async Task<ActionResult<ApiResponse<GrLineSerialDto>>> Update(long id, [FromBody] UpdateGrLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
-            var result = await _grLineSerialService.UpdateAsync(id, updateDto);
+            var result = await _grLineSerialService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grLineSerialService.SoftDeleteAsync(id);
+            var result = await _grLineSerialService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 

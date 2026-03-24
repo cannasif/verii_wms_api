@@ -25,16 +25,16 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtImportLine listesi</returns>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetPagedAsync(request);
+            var result = await _wtImportLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<WtImportLineDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<WtImportLineDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetPagedAsync(request);
+            var result = await _wtImportLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -45,9 +45,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">WtImportLine ID</param>
         /// <returns>WtImportLine detayı</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<WtImportLineDto?>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<WtImportLineDto?>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetByIdAsync(id);
+            var result = await _wtImportLineService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -57,16 +57,16 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="lineId">Line ID</param>
         /// <returns>WtImportLine listesi</returns>
         [HttpGet("line/{lineId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineDto>>>> GetByLineId(long lineId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineDto>>>> GetByLineId(long lineId, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetByLineIdAsync(lineId);
+            var result = await _wtImportLineService.GetByLineIdAsync(lineId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineDto>>>> GetByHeaderId(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetByHeaderIdAsync(headerId);
+            var result = await _wtImportLineService.GetByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -76,9 +76,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="routeId">Route ID</param>
         /// <returns>WtImportLine listesi</returns>
         [HttpGet("route/{routeId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineDto>>>> GetByRouteId(long routeId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineDto>>>> GetByRouteId(long routeId, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetByRouteIdAsync(routeId);
+            var result = await _wtImportLineService.GetByRouteIdAsync(routeId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -91,14 +91,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="createDto">Oluşturulacak WtImportLine bilgileri</param>
         /// <returns>Oluşturulan WtImportLine</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<WtImportLineDto>>> Create([FromBody] CreateWtImportLineDto createDto)
+        public async Task<ActionResult<ApiResponse<WtImportLineDto>>> Create([FromBody] CreateWtImportLineDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtImportLineService.CreateAsync(createDto);
+            var result = await _wtImportLineService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -109,14 +109,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="updateDto">Güncellenecek WtImportLine bilgileri</param>
         /// <returns>Güncellenmiş WtImportLine</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<WtImportLineDto>>> Update(long id, [FromBody] UpdateWtImportLineDto updateDto)
+        public async Task<ActionResult<ApiResponse<WtImportLineDto>>> Update(long id, [FromBody] UpdateWtImportLineDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtImportLineService.UpdateAsync(id, updateDto);
+            var result = await _wtImportLineService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -126,23 +126,23 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">Silinecek WtImportLine ID</param>
         /// <returns>Silme işlemi sonucu</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.SoftDeleteAsync(id);
+            var result = await _wtImportLineService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("addBarcodeBasedonAssignedOrder")]
-        public async Task<ActionResult<ApiResponse<WtImportLineDto>>> AddBarcodeBasedonAssignedOrder([FromBody] AddWtImportBarcodeRequestDto request)
+        public async Task<ActionResult<ApiResponse<WtImportLineDto>>> AddBarcodeBasedonAssignedOrder([FromBody] AddWtImportBarcodeRequestDto request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.AddBarcodeBasedonAssignedOrderAsync(request);
+            var result = await _wtImportLineService.AddBarcodeBasedonAssignedOrderAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("warehouseTransferOrderCollectedBarcodes/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineWithRoutesDto>>>> WarehouseTransferOrderCollectedBarcodes(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtImportLineWithRoutesDto>>>> WarehouseTransferOrderCollectedBarcodes(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _wtImportLineService.GetCollectedBarcodesByHeaderIdAsync(headerId);
+            var result = await _wtImportLineService.GetCollectedBarcodesByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 

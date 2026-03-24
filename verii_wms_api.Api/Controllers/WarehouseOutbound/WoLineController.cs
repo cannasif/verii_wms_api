@@ -21,30 +21,30 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(request);
+            var result = await _service.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(long id)
+        public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<IActionResult> GetPaged([FromBody] PagedRequest request)
+        public async Task<IActionResult> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(request);
+            var result = await _service.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("header/{headerId}/paged")]
-        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request)
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByHeaderIdAsync(headerId);
+            var result = await _service.GetByHeaderIdAsync(headerId, cancellationToken);
             var pagedResult = result.ToPagedResponse(request);
             return StatusCode(pagedResult.StatusCode, pagedResult);
         }
@@ -53,23 +53,23 @@ namespace WMS_WEBAPI.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateWoLineDto createDto)
+        public async Task<IActionResult> Create([FromBody] CreateWoLineDto createDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.CreateAsync(createDto);
+            var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(long id, [FromBody] UpdateWoLineDto updateDto)
+        public async Task<IActionResult> Update(long id, [FromBody] UpdateWoLineDto updateDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.UpdateAsync(id, updateDto);
+            var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> SoftDelete(long id)
+        public async Task<IActionResult> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.SoftDeleteAsync(id);
+            var result = await _service.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

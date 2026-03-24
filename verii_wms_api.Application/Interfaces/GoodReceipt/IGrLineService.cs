@@ -4,12 +4,12 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface IGrLineService
     {
-        Task<ApiResponse<IEnumerable<GrLineDto>>> GetAllAsync();
-        Task<ApiResponse<PagedResponse<GrLineDto>>> GetPagedAsync(PagedRequest request);
-        Task<ApiResponse<GrLineDto>> GetByIdAsync(long id);
-        Task<ApiResponse<IEnumerable<GrLineDto>>> GetByHeaderIdAsync(long headerId);
-        Task<ApiResponse<GrLineDto>> CreateAsync(CreateGrLineDto createDto);
-        Task<ApiResponse<GrLineDto>> UpdateAsync(long id, UpdateGrLineDto updateDto);
-        Task<ApiResponse<bool>> SoftDeleteAsync(long id);
+        Task<ApiResponse<IEnumerable<GrLineDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<GrLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<GrLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<GrLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default);
+        Task<ApiResponse<GrLineDto>> CreateAsync(CreateGrLineDto createDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<GrLineDto>> UpdateAsync(long id, UpdateGrLineDto updateDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }

@@ -20,16 +20,16 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetAllAsync(cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(long id)
+        public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -37,9 +37,9 @@ namespace WMS_WEBAPI.Controllers
 
 
         [HttpGet("serial/{serialNo}")]
-        public async Task<IActionResult> GetBySerialNo(string serialNo)
+        public async Task<IActionResult> GetBySerialNo(string serialNo, CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetBySerialNoAsync(serialNo);
+            var result = await _service.GetBySerialNoAsync(serialNo, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -47,23 +47,23 @@ namespace WMS_WEBAPI.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateWoRouteDto createDto)
+        public async Task<IActionResult> Create([FromBody] CreateWoRouteDto createDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.CreateAsync(createDto);
+            var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(long id, [FromBody] UpdateWoRouteDto updateDto)
+        public async Task<IActionResult> Update(long id, [FromBody] UpdateWoRouteDto updateDto, CancellationToken cancellationToken = default)
         {
-            var result = await _service.UpdateAsync(id, updateDto);
+            var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> SoftDelete(long id)
+        public async Task<IActionResult> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _service.SoftDeleteAsync(id);
+            var result = await _service.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

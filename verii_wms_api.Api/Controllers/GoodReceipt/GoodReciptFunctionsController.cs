@@ -20,24 +20,24 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("headers/customer/{customerCode}")]
-        public async Task<ActionResult<ApiResponse<List<GoodsOpenOrdersHeaderDto>>>> GetGoodsReceiptHeadersByCustomer(string customerCode)
+        public async Task<ActionResult<ApiResponse<List<GoodsOpenOrdersHeaderDto>>>> GetGoodsReceiptHeadersByCustomer(string customerCode, CancellationToken cancellationToken = default)
         {
-            var result = await _goodReciptFunctionsService.GetGoodsReceiptHeaderAsync(customerCode);
+            var result = await _goodReciptFunctionsService.GetGoodsReceiptHeaderAsync(customerCode, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         /// <returns>Belirtilen siparişlere ait satır listesi</returns>
         [HttpGet("lines/customer/{customerCode}/orders/{siparisNoCsv?}")]
-        public async Task<ActionResult<ApiResponse<List<GoodsOpenOrdersLineDto>>>> GetGoodsReceiptLines(string customerCode, string? siparisNoCsv = null)
+        public async Task<ActionResult<ApiResponse<List<GoodsOpenOrdersLineDto>>>> GetGoodsReceiptLines(string customerCode, string? siparisNoCsv = null, CancellationToken cancellationToken = default)
         {
-            var result = await _goodReciptFunctionsService.GetGoodsReceiptLineAsync(siparisNoCsv ?? string.Empty, customerCode);
+            var result = await _goodReciptFunctionsService.GetGoodsReceiptLineAsync(siparisNoCsv ?? string.Empty, customerCode, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("lines/customer/{customerCode}/branch/{branchCode}")]
-        public async Task<ActionResult<ApiResponse<List<GoodsOpenOrdersLineDto>>>> GetGoodsReceiptLinesByCustomerAndBranch(string customerCode, string branchCode)
+        public async Task<ActionResult<ApiResponse<List<GoodsOpenOrdersLineDto>>>> GetGoodsReceiptLinesByCustomerAndBranch(string customerCode, string branchCode, CancellationToken cancellationToken = default)
         {
-            var result = await _goodReciptFunctionsService.GetGoodsReceiptLineByCustomerCodeAndBranchCodeAsync(branchCode, customerCode);
+            var result = await _goodReciptFunctionsService.GetGoodsReceiptLineByCustomerCodeAndBranchCodeAsync(branchCode, customerCode, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

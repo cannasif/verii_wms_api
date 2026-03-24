@@ -25,16 +25,16 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtRoute listesi</returns>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtRouteService.GetPagedAsync(request);
+            var result = await _wtRouteService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<WtRouteDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<WtRouteDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtRouteService.GetPagedAsync(request);
+            var result = await _wtRouteService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -45,9 +45,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">WtRoute ID</param>
         /// <returns>WtRoute detayı</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<WtRouteDto?>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<WtRouteDto?>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtRouteService.GetByIdAsync(id);
+            var result = await _wtRouteService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -65,9 +65,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="serialNo">Seri numarası</param>
         /// <returns>WtRoute listesi</returns>
         [HttpGet("serial/{serialNo}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<WtRouteDto>>>> GetBySerialNo(string serialNo)
+        public async Task<ActionResult<ApiResponse<IEnumerable<WtRouteDto>>>> GetBySerialNo(string serialNo, CancellationToken cancellationToken = default)
         {
-            var result = await _wtRouteService.GetBySerialNoAsync(serialNo);
+            var result = await _wtRouteService.GetBySerialNoAsync(serialNo, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -89,14 +89,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="createDto">Oluşturulacak WtRoute bilgileri</param>
         /// <returns>Oluşturulan WtRoute</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<WtRouteDto>>> Create([FromBody] CreateWtRouteDto createDto)
+        public async Task<ActionResult<ApiResponse<WtRouteDto>>> Create([FromBody] CreateWtRouteDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtRouteService.CreateAsync(createDto);
+            var result = await _wtRouteService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -107,14 +107,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="updateDto">Güncellenecek WtRoute bilgileri</param>
         /// <returns>Güncellenmiş WtRoute</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<WtRouteDto>>> Update(long id, [FromBody] UpdateWtRouteDto updateDto)
+        public async Task<ActionResult<ApiResponse<WtRouteDto>>> Update(long id, [FromBody] UpdateWtRouteDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtRouteService.UpdateAsync(id, updateDto);
+            var result = await _wtRouteService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -124,9 +124,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">Silinecek WtRoute ID</param>
         /// <returns>Silme işlemi sonucu</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtRouteService.SoftDeleteAsync(id);
+            var result = await _wtRouteService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 

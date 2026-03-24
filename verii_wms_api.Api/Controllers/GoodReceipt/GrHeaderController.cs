@@ -22,126 +22,126 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetPagedAsync(request);
+            var result = await _grHeaderService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<GrHeaderDto?>>> GetById(int id)
+        public async Task<ActionResult<ApiResponse<GrHeaderDto?>>> GetById(int id, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetByIdAsync(id);
+            var result = await _grHeaderService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> Create([FromBody] CreateGrHeaderDto createDto)
+        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> Create([FromBody] CreateGrHeaderDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _grHeaderService.CreateAsync(createDto);
+            var result = await _grHeaderService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> Update(int id, [FromBody] UpdateGrHeaderDto updateDto)
+        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> Update(int id, [FromBody] UpdateGrHeaderDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _grHeaderService.UpdateAsync(id, updateDto);
+            var result = await _grHeaderService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.SoftDeleteAsync(id);
+            var result = await _grHeaderService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         
 
         [HttpPost("complete/{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Complete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Complete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.CompleteAsync((int)id);
+            var result = await _grHeaderService.CompleteAsync((int)id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("assigned/{userId}/paged")]
-        public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request)
+        public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetAssignedOrdersAsync(userId);
+            var result = await _grHeaderService.GetAssignedOrdersAsync(userId, cancellationToken);
             var pagedResult = result.ToPagedResponse(request);
             return StatusCode(pagedResult.StatusCode, pagedResult);
         }
 
         [HttpGet("getAssignedOrderLines/{headerId}")]
-        public async Task<ActionResult<ApiResponse<GrAssignedOrderLinesDto>>> GetAssignedOrderLines(long headerId)
+        public async Task<ActionResult<ApiResponse<GrAssignedOrderLinesDto>>> GetAssignedOrderLines(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetAssignedOrderLinesAsync(headerId);
+            var result = await _grHeaderService.GetAssignedOrderLinesAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("completed-awaiting-erp-approval")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<GrHeaderDto>>>> GetCompletedAwaitingErpApproval([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<GrHeaderDto>>>> GetCompletedAwaitingErpApproval([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetCompletedAwaitingErpApprovalPagedAsync(request);
+            var result = await _grHeaderService.GetCompletedAwaitingErpApprovalPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("approval/{id}")]
-        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> SetApproval(long id, [FromQuery] bool approved)
+        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> SetApproval(long id, [FromQuery] bool approved, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.SetApprovalAsync(id, approved);
+            var result = await _grHeaderService.SetApprovalAsync(id, approved, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("by-customer/{customerCode}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrHeaderDto>>>> GetByCustomerCode(string customerCode)
+        public async Task<ActionResult<ApiResponse<IEnumerable<GrHeaderDto>>>> GetByCustomerCode(string customerCode, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetByCustomerCodeAsync(customerCode);
+            var result = await _grHeaderService.GetByCustomerCodeAsync(customerCode, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<GrHeaderDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<GrHeaderDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.GetPagedAsync(request);
+            var result = await _grHeaderService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
 
         [HttpPost("bulkCreate")]
-        public async Task<ActionResult<ApiResponse<long>>> BulkCreate([FromBody] BulkCreateGrRequestDto request)
+        public async Task<ActionResult<ApiResponse<long>>> BulkCreate([FromBody] BulkCreateGrRequestDto request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 var error = ApiResponse<long>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400);
                 return StatusCode(error.StatusCode, error);
             }
-            var result = await _grHeaderService.BulkCreateAsync(request);
+            var result = await _grHeaderService.BulkCreateAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("generate")]
-        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> GenerateOrder([FromBody] GenerateGoodReceiptOrderRequestDto request)
+        public async Task<ActionResult<ApiResponse<GrHeaderDto>>> GenerateOrder([FromBody] GenerateGoodReceiptOrderRequestDto request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<GrHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _grHeaderService.GenerateGoodReceiptOrderAsync(request);
+            var result = await _grHeaderService.GenerateGoodReceiptOrderAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
         

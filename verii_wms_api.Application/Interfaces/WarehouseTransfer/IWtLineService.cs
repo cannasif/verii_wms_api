@@ -4,12 +4,12 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface IWtLineService
     {
-        Task<ApiResponse<IEnumerable<WtLineDto>>> GetAllAsync();
-        Task<ApiResponse<PagedResponse<WtLineDto>>> GetPagedAsync(PagedRequest request);
-        Task<ApiResponse<WtLineDto>> GetByIdAsync(long id);
-        Task<ApiResponse<IEnumerable<WtLineDto>>> GetByHeaderIdAsync(long headerId);
-        Task<ApiResponse<WtLineDto>> CreateAsync(CreateWtLineDto createDto);
-        Task<ApiResponse<WtLineDto>> UpdateAsync(long id, UpdateWtLineDto updateDto);
-        Task<ApiResponse<bool>> SoftDeleteAsync(long id);
+        Task<ApiResponse<IEnumerable<WtLineDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<WtLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WtLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<WtLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WtLineDto>> CreateAsync(CreateWtLineDto createDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<WtLineDto>> UpdateAsync(long id, UpdateWtLineDto updateDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }

@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>GrImportLine listesi</returns>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetPagedAsync(request);
+            var result = await _grImportLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -37,9 +37,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">GrImportLine ID</param>
         /// <returns>GrImportLine detayı</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<GrImportLineDto?>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<GrImportLineDto?>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetByIdAsync(id);
+            var result = await _grImportLineService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -49,23 +49,23 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="headerId">Header ID</param>
         /// <returns>GrImportLine listesi</returns>
         [HttpGet("by-header/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineDto>>>> GetByHeaderId(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineDto>>>> GetByHeaderId(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetByHeaderIdAsync(headerId);
+            var result = await _grImportLineService.GetByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("by-header-with-routes/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>>> GetWithRoutesByHeaderId(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>>> GetWithRoutesByHeaderId(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetWithRoutesByHeaderIdAsync(headerId);
+            var result = await _grImportLineService.GetWithRoutesByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("goodReceiptOrderCollectedBarcodes/{headerId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>>> GoodReceiptOrderCollectedBarcodes(long headerId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>>> GoodReceiptOrderCollectedBarcodes(long headerId, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetCollectedBarcodesByHeaderIdAsync(headerId);
+            var result = await _grImportLineService.GetCollectedBarcodesByHeaderIdAsync(headerId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -75,9 +75,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="lineId">Line ID</param>
         /// <returns>GrImportLine listesi</returns>
         [HttpGet("by-line/{lineId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineDto>>>> GetByLineId(long lineId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<GrImportLineDto>>>> GetByLineId(long lineId, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetByLineIdAsync(lineId);
+            var result = await _grImportLineService.GetByLineIdAsync(lineId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -89,7 +89,7 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="createDto">Oluşturulacak GrImportLine bilgileri</param>
         /// <returns>Oluşturulan GrImportLine</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<GrImportLineDto>>> Create([FromBody] CreateGrImportLineDto createDto)
+        public async Task<ActionResult<ApiResponse<GrImportLineDto>>> Create([FromBody] CreateGrImportLineDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
@@ -100,7 +100,7 @@ namespace WMS_WEBAPI.Controllers
                 ));
             }
 
-            var result = await _grImportLineService.CreateAsync(createDto);
+            var result = await _grImportLineService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -111,7 +111,7 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="updateDto">Güncellenecek GrImportLine bilgileri</param>
         /// <returns>Güncellenmiş GrImportLine</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<GrImportLineDto>>> Update(long id, [FromBody] UpdateGrImportLineDto updateDto)
+        public async Task<ActionResult<ApiResponse<GrImportLineDto>>> Update(long id, [FromBody] UpdateGrImportLineDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
@@ -122,7 +122,7 @@ namespace WMS_WEBAPI.Controllers
                 ));
             }
 
-            var result = await _grImportLineService.UpdateAsync(id, updateDto);
+            var result = await _grImportLineService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -132,16 +132,16 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">Silinecek GrImportLine ID</param>
         /// <returns>Silme işlemi sonucu</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.SoftDeleteAsync(id);
+            var result = await _grImportLineService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<GrImportLineDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<GrImportLineDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _grImportLineService.GetPagedAsync(request);
+            var result = await _grImportLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

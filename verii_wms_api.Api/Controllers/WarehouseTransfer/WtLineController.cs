@@ -25,9 +25,9 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         /// <returns>WtLine listesi</returns>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtLineService.GetPagedAsync(request);
+            var result = await _wtLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -37,9 +37,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">WtLine ID</param>
         /// <returns>WtLine detayı</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<WtLineDto?>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<WtLineDto?>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtLineService.GetByIdAsync(id);
+            var result = await _wtLineService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -49,9 +49,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="headerId">Header ID</param>
         /// <returns>WtLine listesi</returns>
         [HttpPost("header/{headerId}/paged")]
-        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request)
+        public async Task<IActionResult> GetByHeaderId(long headerId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtLineService.GetByHeaderIdAsync(headerId);
+            var result = await _wtLineService.GetByHeaderIdAsync(headerId, cancellationToken);
             var pagedResult = result.ToPagedResponse(request);
             return StatusCode(pagedResult.StatusCode, pagedResult);
         }
@@ -74,14 +74,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="createDto">Oluşturulacak WtLine bilgileri</param>
         /// <returns>Oluşturulan WtLine</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<WtLineDto>>> Create([FromBody] CreateWtLineDto createDto)
+        public async Task<ActionResult<ApiResponse<WtLineDto>>> Create([FromBody] CreateWtLineDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtLineService.CreateAsync(createDto);
+            var result = await _wtLineService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -92,14 +92,14 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="updateDto">Güncellenecek WtLine bilgileri</param>
         /// <returns>Güncellenmiş WtLine</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<WtLineDto>>> Update(long id, [FromBody] UpdateWtLineDto updateDto)
+        public async Task<ActionResult<ApiResponse<WtLineDto>>> Update(long id, [FromBody] UpdateWtLineDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ModelState);
             }
 
-            var result = await _wtLineService.UpdateAsync(id, updateDto);
+            var result = await _wtLineService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -109,9 +109,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="id">Silinecek WtLine ID</param>
         /// <returns>Silme işlemi sonucu</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _wtLineService.SoftDeleteAsync(id);
+            var result = await _wtLineService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -132,9 +132,9 @@ namespace WMS_WEBAPI.Controllers
         /// <param name="sortDirection">Sıralama yönü (asc/desc)</param>
         /// <returns>Sayfalı WtLine listesi</returns>
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<WtLineDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<WtLineDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _wtLineService.GetPagedAsync(request);
+            var result = await _wtLineService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }
