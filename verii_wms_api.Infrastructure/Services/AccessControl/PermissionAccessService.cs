@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using WMS_WEBAPI.DTOs;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.UnitOfWork;
@@ -11,18 +10,18 @@ namespace WMS_WEBAPI.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILocalizationService _localizationService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         public PermissionAccessService(
             IUnitOfWork unitOfWork,
             ILocalizationService localizationService,
-            IHttpContextAccessor httpContextAccessor,
+            IExecutionContextAccessor executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _localizationService = localizationService;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _requestCancellationAccessor = requestCancellationAccessor;
         }
 
@@ -34,8 +33,8 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<MyPermissionsDto>> GetMyPermissionsAsync(CancellationToken cancellationToken = default)
         {
 var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-if (string.IsNullOrWhiteSpace(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+var userId = _executionContextAccessor.UserId;
+if (!userId.HasValue)
 {
     return ApiResponse<MyPermissionsDto>.ErrorResult(
         _localizationService.GetLocalizedString("Unauthorized"),
@@ -45,7 +44,7 @@ if (string.IsNullOrWhiteSpace(userIdClaim) || !long.TryParse(userIdClaim, out va
 
 var user = await _unitOfWork.Users.Query()
     .Include(x => x.RoleNavigation)
-    .Where(x => x.Id == userId && !x.IsDeleted)
+    .Where(x => x.Id == userId.Value && !x.IsDeleted)
     .FirstOrDefaultAsync(requestCancellationToken);
 
 if (user == null)
@@ -57,7 +56,7 @@ if (user == null)
 }
 
 var userGroupLinks = await _unitOfWork.UserPermissionGroups.Query()
-    .Where(x => x.UserId == userId && !x.IsDeleted)
+    .Where(x => x.UserId == userId.Value && !x.IsDeleted)
     .Include(x => x.PermissionGroup)
     .ThenInclude(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
     .ThenInclude(x => x.PermissionDefinition)
@@ -84,7 +83,7 @@ var permissionCodes = isSystemAdmin
 
 var response = new MyPermissionsDto
 {
-    UserId = userId,
+    UserId = userId.Value,
     RoleTitle = roleTitle,
     IsSystemAdmin = isSystemAdmin,
     PermissionGroups = userGroupLinks

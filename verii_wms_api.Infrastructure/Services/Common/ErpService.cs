@@ -14,7 +14,7 @@ namespace WMS_WEBAPI.Services
         private readonly IErpUnitOfWork _erpUnitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private readonly ILogger<ErpService> _logger;
 
@@ -22,14 +22,14 @@ namespace WMS_WEBAPI.Services
             IErpUnitOfWork erpUnitOfWork,
             IMapper mapper,
             ILocalizationService localizationService,
-            IHttpContextAccessor httpContextAccessor,
+            IExecutionContextAccessor executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor,
             ILogger<ErpService> logger)
         {
             _erpUnitOfWork = erpUnitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _requestCancellationAccessor = requestCancellationAccessor;
             _logger = logger;
         }
@@ -60,7 +60,7 @@ return ApiResponse<List<OnHandQuantityDto>>.SuccessResult(mappedList, _localizat
         public async Task<ApiResponse<List<CariDto>>> GetCarisAsync(string? cariKodu, CancellationToken cancellationToken = default)
         {
 cancellationToken = ResolveCancellationToken(cancellationToken);
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
 var result = await _erpUnitOfWork.SqlQuery<RII_VW_CARI>("SELECT * FROM dbo.RII_FN_CARI({0}, {1})", string.IsNullOrWhiteSpace(cariKodu) ? null! : cariKodu, subeKodu!)
@@ -81,7 +81,7 @@ var codes = (cariKodlari ?? Array.Empty<string>())
 
 var cariParam = codes.Count == 0 ? null : string.Join(",", codes);
 
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeCsv = string.IsNullOrWhiteSpace(subeFromContext)
     ? null
     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -97,7 +97,7 @@ return ApiResponse<List<CariDto>>.SuccessResult(mappedResult, _localizationServi
         public async Task<ApiResponse<List<StokDto>>> GetStoksAsync(string? stokKodu, CancellationToken cancellationToken = default)
         {
 cancellationToken = ResolveCancellationToken(cancellationToken);
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
 var result = await _erpUnitOfWork.SqlQuery<RII_VW_STOK>("SELECT * FROM dbo.RII_FN_STOK({0}, {1})", string.IsNullOrWhiteSpace(stokKodu) ? null! : stokKodu, subeKodu!)
@@ -143,7 +143,7 @@ var yapKodlar = yapCodeProp == null
         .ToList();
 var yapParam = yapKodlar.Count == 0 ? null : string.Join(",", yapKodlar);
 
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeCsv = string.IsNullOrWhiteSpace(subeFromContext)
     ? null
     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -212,7 +212,7 @@ var codes = codeProp == null
 
 var cariParam = codes.Count == 0 ? null : string.Join(",", codes);
 
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeCsv = string.IsNullOrWhiteSpace(subeFromContext)
     ? null
     : string.Join(",", subeFromContext.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -247,7 +247,7 @@ return ApiResponse<IEnumerable<T>>.SuccessResult(list, _localizationService.GetL
         public async Task<ApiResponse<List<DepoDto>>> GetDeposAsync(short? depoKodu, CancellationToken cancellationToken = default)
         {
 cancellationToken = ResolveCancellationToken(cancellationToken);
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
 var result = await _erpUnitOfWork.SqlQuery<RII_VW_DEPO>("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", depoKodu!, subeKodu!)
@@ -266,7 +266,7 @@ var srcNameProp = typeof(T).GetProperty("SourceWarehouseName");
 var tgtCodeProp = typeof(T).GetProperty("TargetWarehouse");
 var tgtNameProp = typeof(T).GetProperty("TargetWarehouseName");
 
-var subeFromContext = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string;
+var subeFromContext = _executionContextAccessor.BranchCode;
 var subeKodu = string.IsNullOrWhiteSpace(subeFromContext) ? null : subeFromContext;
 
 var rows = await _erpUnitOfWork.SqlQuery<RII_VW_DEPO>("SELECT * FROM dbo.RII_FN_DEPO({0}, {1})", null!, subeKodu!)

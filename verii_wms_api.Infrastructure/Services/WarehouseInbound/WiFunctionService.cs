@@ -13,15 +13,15 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WiFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
+        public WiFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _requestCancellationAccessor = requestCancellationAccessor;
         }
         private CancellationToken ResolveCancellationToken(CancellationToken token = default)
@@ -35,7 +35,7 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<List<WiOpenOrderHeaderDto>>> GetWiOpenOrderHeaderAsync(string customerCode, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCodeStr = _executionContextAccessor.BranchCode ?? "0";
 var rows = await _unitOfWork.SqlQuery<FN_WiOpenOrder_Header>("SELECT * FROM dbo.RII_FN_WI_HEADER({0}, {1})", customerCode, branchCodeStr)
     .ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<List<WiOpenOrderHeaderDto>>(rows);
@@ -45,7 +45,7 @@ return ApiResponse<List<WiOpenOrderHeaderDto>>.SuccessResult(dtos, _localization
         public async Task<ApiResponse<List<WiOpenOrderLineDto>>> GetWiOpenOrderLineAsync(string siparisNoCsv, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCodeStr = _executionContextAccessor.BranchCode ?? "0";
 var rows = await _unitOfWork.SqlQuery<FN_WiOpenOrder_Line>("SELECT * FROM dbo.RII_FN_WI_LINE({0}, {1})", siparisNoCsv, branchCodeStr)
     .ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<List<WiOpenOrderLineDto>>(rows);

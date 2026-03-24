@@ -14,17 +14,17 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IErpService _erpService;
         private readonly INotificationService _notificationService;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SitHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IErpService erpService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
+        public SitHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IErpService erpService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _erpService = erpService;
             _notificationService = notificationService;
             _requestCancellationAccessor = requestCancellationAccessor;
@@ -39,7 +39,7 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<IEnumerable<SitHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var entities = await _unitOfWork.SitHeaders.Query().Where(x => x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<IEnumerable<SitHeaderDto>>(entities);
 
@@ -63,7 +63,7 @@ return ApiResponse<IEnumerable<SitHeaderDto>>.SuccessResult(dtos, _localizationS
         public async Task<ApiResponse<PagedResponse<SitHeaderDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var query = _unitOfWork.SitHeaders.Query().Where(x => x.BranchCode == branchCode);
 
 query = query.ApplyFilters(request.Filters, request.FilterLogic);
@@ -142,7 +142,7 @@ return ApiResponse<IEnumerable<SitHeaderDto>>.SuccessResult(dtos, _localizationS
         public async Task<ApiResponse<IEnumerable<SitHeaderDto>>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var entities = await _unitOfWork.SitHeaders.Query().Where(x => x.PlannedDate >= startDate && x.PlannedDate <= endDate && x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<IEnumerable<SitHeaderDto>>(entities);
 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -164,7 +164,7 @@ return ApiResponse<IEnumerable<SitHeaderDto>>.SuccessResult(dtos, _localizationS
         public async Task<ApiResponse<IEnumerable<SitHeaderDto>>> GetByCustomerCodeAsync(string customerCode, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var entities = await _unitOfWork.SitHeaders.Query().Where(x => x.CustomerCode == customerCode && x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<IEnumerable<SitHeaderDto>>(entities);
 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -499,7 +499,7 @@ catch
         public async Task<ApiResponse<IEnumerable<SitHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 
 // Daha performanslı: Subquery kullanarak EXISTS benzeri kontrol
 // SQL'de daha verimli bir sorgu üretir ve Distinct() gerektirmez
@@ -651,7 +651,7 @@ if (!(entity.IsCompleted && entity.IsPendingApproval && entity.ApprovalStatus ==
     return ApiResponse<SitHeaderDto>.ErrorResult(msg, msg, 400);
 }
 
-var httpUser = _httpContextAccessor.HttpContext?.User;
+var httpUser = null;
 long? approvedByUserId = null;
 var claimVal = httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 if (long.TryParse(claimVal, out var uid))

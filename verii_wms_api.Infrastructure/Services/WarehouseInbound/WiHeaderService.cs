@@ -14,17 +14,17 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IErpService _erpService;
         private readonly INotificationService _notificationService;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WiHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IErpService erpService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
+        public WiHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IErpService erpService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _erpService = erpService;
             _notificationService = notificationService;
             _requestCancellationAccessor = requestCancellationAccessor;
@@ -39,7 +39,7 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var entities = await _unitOfWork.WiHeaders.Query().Where(x => x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<IEnumerable<WiHeaderDto>>(entities);
 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -61,7 +61,7 @@ return ApiResponse<IEnumerable<WiHeaderDto>>.SuccessResult(dtos, _localizationSe
         public async Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var query = _unitOfWork.WiHeaders.Query().Where(x => x.BranchCode == branchCode);
 query = query.ApplyFilters(request.Filters, request.FilterLogic);
 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
@@ -116,7 +116,7 @@ return ApiResponse<WiHeaderDto>.SuccessResult(dto, _localizationService.GetLocal
         public async Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetByInboundTypeAsync(string inboundType, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var entities = await _unitOfWork.WiHeaders.Query().Where(x => x.InboundType == inboundType && x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<IEnumerable<WiHeaderDto>>(entities);
 var enriched = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -137,7 +137,7 @@ return ApiResponse<IEnumerable<WiHeaderDto>>.SuccessResult(dtos, _localizationSe
         public async Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetByAccountCodeAsync(string accountCode, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var entities = await _unitOfWork.WiHeaders.Query().Where(x => x.AccountCode == accountCode && x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var dtos = _mapper.Map<IEnumerable<WiHeaderDto>>(entities);
 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -405,7 +405,7 @@ catch
         public async Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 
 // Daha performanslı: Subquery kullanarak EXISTS benzeri kontrol
 // SQL'de daha verimli bir sorgu üretir ve Distinct() gerektirmez
@@ -549,7 +549,7 @@ if (!(entity.IsCompleted && entity.IsPendingApproval && entity.ApprovalStatus ==
     return ApiResponse<WiHeaderDto>.ErrorResult(msg, msg, 400);
 }
 
-var httpUser = _httpContextAccessor.HttpContext?.User;
+var httpUser = null;
 long? approvedByUserId = null;
 var claimVal = httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 if (long.TryParse(claimVal, out var uid))

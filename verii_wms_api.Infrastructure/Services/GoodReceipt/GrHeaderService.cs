@@ -16,18 +16,18 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IErpService _erpService;
         private readonly IGoodReciptFunctionsService _goodReceiptFunctionsService;
         private readonly INotificationService _notificationService;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GrHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IErpService erpService, IGoodReciptFunctionsService goodReceiptFunctionsService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
+        public GrHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IErpService erpService, IGoodReciptFunctionsService goodReceiptFunctionsService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _erpService = erpService;
             _goodReceiptFunctionsService = goodReceiptFunctionsService;
             _notificationService = notificationService;
@@ -46,7 +46,7 @@ namespace WMS_WEBAPI.Services
 if (request.PageNumber < 0) request.PageNumber = 0;
 if (request.PageSize < 1) request.PageSize = 20;
 
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var query = _unitOfWork.GrHeaders.Query()
     .Where(x => x.BranchCode == branchCode);
 query = query.ApplyFilters(request.Filters, request.FilterLogic);
@@ -74,7 +74,7 @@ return ApiResponse<PagedResponse<GrHeaderDto>>.SuccessResult(result,_localizatio
         public async Task<ApiResponse<IEnumerable<GrHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var grHeaders = await _unitOfWork.GrHeaders.Query().Where(x => x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 var grHeaderDtos = _mapper.Map<List<GrHeaderDto>>(grHeaders);
 
@@ -198,7 +198,7 @@ return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedSt
         public async Task<ApiResponse<IEnumerable<GrHeaderDto>>> GetByCustomerCodeAsync(string customerCode, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 var grHeaders = await _unitOfWork.GrHeaders
     .Query().Where(x => x.CustomerCode == customerCode && x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
 
@@ -681,7 +681,7 @@ catch
         public async Task<ApiResponse<IEnumerable<GrHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
+var branchCode = _executionContextAccessor.BranchCode ?? "0";
 
 // Daha performanslı: Subquery kullanarak EXISTS benzeri kontrol
 // SQL'de daha verimli bir sorgu üretir ve Distinct() gerektirmez
@@ -817,7 +817,7 @@ if (!(entity.IsCompleted && entity.IsPendingApproval && entity.ApprovalStatus ==
     return ApiResponse<GrHeaderDto>.ErrorResult(msg, msg, 400);
 }
 
-var httpUser = _httpContextAccessor.HttpContext?.User;
+var httpUser = null;
 long? approvedByUserId = null;
 var claimVal = httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 if (long.TryParse(claimVal, out var uid))
