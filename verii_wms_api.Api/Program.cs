@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -28,6 +27,7 @@ using WMS_WEBAPI.Services.Jobs;
 using WMS_WEBAPI.Security;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.IO.Compression;
+using WMS_WEBAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -80,232 +80,15 @@ builder.Services.AddControllers(options =>
     options.Conventions.Add(new PermissionAuthorizationConvention());
 });
 builder.Services.AddMemoryCache();
-var dataProtectionKeyPath =
-    builder.Configuration["DataProtection:KeyPath"] ??
-    Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
-Directory.CreateDirectory(dataProtectionKeyPath);
-builder.Services
-    .AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath))
-    .SetApplicationName("V3RII_WMS");
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureLayer(builder.Configuration, builder.Environment);
 
 // SignalR Configuration
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 });
-
-// Entity Framework Configuration - Using SQL Server for WMS
-builder.Services.AddDbContextPool<WmsDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=wms.db";
-    options.UseSqlServer(connectionString, sqlOptions =>
-    {
-        sqlOptions.EnableRetryOnFailure();
-    });
-});
-
-// ERP Database Configuration - Using SQL Server
-builder.Services.AddDbContextPool<ErpDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("ErpConnection");
-    options.UseSqlServer(connectionString, sqlOptions =>
-    {
-        sqlOptions.EnableRetryOnFailure();
-    });
-    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-});
-
-// AutoMapper Configuration - discover profiles from API, Application and Infrastructure assemblies
-builder.Services.AddAutoMapper(
-    typeof(Program).Assembly,
-    typeof(WMS_WEBAPI.Mappings.WmsAutoMapperProfile).Assembly,
-    typeof(WMS_WEBAPI.Services.LocalizationService).Assembly);
-
-// Hangfire Configuration
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
-    {
-        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-        QueuePollInterval = TimeSpan.Zero,
-        UseRecommendedIsolationLevel = true,
-        DisableGlobalLocks = true
-    }));
-
-builder.Services.Configure<HangfireMonitoringOptions>(
-    builder.Configuration.GetSection(HangfireMonitoringOptions.SectionName));
-
-GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute
-{
-    Attempts = 3,
-    DelaysInSeconds = new[] { 60, 300, 900 },
-    LogEvents = true,
-    OnAttemptsExceeded = AttemptsExceededAction.Fail
-});
-
-// Add Hangfire server
-builder.Services.AddHangfireServer(options =>
-{
-    options.Queues = new[] { "default", "email", "reset-pass-mail", "dead-letter" };
-});
-
-// Register Core Services
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IErpUnitOfWork, ErpUnitOfWork>();
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<IRequestCancellationAccessor, HttpRequestCancellationAccessor>();
-
-// Register Authentication & Authorization Services
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IUserAuthorityService, UserAuthorityService>();
-builder.Services.AddScoped<ISmtpSettingsService, SmtpSettingsService>();
-builder.Services.AddScoped<IMailService, MailService>();
-builder.Services.AddScoped<IPermissionDefinitionService, PermissionDefinitionService>();
-builder.Services.AddScoped<IPermissionGroupService, PermissionGroupService>();
-builder.Services.AddScoped<IUserPermissionGroupService, UserPermissionGroupService>();
-builder.Services.AddScoped<IPermissionAccessService, PermissionAccessService>();
-builder.Services.AddScoped<ICustomerMirrorService, CustomerMirrorService>();
-builder.Services.AddScoped<IStockMirrorService, StockMirrorService>();
-
-// Register Localization Services
-builder.Services.AddScoped<ILocalizationService, LocalizationService>();
-
-// Register ERP Services
-builder.Services.AddScoped<IErpService, ErpService>();
-
-// Register Platform Services
-builder.Services.AddScoped<IPlatformPageGroupService, PlatformPageGroupService>();
-builder.Services.AddScoped<IPlatformUserGroupMatchService, PlatformUserGroupMatchService>();
-
-// Register Mobile Services
-builder.Services.AddScoped<IMobilePageGroupService, MobilePageGroupService>();
-builder.Services.AddScoped<IMobileUserGroupMatchService, MobileUserGroupMatchService>();
-
-// Register Good Receipt Services
-builder.Services.AddScoped<IGrHeaderService, GrHeaderService>();
-builder.Services.AddScoped<IGrHeaderService, GrHeaderService>();
-builder.Services.AddScoped<IGrLineService, GrLineService>();
-builder.Services.AddScoped<IGrImportDocumentService, GrImportDocumentService>();
-builder.Services.AddScoped<IGrImportLineService, GrImportLineService>();
-builder.Services.AddScoped<IGrRouteService, GrRouteService>();
-builder.Services.AddScoped<IGrLineSerialService, GrLineSerialService>();
-builder.Services.AddScoped<IGrTerminalLineService, GrTerminalLineService>();
-
-
-// Register Warehouse Transfer Services (kept disabled to avoid build issues)
-builder.Services.AddScoped<IWtFunctionService,WtFunctionService>();
-builder.Services.AddScoped<IWtHeaderService,WtHeaderService>();
-builder.Services.AddScoped<IWtLineService, WtLineService>();
-builder.Services.AddScoped<IWtImportLineService, WtImportLineService>();
-builder.Services.AddScoped<IWtLineSerialService, WtLineSerialService>();
-builder.Services.AddScoped<IWtRouteService, WtRouteService>();
-builder.Services.AddScoped<IWtTerminalLineService, WtTerminalLineService>();
-
-
-// Register Product Transfer Services
-builder.Services.AddScoped<IPtFunctionService, PtFunctionService>();
-builder.Services.AddScoped<IPtHeaderService, PtHeaderService>();
-builder.Services.AddScoped<IPtLineService, PtLineService>();
-builder.Services.AddScoped<IPtImportLineService, PtImportLineService>();
-builder.Services.AddScoped<IPtRouteService, PtRouteService>();
-builder.Services.AddScoped<IPtTerminalLineService, PtTerminalLineService>();
-builder.Services.AddScoped<IPtLineSerialService, PtLineSerialService>();
-
-// Register Production Services
-builder.Services.AddScoped<IPrFunctionService, PrFunctionService>();
-builder.Services.AddScoped<IPrHeaderService, PrHeaderService>();
-builder.Services.AddScoped<IPrLineService, PrLineService>();
-builder.Services.AddScoped<IPrImportLineService, PrImportLineService>();
-builder.Services.AddScoped<IPrRouteService, PrRouteService>();
-builder.Services.AddScoped<IPrTerminalLineService, PrTerminalLineService>();
-builder.Services.AddScoped<IPrLineSerialService, PrLineSerialService>();
-builder.Services.AddScoped<IPrHeaderSerialService, PrHeaderSerialService>();
-
-// Register Subcontracting Issue Transfer Services
-builder.Services.AddScoped<ISitHeaderService, SitHeaderService>();
-builder.Services.AddScoped<ISitLineService, SitLineService>();
-builder.Services.AddScoped<ISitImportLineService, SitImportLineService>();
-builder.Services.AddScoped<ISitRouteService, SitRouteService>();
-builder.Services.AddScoped<ISitTerminalLineService, SitTerminalLineService>();
-builder.Services.AddScoped<ISitLineSerialService, SitLineSerialService>();
-
-// Register Subcontracting Receipt Transfer Services
-builder.Services.AddScoped<ISrtHeaderService, SrtHeaderService>();
-builder.Services.AddScoped<ISrtLineService, SrtLineService>();
-builder.Services.AddScoped<ISrtImportLineService, SrtImportLineService>();
-builder.Services.AddScoped<ISrtRouteService, SrtRouteService>();
-builder.Services.AddScoped<ISrtTerminalLineService, SrtTerminalLineService>();
-builder.Services.AddScoped<ISrtFunctionService, SrtFunctionService>();
-builder.Services.AddScoped<ISrtLineSerialService, SrtLineSerialService>();
-
-// Register Warehouse Outbound Services
-builder.Services.AddScoped<IWoFunctionService, WoFunctionService>();
-builder.Services.AddScoped<IWoHeaderService, WoHeaderService>();
-builder.Services.AddScoped<IWoLineService, WoLineService>();
-builder.Services.AddScoped<IWoImportLineService, WoImportLineService>();
-builder.Services.AddScoped<IWoRouteService, WoRouteService>();
-builder.Services.AddScoped<IWoTerminalLineService, WoTerminalLineService>();
-builder.Services.AddScoped<IWoLineSerialService, WoLineSerialService>();
-
-// Register Warehouse Inbound Services
-builder.Services.AddScoped<IWiFunctionService, WiFunctionService>();
-builder.Services.AddScoped<IWiHeaderService, WiHeaderService>();
-builder.Services.AddScoped<IWiLineService, WiLineService>();
-builder.Services.AddScoped<IWiImportLineService, WiImportLineService>();
-builder.Services.AddScoped<IWiRouteService, WiRouteService>();
-builder.Services.AddScoped<IWiTerminalLineService, WiTerminalLineService>();
-builder.Services.AddScoped<IWiLineSerialService, WiLineSerialService>();
-
-// Register Shipping Services
-builder.Services.AddScoped<IShHeaderService, ShHeaderService>();
-builder.Services.AddScoped<IShFunctionService, ShFunctionService>();
-builder.Services.AddScoped<IShLineService, ShLineService>();
-builder.Services.AddScoped<IShImportLineService, ShImportLineService>();
-builder.Services.AddScoped<IShRouteService, ShRouteService>();
-builder.Services.AddScoped<IShTerminalLineService, ShTerminalLineService>();
-builder.Services.AddScoped<IShLineSerialService, ShLineSerialService>();
-
-// Register Parameter Services
-builder.Services.AddScoped<IGrParameterService, GrParameterService>();
-builder.Services.AddScoped<IWtParameterService, WtParameterService>();
-builder.Services.AddScoped<IWoParameterService, WoParameterService>();
-builder.Services.AddScoped<IWiParameterService, WiParameterService>();
-builder.Services.AddScoped<IShParameterService, ShParameterService>();
-builder.Services.AddScoped<ISrtParameterService, SrtParameterService>();
-builder.Services.AddScoped<ISitParameterService, SitParameterService>();
-builder.Services.AddScoped<IPtParameterService, PtParameterService>();
-builder.Services.AddScoped<IPrParameterService, PrParameterService>();
-builder.Services.AddScoped<IIcParameterService, IcParameterService>();
-builder.Services.AddScoped<IPParameterService, PParameterService>();
-
-
-// Register Function Services
-builder.Services.AddScoped<IGoodReciptFunctionsService, GoodReciptFunctionsService>();
-
-// Register Background Job Services
-builder.Services.AddScoped<BackgroundJobService>();
-
-// Register Notification Services
-builder.Services.AddScoped<INotificationService, NotificationService>();
-
-// Register User Detail Services
-builder.Services.AddScoped<IUserDetailService, UserDetailService>();
-builder.Services.AddScoped<IFileUploadService, FileUploadService>();
-builder.Services.AddScoped<IResetPasswordEmailJob, WMS_WEBAPI.Services.Jobs.ResetPasswordEmailJob>();
-builder.Services.AddScoped<IStockSyncJob, StockSyncJob>();
-builder.Services.AddScoped<ICustomerSyncJob, CustomerSyncJob>();
-builder.Services.AddScoped<IHangfireDeadLetterJob, HangfireDeadLetterJob>();
-
-// Register Package Services
-builder.Services.AddScoped<IPHeaderService, PHeaderService>();
-builder.Services.AddScoped<IPPackageService, PPackageService>();
-builder.Services.AddScoped<IPLineService, PLineService>();
 
 // Add HttpContextAccessor for accessing HTTP context in services
 builder.Services.AddHttpContextAccessor();
@@ -545,39 +328,7 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-app.UseExceptionHandler(errApp =>
-{
-    errApp.Run(async ctx =>
-    {
-        var ex = ctx.Features.Get<IExceptionHandlerFeature>()?.Error;
-        var logger = ctx.RequestServices.GetService<ILogger<Program>>();
-        if (ex != null)
-        {
-            logger?.LogError(ex, "Unhandled exception: {Path}", ctx.Request.Path);
-        }
-
-        ctx.Response.StatusCode = 500;
-        ctx.Response.ContentType = "application/json";
-
-        var origin = ctx.Request.Headers["Origin"].ToString();
-        if (!string.IsNullOrEmpty(origin) && allowedCorsOrigins.Contains(origin))
-        {
-            if (!ctx.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
-            {
-                ctx.Response.Headers.Append("Access-Control-Allow-Origin", origin);
-                ctx.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
-            }
-        }
-
-        var response = ApiResponse<object>.ErrorResult(
-            "An error occurred.",
-            ex?.Message ?? "An error occurred.",
-            500,
-            ex?.Message);
-        var json = System.Text.Json.JsonSerializer.Serialize(response);
-        await ctx.Response.WriteAsync(json);
-    });
-});
+app.UseExceptionHandler();
 
 app.UseRouting();
 app.UseCors("DevCors");
