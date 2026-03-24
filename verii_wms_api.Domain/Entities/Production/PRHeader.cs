@@ -1,30 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WMS_WEBAPI.Models
 {
-    [Table("RII_PR_HEADER")]
     public class PrHeader : BaseHeaderEntity
     {
-        [MaxLength(20)]
         public string? CustomerCode { get; set; }
 
-        [MaxLength(20)]
         public string? StockCode { get; set; }
 
-        [MaxLength(20)]
         public string? YapKod { get; set; }
 
         // Üretim miktarı
-        [Column(TypeName = "decimal(18,6)")]
         public decimal? Quantity { get; set; }
 
-        [MaxLength(20)]
         public string? SourceWarehouse { get; set; }
 
-        [MaxLength(20)]
         public string? TargetWarehouse { get; set; }
 
 

@@ -1,13 +1,9 @@
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WMS_WEBAPI.Models
 {
     public abstract class BaseEntity
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long Id { get; set; }
 
         public DateTime? CreatedDate { get; set; } = DateTimeProvider.Now;
@@ -18,15 +14,12 @@ namespace WMS_WEBAPI.Models
     
         // User Informations
         public long? CreatedBy { get; set; }
-        [ForeignKey("CreatedBy")]
         public User? CreatedByUser { get; set; }
 
         public long? UpdatedBy { get; set; }
-        [ForeignKey("UpdatedBy")]
         public User? UpdatedByUser { get; set; }
 
         public long? DeletedBy { get; set; }
-        [ForeignKey("DeletedBy")]
         public User? DeletedByUser { get; set; }
 
     }

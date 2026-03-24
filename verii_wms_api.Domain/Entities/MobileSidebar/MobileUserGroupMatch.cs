@@ -1,16 +1,11 @@
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WMS_WEBAPI.Models
 {
-    [Table("RII_MOBIL_USER_GROUP_MATCH")]
     public class MobileUserGroupMatch : BaseEntity
     {
-        [Required]
         public long UserId { get; set; }
             
-        [Required]
         public string GroupCode { get; set; } = string.Empty;
 
         // Navigation properties (ilişkiler DbContext'te tanımlanacak)
