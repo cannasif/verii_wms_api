@@ -15,6 +15,7 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private readonly IHubContext<WMS_WEBAPI.Hubs.AuthHub> _hubContext;
         private readonly IResetPasswordEmailJob _resetPasswordEmailJob;
 
@@ -23,22 +24,30 @@ namespace WMS_WEBAPI.Services
             IJwtService jwtService,
             ILocalizationService localizationService,
             IHubContext<WMS_WEBAPI.Hubs.AuthHub> hubContext,
-            IResetPasswordEmailJob resetPasswordEmailJob)
+            IResetPasswordEmailJob resetPasswordEmailJob, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
             _hubContext = hubContext;
             _resetPasswordEmailJob = resetPasswordEmailJob;
         }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
 
-        public async Task<ApiResponse<UserDto>> GetUserByUsernameAsync(string username)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<UserDto>> GetUserByUsernameAsync(string username, CancellationToken cancellationToken = default)
         {
             try
             {
                 var query = _unitOfWork.Users.Query().Include(u => u.RoleNavigation);
                 var user = await query.Where(u => u.Username == username)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(RequestCancellationToken);
                 
                 if (user == null)
                 {
@@ -55,13 +64,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDto>> GetUserByIdAsync(long id)
+        public async Task<ApiResponse<UserDto>> GetUserByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
                 var user = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation)
                     .Where(u => u.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 
                 if (user == null)
                 {
@@ -78,7 +87,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDto>> RegisterUserAsync(RegisterDto registerDto)
+        public async Task<ApiResponse<UserDto>> RegisterUserAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -101,7 +110,7 @@ namespace WMS_WEBAPI.Services
                 };
 
                 await _unitOfWork.Users.AddAsync(user);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 var dto = MapToUserDto(user);
                 return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRegisteredSuccessfully"));
@@ -112,7 +121,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<string>> LoginAsync(LoginRequest request)
+        public async Task<ApiResponse<string>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -125,7 +134,7 @@ namespace WMS_WEBAPI.Services
                 var user = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Username == loginDto.Username || u.Email == loginDto.Username)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 
                 if (user == null)
                 {
@@ -149,11 +158,11 @@ namespace WMS_WEBAPI.Services
 
                 var activeSession = await _unitOfWork.UserSessions.Query(tracking: true)
                     .Where(s => s.UserId == user.Id && s.RevokedAt == null)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (activeSession != null)
                 {
                     activeSession.RevokedAt = DateTimeProvider.Now;
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
                     await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, user.Id.ToString());
                 }
 
@@ -167,7 +176,7 @@ namespace WMS_WEBAPI.Services
                     CreatedDate = DateTimeProvider.Now
                 };
                 await _unitOfWork.UserSessions.AddAsync(session);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
                 
                 return ApiResponse<string>.SuccessResult(token, _localizationService.GetLocalizedString("Success.User.LoginSuccessful"));
             }
@@ -177,11 +186,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<UserDto>>> GetAllUsersAsync()
+        public async Task<ApiResponse<IEnumerable<UserDto>>> GetAllUsersAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var users = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation).ToListAsync();
+                var users = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation).ToListAsync(RequestCancellationToken);
                 var dtos = users.Select(MapToUserDto).ToList();
                 return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
             }
@@ -191,14 +200,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<UserDto>>> GetActiveUsersAsync()
+        public async Task<ApiResponse<IEnumerable<UserDto>>> GetActiveUsersAsync(CancellationToken cancellationToken = default)
         {
             try
             {
                 var users = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.IsActive == true)
-                    .ToListAsync();
+                    .ToListAsync(RequestCancellationToken);
                 var dtos = users.Select(MapToUserDto).ToList();
                 return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ActiveUsersRetrievedSuccessfully"));
             }
@@ -208,12 +217,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<string>> RequestPasswordResetAsync(ForgotPasswordRequest request)
+        public async Task<ApiResponse<string>> RequestPasswordResetAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
                 var user = await _unitOfWork.Users.Query().Where(u => u.Email == request.Email)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(RequestCancellationToken);
                 var token = Guid.NewGuid().ToString("N");
                 var tokenHash = ComputeSha256Hash(token);
                 var expiresAt = DateTime.UtcNow.AddMinutes(30);
@@ -229,7 +238,7 @@ namespace WMS_WEBAPI.Services
                         IsDeleted = false
                     };
                     await _unitOfWork.PasswordResetRequests.AddAsync(reset);
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
                     
                     var fullName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
                     if (string.IsNullOrWhiteSpace(fullName))
@@ -249,7 +258,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request)
+        public async Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -259,7 +268,7 @@ namespace WMS_WEBAPI.Services
                 var reset = await _unitOfWork.PasswordResetRequests.Query(tracking: true)
                     .Include(r => r.User)
                     .Where(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
 
                 if (reset == null || reset.User == null)
                 {
@@ -272,7 +281,7 @@ namespace WMS_WEBAPI.Services
                 reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
                 reset.User.UpdatedDate = now;
 
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 await InvalidateUserSessionsAsync(reset.User.Id);
 
@@ -292,14 +301,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<string>> ChangePasswordAsync(long userId, ChangePasswordRequest request)
+        public async Task<ApiResponse<string>> ChangePasswordAsync(long userId, ChangePasswordRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
                 var user = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Id == userId)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (user == null)
                 {
                     var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
@@ -318,7 +327,7 @@ namespace WMS_WEBAPI.Services
 
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
                 user.UpdatedDate = DateTimeProvider.Now;
-                var affectedRows = await _unitOfWork.SaveChangesAsync();
+                var affectedRows = await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
                 if (affectedRows == 0 || !BCrypt.Net.BCrypt.Verify(request.NewPassword, user.PasswordHash))
                 {
                     var saveMsg = _localizationService.GetLocalizedString("AuthErrorOccurred");
@@ -348,7 +357,7 @@ namespace WMS_WEBAPI.Services
                     CreatedDate = DateTimeProvider.Now
                 };
                 await _unitOfWork.UserSessions.AddAsync(session);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 var displayName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
                 if (string.IsNullOrWhiteSpace(displayName))
@@ -382,7 +391,7 @@ namespace WMS_WEBAPI.Services
         {
             var sessions = await _unitOfWork.UserSessions.Query(tracking: true)
                 .Where(s => s.UserId == userId && s.RevokedAt == null)
-                .ToListAsync();
+                .ToListAsync(RequestCancellationToken);
 
             if (sessions.Count > 0)
             {
@@ -392,7 +401,7 @@ namespace WMS_WEBAPI.Services
                     s.RevokedAt = now;
                     s.UpdatedDate = now;
                 }
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
                 await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, userId.ToString());
             }
         }
@@ -402,14 +411,14 @@ namespace WMS_WEBAPI.Services
             var roleTitle = await _unitOfWork.UserAuthorities.Query()
                 .Where(x => !x.IsDeleted && x.Id == roleId)
                 .Select(x => x.Title)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(RequestCancellationToken);
 
             var userGroupLinks = await _unitOfWork.UserPermissionGroups.Query()
                 .Where(x => x.UserId == userId && !x.IsDeleted)
                 .Include(x => x.PermissionGroup)
                     .ThenInclude(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
                         .ThenInclude(x => x.PermissionDefinition)
-                .ToListAsync();
+                .ToListAsync(RequestCancellationToken);
 
             var isSystemAdmin = userGroupLinks.Any(x => x.PermissionGroup.IsSystemAdmin);
             if (!isSystemAdmin &&

@@ -19,44 +19,44 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _userService.GetAllUsersAsync(request);
+            var result = await _userService.GetAllUsersAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<IActionResult> GetPaged([FromBody] PagedRequest request)
+        public async Task<IActionResult> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _userService.GetAllUsersAsync(request);
+            var result = await _userService.GetAllUsersAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id:long}")]
-        public async Task<IActionResult> GetById(long id)
+        public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _userService.GetUserByIdAsync(id);
+            var result = await _userService.GetUserByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] CreateUserDto dto)
+        public async Task<IActionResult> Post([FromBody] CreateUserDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _userService.CreateUserAsync(dto);
+            var result = await _userService.CreateUserAsync(dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id:long}")]
-        public async Task<IActionResult> Put(long id, [FromBody] UpdateUserDto dto)
+        public async Task<IActionResult> Put(long id, [FromBody] UpdateUserDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _userService.UpdateUserAsync(id, dto);
+            var result = await _userService.UpdateUserAsync(id, dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id:long}")]
-        public async Task<IActionResult> Delete(long id)
+        public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _userService.DeleteUserAsync(id);
+            var result = await _userService.DeleteUserAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

@@ -12,23 +12,32 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private readonly IFileUploadService _fileUploadService;
 
-        public UserDetailService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IFileUploadService fileUploadService)
+        public UserDetailService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IFileUploadService fileUploadService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
             _fileUploadService = fileUploadService;
         }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
 
-        public async Task<ApiResponse<UserDetailDto>> GetByIdAsync(long id)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<UserDetailDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
                 var entity = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<UserDetailDto>.ErrorResult(
@@ -49,14 +58,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDetailDto>> GetByUserIdAsync(long userId)
+        public async Task<ApiResponse<UserDetailDto>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         {
             try
             {
                 var entity = await _unitOfWork.UserDetails.Query()
                       // Add AsNoTracking to prevent tracking conflicts
                     .Where(x => x.UserId == userId && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(RequestCancellationToken);
 
                 if (entity == null)
                 {
@@ -78,13 +87,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<UserDetailDto>>> GetAllAsync()
+        public async Task<ApiResponse<IEnumerable<UserDetailDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             try
             {
                 var entities = await _unitOfWork.UserDetails.Query()
                     .Where(x => !x.IsDeleted)
-                    .ToListAsync();
+                    .ToListAsync(RequestCancellationToken);
 
                 var dtos = _mapper.Map<IEnumerable<UserDetailDto>>(entities);
                 return ApiResponse<IEnumerable<UserDetailDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
@@ -98,7 +107,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<UserDetailDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<UserDetailDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -113,10 +122,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(RequestCancellationToken);
                 var items = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(RequestCancellationToken);
 
                 var dtos = _mapper.Map<List<UserDetailDto>>(items);
                 var result = new PagedResponse<UserDetailDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -132,7 +141,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDetailDto>> CreateAsync(CreateUserDetailDto dto)
+        public async Task<ApiResponse<UserDetailDto>> CreateAsync(CreateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -149,7 +158,7 @@ namespace WMS_WEBAPI.Services
                 // Check if user detail already exists
                 var existingDetail = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == dto.UserId && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(RequestCancellationToken);
 
                 if (existingDetail != null)
                 {
@@ -161,7 +170,7 @@ namespace WMS_WEBAPI.Services
 
                 var entity = _mapper.Map<UserDetail>(dto);
                 await _unitOfWork.UserDetails.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 var result = _mapper.Map<UserDetailDto>(entity);
                 return ApiResponse<UserDetailDto>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailCreatedSuccessfully"));
@@ -175,13 +184,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDetailDto>> UpdateAsync(long id, UpdateUserDetailDto dto)
+        public async Task<ApiResponse<UserDetailDto>> UpdateAsync(long id, UpdateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
                 var entity = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<UserDetailDto>.ErrorResult(
@@ -203,7 +212,7 @@ namespace WMS_WEBAPI.Services
                 
                 // Use Update which will handle tracking correctly
                 _unitOfWork.UserDetails.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 var result = _mapper.Map<UserDetailDto>(entity);
                 return ApiResponse<UserDetailDto>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailUpdatedSuccessfully"));
@@ -217,13 +226,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(long id)
+        public async Task<ApiResponse<bool>> DeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
                 var entity = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(
@@ -235,7 +244,7 @@ namespace WMS_WEBAPI.Services
                 entity.IsDeleted = true;
                 entity.DeletedDate = DateTimeProvider.Now;
                 _unitOfWork.UserDetails.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("UserDetailDeletedSuccessfully"));
             }

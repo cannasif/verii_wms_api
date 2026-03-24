@@ -14,15 +14,24 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<PagedResponse<UserDto>>> GetAllUsersAsync(PagedRequest request)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<PagedResponse<UserDto>>> GetAllUsersAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -44,10 +53,10 @@ namespace WMS_WEBAPI.Services
                 var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? nameof(User.Id), desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(RequestCancellationToken);
                 var users = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(RequestCancellationToken);
 
                 var data = _mapper.Map<List<UserDto>>(users);
                 var paged = new PagedResponse<UserDto>(data, totalCount, request.PageNumber, request.PageSize);
@@ -65,7 +74,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDto>> GetUserByIdAsync(long id)
+        public async Task<ApiResponse<UserDto>> GetUserByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -73,7 +82,7 @@ namespace WMS_WEBAPI.Services
                     .Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
 
                 if (user == null)
                 {
@@ -96,7 +105,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDto>> CreateUserAsync(CreateUserDto dto)
+        public async Task<ApiResponse<UserDto>> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -110,7 +119,7 @@ namespace WMS_WEBAPI.Services
 
                 var usernameExists = await _unitOfWork.Users.Query()
                     .Where(x => x.Username == dto.Username)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                 if (usernameExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -121,7 +130,7 @@ namespace WMS_WEBAPI.Services
 
                 var emailExists = await _unitOfWork.Users.Query()
                     .Where(x => x.Email == dto.Email)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                 if (emailExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -132,7 +141,7 @@ namespace WMS_WEBAPI.Services
 
                 var roleExists = await _unitOfWork.UserAuthorities.Query()
                     .Where(x => x.Id == dto.RoleId)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                 if (!roleExists)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -167,7 +176,7 @@ namespace WMS_WEBAPI.Services
                 entity.IsActive = dto.IsActive ?? true;
 
                 await _unitOfWork.Users.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 if (dto.PermissionGroupIds != null)
                 {
@@ -181,7 +190,7 @@ namespace WMS_WEBAPI.Services
                 var created = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Id == entity.Id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
 
                 BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
                     job.SendUserCreatedEmailAsync(dto.Email, dto.Username, plainPassword, dto.FirstName, dto.LastName));
@@ -199,13 +208,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserDto>> UpdateUserAsync(long id, UpdateUserDto dto)
+        public async Task<ApiResponse<UserDto>> UpdateUserAsync(long id, UpdateUserDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
                 var entity = await _unitOfWork.Users.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (entity == null)
                 {
                     return ApiResponse<UserDto>.ErrorResult(
@@ -218,7 +227,7 @@ namespace WMS_WEBAPI.Services
                 {
                     var emailExists = await _unitOfWork.Users.Query()
                         .Where(x => x.Id != id && x.Email == dto.Email)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                     if (emailExists)
                     {
                         return ApiResponse<UserDto>.ErrorResult(
@@ -232,7 +241,7 @@ namespace WMS_WEBAPI.Services
                 {
                     var roleExists = await _unitOfWork.UserAuthorities.Query()
                         .Where(x => x.Id == dto.RoleId.Value)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                     if (!roleExists)
                     {
                         return ApiResponse<UserDto>.ErrorResult(
@@ -263,7 +272,7 @@ namespace WMS_WEBAPI.Services
 
                 _mapper.Map(dto, entity);
                 _unitOfWork.Users.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 if (dto.PermissionGroupIds != null)
                 {
@@ -277,7 +286,7 @@ namespace WMS_WEBAPI.Services
                 var updated = await _unitOfWork.Users.Query()
                     .Include(u => u.RoleNavigation)
                     .Where(u => u.Id == entity.Id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
 
                 return ApiResponse<UserDto>.SuccessResult(
                     _mapper.Map<UserDto>(updated ?? entity),
@@ -292,12 +301,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<object>> DeleteUserAsync(long id)
+        public async Task<ApiResponse<object>> DeleteUserAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
                 var exists = await _unitOfWork.Users.Query().Where(x => x.Id == id)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                 if (!exists)
                 {
                     return ApiResponse<object>.ErrorResult(
@@ -307,7 +316,7 @@ namespace WMS_WEBAPI.Services
                 }
 
                 await _unitOfWork.Users.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 return ApiResponse<object>.SuccessResult(new { }, _localizationService.GetLocalizedString("OperationSuccessful"));
             }
@@ -338,7 +347,7 @@ namespace WMS_WEBAPI.Services
 
                 var validCount = await _unitOfWork.PermissionGroups.Query()
                     .Where(x => distinctGroupIds.Contains(x.Id))
-                            .CountAsync();
+                            .CountAsync(RequestCancellationToken);
 
                 if (validCount != distinctGroupIds.Count)
                 {
@@ -367,7 +376,7 @@ namespace WMS_WEBAPI.Services
 
                 var currentLinks = await _unitOfWork.UserPermissionGroups.Query()
                     .Where(x => x.UserId == userId)
-                    .ToListAsync();
+                    .ToListAsync(RequestCancellationToken);
 
                 foreach (var link in currentLinks.Where(x => !distinctGroupIds.Contains(x.PermissionGroupId)))
                 {
@@ -386,7 +395,7 @@ namespace WMS_WEBAPI.Services
                     });
                 }
 
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
             }
             catch (Exception ex)
@@ -410,7 +419,7 @@ namespace WMS_WEBAPI.Services
 
                 var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.Query()
                     .Where(x => x.IsSystemAdmin && distinctGroupIds.Contains(x.Id))
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
 
                 if (!hasSystemAdminGroup)
                 {
@@ -442,7 +451,7 @@ namespace WMS_WEBAPI.Services
             var roleTitle = await _unitOfWork.UserAuthorities.Query()
                 .Where(x => x.Id == roleId)
                 .Select(x => x.Title)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(RequestCancellationToken);
 
             return !string.IsNullOrWhiteSpace(roleTitle) &&
                    roleTitle.Contains("admin", StringComparison.OrdinalIgnoreCase);

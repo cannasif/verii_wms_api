@@ -12,21 +12,30 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         public PermissionAccessService(
             IUnitOfWork unitOfWork,
             ILocalizationService localizationService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
 
-        public async Task<ApiResponse<MyPermissionsDto>> GetMyPermissionsAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
+
+        public async Task<ApiResponse<MyPermissionsDto>> GetMyPermissionsAsync(CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
                 {
@@ -39,7 +48,7 @@ namespace WMS_WEBAPI.Services
                 var user = await _unitOfWork.Users.Query()
                     .Include(x => x.RoleNavigation)
                     .Where(x => x.Id == userId && !x.IsDeleted)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 if (user == null)
                 {
@@ -54,7 +63,7 @@ namespace WMS_WEBAPI.Services
                     .Include(x => x.PermissionGroup)
                     .ThenInclude(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
                     .ThenInclude(x => x.PermissionDefinition)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var roleTitle = user.RoleNavigation?.Title ?? "user";
                 var isSystemAdmin = userGroupLinks.Any(x => x.PermissionGroup.IsSystemAdmin);

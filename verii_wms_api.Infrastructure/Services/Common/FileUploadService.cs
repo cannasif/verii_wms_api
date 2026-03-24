@@ -22,10 +22,11 @@ namespace WMS_WEBAPI.Services
             _localizationService = localizationService;
         }
 
-        public async Task<ApiResponse<string>> UploadProfilePictureAsync(IFormFile file, long userId)
+        public async Task<ApiResponse<string>> UploadProfilePictureAsync(IFormFile file, long userId, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 // Validation
                 if (file == null || file.Length == 0)
                 {
@@ -77,8 +78,8 @@ namespace WMS_WEBAPI.Services
                 {
                     await using (var sourceStream = file.OpenReadStream())
                     {
-                        await sourceStream.CopyToAsync(fileStream).ConfigureAwait(false);
-                        await fileStream.FlushAsync().ConfigureAwait(false);
+                        await sourceStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
+                        await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
                     }
                 }
 
@@ -95,10 +96,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public Task<ApiResponse<bool>> DeleteProfilePictureAsync(string fileUrl)
+        public Task<ApiResponse<bool>> DeleteProfilePictureAsync(string fileUrl, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(fileUrl))
                 {
                     return Task.FromResult(ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NoFileToDelete")));

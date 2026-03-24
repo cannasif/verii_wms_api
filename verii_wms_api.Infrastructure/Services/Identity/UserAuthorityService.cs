@@ -18,15 +18,24 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public UserAuthorityService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public UserAuthorityService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<IEnumerable<UserAuthorityDto>>> GetAllAsync()
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<UserAuthorityDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -43,7 +52,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<UserAuthorityDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<UserAuthorityDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -57,10 +66,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(RequestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(RequestCancellationToken);
 
                 var dtos = _mapper.Map<List<UserAuthorityDto>>(entities);
                 var result = new PagedResponse<UserAuthorityDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -79,13 +88,13 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<UserAuthorityDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<UserAuthorityDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
                 var entity = await _unitOfWork.UserAuthorities.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (entity == null || !IsAllowedAuthorityTitle(entity.Title))
                 {
                     return ApiResponse<UserAuthorityDto>.ErrorResult(_localizationService.GetLocalizedString("UserAuthorityNotFound"), _localizationService.GetLocalizedString("UserAuthorityNotFound"), 404);
@@ -100,7 +109,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserAuthorityDto>> CreateAsync(CreateUserAuthorityDto createDto)
+        public async Task<ApiResponse<UserAuthorityDto>> CreateAsync(CreateUserAuthorityDto createDto, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -112,7 +121,7 @@ namespace WMS_WEBAPI.Services
                 var entity = _mapper.Map<UserAuthority>(createDto);
                 entity.Title = NormalizeAuthorityTitle(createDto.Title);
                 await _unitOfWork.UserAuthorities.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 var dto = _mapper.Map<UserAuthorityDto>(entity);
                 return ApiResponse<UserAuthorityDto>.SuccessResult(dto, _localizationService.GetLocalizedString("UserAuthorityCreatedSuccessfully"));
@@ -123,7 +132,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserAuthorityDto>> UpdateAsync(long id, UpdateUserAuthorityDto updateDto)
+        public async Task<ApiResponse<UserAuthorityDto>> UpdateAsync(long id, UpdateUserAuthorityDto updateDto, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -134,7 +143,7 @@ namespace WMS_WEBAPI.Services
 
                 var entity = await _unitOfWork.UserAuthorities.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(RequestCancellationToken);
                 if (entity == null)
                 {
                     return ApiResponse<UserAuthorityDto>.ErrorResult(_localizationService.GetLocalizedString("UserAuthorityNotFound"), _localizationService.GetLocalizedString("UserAuthorityNotFound"), 404);
@@ -143,7 +152,7 @@ namespace WMS_WEBAPI.Services
                 _mapper.Map(updateDto, entity);
                 entity.Title = NormalizeAuthorityTitle(updateDto.Title);
                 _unitOfWork.UserAuthorities.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 var dto = _mapper.Map<UserAuthorityDto>(entity);
                 return ApiResponse<UserAuthorityDto>.SuccessResult(dto, _localizationService.GetLocalizedString("UserAuthorityUpdatedSuccessfully"));
@@ -154,7 +163,7 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -166,7 +175,7 @@ namespace WMS_WEBAPI.Services
 
                 var hasUsersWithRole = await _unitOfWork.Users.Query()
                     .Where(u => u.RoleId == id)
-                            .AnyAsync();
+                            .AnyAsync(RequestCancellationToken);
                 if (hasUsersWithRole)
                 {
                     return ApiResponse<bool>.ErrorResult(
@@ -176,7 +185,7 @@ namespace WMS_WEBAPI.Services
                 }
 
                 await _unitOfWork.UserAuthorities.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("UserAuthorityDeletedSuccessfully"));
             }

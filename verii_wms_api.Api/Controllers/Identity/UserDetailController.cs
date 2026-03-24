@@ -34,9 +34,9 @@ namespace WMS_WEBAPI.Controllers
         /// Get user detail by ID
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<UserDetailDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<UserDetailDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.GetByIdAsync(id);
+            var result = await _userDetailService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -44,9 +44,9 @@ namespace WMS_WEBAPI.Controllers
         /// Get user detail by User ID
         /// </summary>
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<ApiResponse<UserDetailDto>>> GetByUserId(long userId)
+        public async Task<ActionResult<ApiResponse<UserDetailDto>>> GetByUserId(long userId, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.GetByUserIdAsync(userId);
+            var result = await _userDetailService.GetByUserIdAsync(userId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -54,7 +54,7 @@ namespace WMS_WEBAPI.Controllers
         /// Get user detail for current user
         /// </summary>
         [HttpGet("current")]
-        public async Task<ActionResult<ApiResponse<UserDetailDto>>> GetCurrentUserDetail()
+        public async Task<ActionResult<ApiResponse<UserDetailDto>>> GetCurrentUserDetail(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -65,7 +65,7 @@ namespace WMS_WEBAPI.Controllers
                     401));
             }
 
-            var result = await _userDetailService.GetByUserIdAsync(userIdLong);
+            var result = await _userDetailService.GetByUserIdAsync(userIdLong, cancellationToken);
             
             // If not found, return 200 with null data instead of 404 (frontend can handle this better)
             if (result.StatusCode == 404)
@@ -80,9 +80,9 @@ namespace WMS_WEBAPI.Controllers
         /// Get all user details
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.GetPagedAsync(request);
+            var result = await _userDetailService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -90,9 +90,9 @@ namespace WMS_WEBAPI.Controllers
         /// Get paginated user details
         /// </summary>
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<UserDetailDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<UserDetailDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.GetPagedAsync(request);
+            var result = await _userDetailService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -100,9 +100,9 @@ namespace WMS_WEBAPI.Controllers
         /// Create a new user detail
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<UserDetailDto>>> Create([FromBody] CreateUserDetailDto dto)
+        public async Task<ActionResult<ApiResponse<UserDetailDto>>> Create([FromBody] CreateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.CreateAsync(dto);
+            var result = await _userDetailService.CreateAsync(dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -110,9 +110,9 @@ namespace WMS_WEBAPI.Controllers
         /// Update user detail
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<UserDetailDto>>> Update(long id, [FromBody] UpdateUserDetailDto dto)
+        public async Task<ActionResult<ApiResponse<UserDetailDto>>> Update(long id, [FromBody] UpdateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.UpdateAsync(id, dto);
+            var result = await _userDetailService.UpdateAsync(id, dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -120,7 +120,7 @@ namespace WMS_WEBAPI.Controllers
         /// Update current user's detail (creates if doesn't exist)
         /// </summary>
         [HttpPut("current")]
-        public async Task<ActionResult<ApiResponse<UserDetailDto>>> UpdateCurrent([FromBody] UpdateUserDetailDto dto)
+        public async Task<ActionResult<ApiResponse<UserDetailDto>>> UpdateCurrent([FromBody] UpdateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -135,7 +135,7 @@ namespace WMS_WEBAPI.Controllers
             var existingDetail = await _unitOfWork.UserDetails.Query()
                 
                 .Where(x => x.UserId == userIdLong && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(cancellationToken);
 
             if (existingDetail == null)
             {
@@ -149,12 +149,12 @@ namespace WMS_WEBAPI.Controllers
                     Description = dto.Description,
                     Gender = dto.Gender
                 };
-                var createResult = await _userDetailService.CreateAsync(createDto);
+                var createResult = await _userDetailService.CreateAsync(createDto, cancellationToken);
                 return StatusCode(createResult.StatusCode, createResult);
             }
 
             // UserDetail exists, update it using the ID
-            var result = await _userDetailService.UpdateAsync(existingDetail.Id, dto);
+            var result = await _userDetailService.UpdateAsync(existingDetail.Id, dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -162,9 +162,9 @@ namespace WMS_WEBAPI.Controllers
         /// Delete user detail (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _userDetailService.DeleteAsync(id);
+            var result = await _userDetailService.DeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -172,7 +172,7 @@ namespace WMS_WEBAPI.Controllers
         /// Upload profile picture for current user
         /// </summary>
         [HttpPost("upload-profile-picture")]
-        public async Task<ActionResult<ApiResponse<string>>> UploadProfilePicture(IFormFile file)
+        public async Task<ActionResult<ApiResponse<string>>> UploadProfilePicture(IFormFile file, CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -184,15 +184,15 @@ namespace WMS_WEBAPI.Controllers
             }
 
             // Check if user has existing profile picture and delete it before uploading new one
-            var existingUserDetail = await _userDetailService.GetByUserIdAsync(userIdLong);
+            var existingUserDetail = await _userDetailService.GetByUserIdAsync(userIdLong, cancellationToken);
             if (existingUserDetail.Success && existingUserDetail.Data != null && !string.IsNullOrEmpty(existingUserDetail.Data.ProfilePictureUrl))
             {
                 // Delete old profile picture file
-                await _fileUploadService.DeleteProfilePictureAsync(existingUserDetail.Data.ProfilePictureUrl);
+                await _fileUploadService.DeleteProfilePictureAsync(existingUserDetail.Data.ProfilePictureUrl, cancellationToken);
             }
 
             // Upload new profile picture
-            var uploadResult = await _fileUploadService.UploadProfilePictureAsync(file, userIdLong);
+            var uploadResult = await _fileUploadService.UploadProfilePictureAsync(file, userIdLong, cancellationToken);
             if (!uploadResult.Success)
             {
                 return StatusCode(uploadResult.StatusCode, uploadResult);
@@ -206,7 +206,7 @@ namespace WMS_WEBAPI.Controllers
                 {
                     ProfilePictureUrl = uploadResult.Data
                 };
-                var updateResult = await _userDetailService.UpdateAsync(existingUserDetail.Data.Id, updateDto);
+                var updateResult = await _userDetailService.UpdateAsync(existingUserDetail.Data.Id, updateDto, cancellationToken);
                 return StatusCode(updateResult.StatusCode, ApiResponse<string>.SuccessResult(uploadResult.Data!, _localizationService.GetLocalizedString("ProfilePictureUploadedSuccessfully")));
             }
             else
@@ -217,7 +217,7 @@ namespace WMS_WEBAPI.Controllers
                     UserId = userIdLong,
                     ProfilePictureUrl = uploadResult.Data
                 };
-                var createResult = await _userDetailService.CreateAsync(createDto);
+                var createResult = await _userDetailService.CreateAsync(createDto, cancellationToken);
                 return StatusCode(createResult.StatusCode, ApiResponse<string>.SuccessResult(uploadResult.Data!, _localizationService.GetLocalizedString("ProfilePictureUploadedSuccessfully")));
             }
         }
@@ -262,12 +262,12 @@ namespace WMS_WEBAPI.Controllers
         /// </summary>
         [HttpGet("test/user/{userId}")]
         [AllowAnonymous]
-        public async Task<ActionResult<ApiResponse<object>>> TestUserDetail(long userId)
+        public async Task<ActionResult<ApiResponse<object>>> TestUserDetail(long userId, CancellationToken cancellationToken = default)
         {
             try
             {
                 // Check if user exists
-                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken);
                 if (user == null)
                 {
                     return Ok(ApiResponse<object>.ErrorResult(
@@ -279,17 +279,17 @@ namespace WMS_WEBAPI.Controllers
                 // Get all UserDetail records for this user
                 var allUserDetails = await _unitOfWork.UserDetails.Query()
                     .Where(ud => ud.UserId == userId)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 // Get active UserDetail
                 var activeDetail = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(cancellationToken);
 
                 // Test the exact query used by GetByUserIdAsync
                 var queryResult = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(cancellationToken);
 
                 var testResult = new
                 {
@@ -361,7 +361,7 @@ namespace WMS_WEBAPI.Controllers
         /// Debug endpoint to check user detail status
         /// </summary>
         [HttpGet("debug/current")]
-        public async Task<ActionResult<ApiResponse<object>>> DebugCurrentUserDetail()
+        public async Task<ActionResult<ApiResponse<object>>> DebugCurrentUserDetail(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -377,12 +377,12 @@ namespace WMS_WEBAPI.Controllers
                 // Get all user details for this user (including deleted ones)
                 var allDetails = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userIdLong)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 // Get non-deleted user detail
                 var activeDetail = await _unitOfWork.UserDetails.Query()
                     .Where(x => x.UserId == userIdLong && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(cancellationToken);
 
                 var debugInfo = new
                 {
@@ -421,7 +421,7 @@ namespace WMS_WEBAPI.Controllers
         /// Delete profile picture for current user
         /// </summary>
         [HttpDelete("delete-profile-picture")]
-        public async Task<ActionResult<ApiResponse<bool>>> DeleteProfilePicture()
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteProfilePicture(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -432,7 +432,7 @@ namespace WMS_WEBAPI.Controllers
                     401));
             }
 
-            var userDetail = await _userDetailService.GetByUserIdAsync(userIdLong);
+            var userDetail = await _userDetailService.GetByUserIdAsync(userIdLong, cancellationToken);
             if (!userDetail.Success || userDetail.Data == null)
             {
                 return StatusCode(404, ApiResponse<bool>.ErrorResult(
@@ -444,7 +444,7 @@ namespace WMS_WEBAPI.Controllers
             // Delete file if exists
             if (!string.IsNullOrEmpty(userDetail.Data.ProfilePictureUrl))
             {
-                await _fileUploadService.DeleteProfilePictureAsync(userDetail.Data.ProfilePictureUrl);
+                await _fileUploadService.DeleteProfilePictureAsync(userDetail.Data.ProfilePictureUrl, cancellationToken);
             }
 
             // Update UserDetail to remove profile picture URL
@@ -452,7 +452,7 @@ namespace WMS_WEBAPI.Controllers
             {
                 ProfilePictureUrl = null
             };
-            var result = await _userDetailService.UpdateAsync(userDetail.Data.Id, updateDto);
+            var result = await _userDetailService.UpdateAsync(userDetail.Data.Id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("ProfilePictureDeletedSuccessfully")));
         }
     }
