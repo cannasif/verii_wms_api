@@ -22,14 +22,14 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<SmtpSettingsDto>>> Get()
+        public async Task<ActionResult<ApiResponse<SmtpSettingsDto>>> Get(CancellationToken cancellationToken = default)
         {
-            var res = await _smtpSettingsService.GetAsync();
+            var res = await _smtpSettingsService.GetAsync(cancellationToken);
             return StatusCode(res.StatusCode, res);
         }
 
         [HttpPut]
-        public async Task<ActionResult<ApiResponse<SmtpSettingsDto>>> Update([FromBody] UpdateSmtpSettingsDto dto)
+        public async Task<ActionResult<ApiResponse<SmtpSettingsDto>>> Update([FromBody] UpdateSmtpSettingsDto dto, CancellationToken cancellationToken = default)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
@@ -42,7 +42,7 @@ namespace WMS_WEBAPI.Controllers
                 return StatusCode(unauth.StatusCode, unauth);
             }
 
-            var res = await _smtpSettingsService.UpdateAsync(dto, userId);
+            var res = await _smtpSettingsService.UpdateAsync(dto, userId, cancellationToken);
             return StatusCode(res.StatusCode, res);
         }
     }

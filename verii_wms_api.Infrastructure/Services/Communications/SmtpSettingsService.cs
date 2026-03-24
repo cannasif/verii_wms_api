@@ -18,6 +18,7 @@ namespace WMS_WEBAPI.Services
         private readonly IMemoryCache _cache;
         private readonly IDataProtector _protector;
         private readonly IConfiguration _configuration;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         private const string CacheKey = "smtp_settings_runtime_v1";
 
@@ -27,7 +28,8 @@ namespace WMS_WEBAPI.Services
             ILocalizationService localizationService,
             IMemoryCache cache,
             IConfiguration configuration,
-            IDataProtectionProvider dataProtectionProvider)
+            IDataProtectionProvider dataProtectionProvider,
+            IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -35,6 +37,12 @@ namespace WMS_WEBAPI.Services
             _cache = cache;
             _configuration = configuration;
             _protector = dataProtectionProvider.CreateProtector("smtp-settings-v1");
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
         public void InvalidateCache()
@@ -42,11 +50,12 @@ namespace WMS_WEBAPI.Services
             _cache.Remove(CacheKey);
         }
 
-        public async Task<ApiResponse<SmtpSettingsDto>> GetAsync()
+        public async Task<ApiResponse<SmtpSettingsDto>> GetAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var entity = await EnsureSeededSettingsAsync();
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                var entity = await EnsureSeededSettingsAsync(requestCancellationToken);
 
                 return ApiResponse<SmtpSettingsDto>.SuccessResult(
                     _mapper.Map<SmtpSettingsDto>(entity),
@@ -61,22 +70,22 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SmtpSettingsDto>> UpdateAsync(UpdateSmtpSettingsDto dto, long userId)
+        public async Task<ApiResponse<SmtpSettingsDto>> UpdateAsync(UpdateSmtpSettingsDto dto, long userId, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = await _unitOfWork.SmtpSettings.Query()
                     .OrderBy(x => x.Id)
                     .Where(x => !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 if (entity == null)
                 {
                     // Soft-deleted record exists: revive and reuse it instead of inserting explicit Id.
                     entity = await _unitOfWork.SmtpSettings.Query(ignoreQueryFilters: true)
-                        
                         .OrderBy(x => x.Id)
-                        .FirstOrDefaultAsync();
+                        .FirstOrDefaultAsync(requestCancellationToken);
 
                     if (entity != null)
                     {
@@ -104,8 +113,8 @@ namespace WMS_WEBAPI.Services
                     entity.UpdatedDate = DateTimeProvider.Now;
                     entity.UpdatedBy = userId;
 
-                    await _unitOfWork.SmtpSettings.AddAsync(entity);
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SmtpSettings.AddAsync(entity, requestCancellationToken);
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                     InvalidateCache();
 
@@ -124,7 +133,7 @@ namespace WMS_WEBAPI.Services
                 entity.UpdatedBy = userId;
 
                 _unitOfWork.SmtpSettings.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 InvalidateCache();
 
@@ -141,14 +150,15 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<SmtpSettingsRuntimeDto> GetRuntimeAsync()
+        public async Task<SmtpSettingsRuntimeDto> GetRuntimeAsync(CancellationToken cancellationToken = default)
         {
             if (_cache.TryGetValue(CacheKey, out SmtpSettingsRuntimeDto? cached) && cached != null)
             {
                 return cached;
             }
 
-            var entity = await EnsureSeededSettingsAsync();
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+            var entity = await EnsureSeededSettingsAsync(requestCancellationToken);
 
             var password = string.IsNullOrWhiteSpace(entity.PasswordEncrypted)
                 ? string.Empty
@@ -170,12 +180,13 @@ namespace WMS_WEBAPI.Services
             return runtime;
         }
 
-        private async Task<SmtpSetting> EnsureSeededSettingsAsync()
+        private async Task<SmtpSetting> EnsureSeededSettingsAsync(CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             var entity = await _unitOfWork.SmtpSettings.Query()
                 .OrderBy(x => x.Id)
                 .Where(x => !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(requestCancellationToken);
 
             if (entity != null)
             {
@@ -184,9 +195,8 @@ namespace WMS_WEBAPI.Services
 
             // If there is a soft-deleted SMTP row, revive and update defaults instead of creating a new identity row.
             entity = await _unitOfWork.SmtpSettings.Query(ignoreQueryFilters: true)
-                
                 .OrderBy(x => x.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(requestCancellationToken);
 
             var host = _configuration["Smtp:Host"] ?? "localhost";
             var username = _configuration["Smtp:Username"] ?? string.Empty;
@@ -229,7 +239,7 @@ namespace WMS_WEBAPI.Services
                     IsDeleted = false,
                     CreatedDate = DateTimeProvider.Now
                 };
-                await _unitOfWork.SmtpSettings.AddAsync(entity);
+                await _unitOfWork.SmtpSettings.AddAsync(entity, requestCancellationToken);
             }
             else
             {
@@ -248,7 +258,7 @@ namespace WMS_WEBAPI.Services
                 _unitOfWork.SmtpSettings.Update(entity);
             }
 
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
             InvalidateCache();
 
             return entity;

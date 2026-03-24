@@ -22,9 +22,10 @@ namespace WMS_WEBAPI.Services
             bool isHtml = true,
             string? cc = null,
             string? bcc = null,
-            List<string>? attachments = null)
+            List<string>? attachments = null,
+            CancellationToken cancellationToken = default)
         {
-            return await SendEmailAsync(to, subject, body, null, null, isHtml, cc, bcc, attachments);
+            return await SendEmailAsync(to, subject, body, null, null, isHtml, cc, bcc, attachments, cancellationToken);
         }
 
         public async Task<bool> SendEmailAsync(
@@ -36,11 +37,13 @@ namespace WMS_WEBAPI.Services
             bool isHtml = true,
             string? cc = null,
             string? bcc = null,
-            List<string>? attachments = null)
+            List<string>? attachments = null,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                var smtp = await _smtpSettingsService.GetRuntimeAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+                var smtp = await _smtpSettingsService.GetRuntimeAsync(cancellationToken);
 
                 if (string.IsNullOrWhiteSpace(smtp.Host) ||
                     string.IsNullOrWhiteSpace(smtp.Username) ||
@@ -100,6 +103,7 @@ namespace WMS_WEBAPI.Services
                     }
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 await client.SendMailAsync(message);
                 return true;
             }

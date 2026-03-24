@@ -26,7 +26,7 @@ namespace WMS_WEBAPI.Controllers
         /// Get paginated notifications for the current user (web user)
         /// </summary>
         [HttpPost("user/paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<NotificationDto>>>> GetPagedByCurrentUserId([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<NotificationDto>>>> GetPagedByCurrentUserId([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -37,7 +37,7 @@ namespace WMS_WEBAPI.Controllers
                     401));
             }
 
-            var result = await _notificationService.GetPagedByRecipientUserIdAsync(userIdLong, request);
+            var result = await _notificationService.GetPagedByRecipientUserIdAsync(userIdLong, request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -45,9 +45,9 @@ namespace WMS_WEBAPI.Controllers
         /// Get paginated notifications for a specific user (web user)
         /// </summary>
         [HttpPost("user/{userId}/paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<NotificationDto>>>> GetPagedByUserId(long userId, [FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<NotificationDto>>>> GetPagedByUserId(long userId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _notificationService.GetPagedByRecipientUserIdAsync(userId, request);
+            var result = await _notificationService.GetPagedByRecipientUserIdAsync(userId, request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -55,7 +55,7 @@ namespace WMS_WEBAPI.Controllers
         /// Mark all notifications as read for the current user
         /// </summary>
         [HttpPut("read/all")]
-        public async Task<ActionResult<ApiResponse<bool>>> MarkAllAsRead()
+        public async Task<ActionResult<ApiResponse<bool>>> MarkAllAsRead(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var userIdLong))
@@ -66,7 +66,7 @@ namespace WMS_WEBAPI.Controllers
                     401));
             }
 
-            var result = await _notificationService.MarkAllAsReadAsync(userIdLong);
+            var result = await _notificationService.MarkAllAsReadAsync(userIdLong, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -74,9 +74,9 @@ namespace WMS_WEBAPI.Controllers
         /// Mark a notification as read
         /// </summary>
         [HttpPut("{id}/read")]
-        public async Task<ActionResult<ApiResponse<bool>>> MarkAsRead(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> MarkAsRead(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _notificationService.MarkAsReadAsync(id);
+            var result = await _notificationService.MarkAsReadAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -84,7 +84,7 @@ namespace WMS_WEBAPI.Controllers
         /// Mark multiple notifications as read (bulk operation)
         /// </summary>
         [HttpPut("read/bulk")]
-        public async Task<ActionResult<ApiResponse<bool>>> MarkAsReadBulk([FromBody] List<long> ids)
+        public async Task<ActionResult<ApiResponse<bool>>> MarkAsReadBulk([FromBody] List<long> ids, CancellationToken cancellationToken = default)
         {
             if (ids == null || ids.Count == 0)
             {
@@ -94,7 +94,7 @@ namespace WMS_WEBAPI.Controllers
                     400));
             }
 
-            var result = await _notificationService.MarkAsReadBulkAsync(ids);
+            var result = await _notificationService.MarkAsReadBulkAsync(ids, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -102,9 +102,9 @@ namespace WMS_WEBAPI.Controllers
         /// Create a new notification
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<NotificationDto>>> Create([FromBody] CreateNotificationDto dto)
+        public async Task<ActionResult<ApiResponse<NotificationDto>>> Create([FromBody] CreateNotificationDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _notificationService.CreateAsync(dto);
+            var result = await _notificationService.CreateAsync(dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

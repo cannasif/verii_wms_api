@@ -9,7 +9,8 @@ namespace WMS_WEBAPI.Interfaces
             bool isHtml = true,
             string? cc = null,
             string? bcc = null,
-            List<string>? attachments = null);
+            List<string>? attachments = null,
+            CancellationToken cancellationToken = default);
 
         Task<bool> SendEmailAsync(
             string to,
@@ -20,6 +21,7 @@ namespace WMS_WEBAPI.Interfaces
             bool isHtml = true,
             string? cc = null,
             string? bcc = null,
-            List<string>? attachments = null);
+            List<string>? attachments = null,
+            CancellationToken cancellationToken = default);
     }
 }

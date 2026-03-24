@@ -32,14 +32,14 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpPost("send-test")]
-        public async Task<ActionResult<ApiResponse<bool>>> SendTest([FromBody] SendTestMailDto dto)
+        public async Task<ActionResult<ApiResponse<bool>>> SendTest([FromBody] SendTestMailDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
                 SmtpSettingsRuntimeDto smtp;
                 try
                 {
-                    smtp = await _smtpSettingsService.GetRuntimeAsync();
+                    smtp = await _smtpSettingsService.GetRuntimeAsync(cancellationToken);
                 }
                 catch
                 {
@@ -79,7 +79,7 @@ namespace WMS_WEBAPI.Controllers
                 {
                     var user = await _unitOfWork.Users.Query()
                         .Where(x => x.Id == userId && !x.IsDeleted)
-                            .FirstOrDefaultAsync();
+                        .FirstOrDefaultAsync(cancellationToken);
 
                     if (user == null || string.IsNullOrWhiteSpace(user.Email))
                     {
@@ -96,7 +96,7 @@ namespace WMS_WEBAPI.Controllers
                 var subject = "SMTP Test Mail";
                 var body = $"SMTP test email sent at {DateTime.UtcNow:O}";
 
-                var ok = await _mailService.SendEmailAsync(to, subject, body, false, null, null, null);
+                var ok = await _mailService.SendEmailAsync(to, subject, body, false, null, null, null, cancellationToken);
                 if (!ok)
                 {
                     return StatusCode(

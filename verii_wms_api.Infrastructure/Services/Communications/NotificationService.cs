@@ -16,28 +16,36 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHubContext<NotificationHub> _notificationHub;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHubContext<NotificationHub> notificationHub)
+        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHubContext<NotificationHub> notificationHub, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _notificationHub = notificationHub;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
 
-        public async Task<ApiResponse<NotificationDto>> CreateAsync(CreateNotificationDto dto)
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
+
+        public async Task<ApiResponse<NotificationDto>> CreateAsync(CreateNotificationDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = _mapper.Map<Notification>(dto);
                 entity.DeliveredAt = DateTimeProvider.Now; // Auto-set delivery time
 
-                await _unitOfWork.Notifications.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Notifications.AddAsync(entity, requestCancellationToken);
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var result = LocalizeNotification(_mapper.Map<NotificationDto>(entity));
 
-                await PublishSignalRNotificationAsync(entity);
+                await PublishSignalRNotificationAsync(entity, requestCancellationToken);
                 return ApiResponse<NotificationDto>.SuccessResult(result, _localizationService.GetLocalizedString("NotificationCreatedSuccessfully"));
             }
             catch (Exception ex)
@@ -46,11 +54,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<NotificationDto>>> CreateForUsersAsync(CreateNotificationDto dto)
+        public async Task<ApiResponse<IEnumerable<NotificationDto>>> CreateForUsersAsync(CreateNotificationDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
-                using var tx = await _unitOfWork.BeginTransactionAsync();
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                using var tx = await _unitOfWork.BeginTransactionAsync(requestCancellationToken);
                 var recipients = dto.RecipientUserIds ?? new List<long>();
                 if (dto.RecipientUserId.HasValue)
                 {
@@ -73,14 +82,14 @@ namespace WMS_WEBAPI.Services
                         entities.Add(entity);
                     }
 
-                    await _unitOfWork.Notifications.AddRangeAsync(entities);
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.Notifications.AddRangeAsync(entities, requestCancellationToken);
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                    await _unitOfWork.CommitTransactionAsync();
+                    await _unitOfWork.CommitTransactionAsync(requestCancellationToken);
 
                     foreach (var entity in entities)
                     {
-                        await PublishSignalRNotificationAsync(entity);
+                        await PublishSignalRNotificationAsync(entity, requestCancellationToken);
                     }
 
                     var dtos = LocalizeNotifications(_mapper.Map<List<NotificationDto>>(entities));
@@ -88,7 +97,7 @@ namespace WMS_WEBAPI.Services
                 }
                 catch
                 {
-                    await _unitOfWork.RollbackTransactionAsync();
+                    await _unitOfWork.RollbackTransactionAsync(requestCancellationToken);
                     throw;
                 }
             }
@@ -98,10 +107,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<NotificationDto>>> GetPagedByRecipientUserIdAsync(long userId, PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<NotificationDto>>> GetPagedByRecipientUserIdAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
 
@@ -113,7 +123,7 @@ namespace WMS_WEBAPI.Services
                 // Get unread count (totalCount will be unread notifications count)
                 var unreadCount = await baseQuery
                     .Where(x => !x.IsRead)
-                    .CountAsync();
+                    .CountAsync(requestCancellationToken);
 
                 // Sort: Unread first, then by Id descending (newest first)
                 var query = baseQuery
@@ -122,7 +132,7 @@ namespace WMS_WEBAPI.Services
 
                 var items = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<NotificationDto>>(items);
                 dtos = LocalizeNotifications(dtos);
@@ -137,13 +147,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<bool>> MarkAsReadAsync(long id)
+        public async Task<ApiResponse<bool>> MarkAsReadAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = await _unitOfWork.Notifications.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("NotificationNotFound"), _localizationService.GetLocalizedString("NotificationNotFound"), 404);
@@ -152,7 +163,7 @@ namespace WMS_WEBAPI.Services
                 entity.IsRead = true;
                 entity.ReadDate = DateTime.UtcNow;
                 _unitOfWork.Notifications.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
             }
@@ -162,10 +173,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> MarkAsReadBulkAsync(List<long> ids)
+        public async Task<ApiResponse<bool>> MarkAsReadBulkAsync(List<long> ids, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 if (ids == null || ids.Count == 0)
                 {
                     return ApiResponse<bool>.ErrorResult(
@@ -177,7 +189,7 @@ namespace WMS_WEBAPI.Services
                 // Get all notifications that are not deleted and match the provided IDs
                 var entities = await _unitOfWork.Notifications.Query()
                     .Where(x => ids.Contains(x.Id) && !x.IsDeleted)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 if (entities == null || !entities.Any())
                 {
@@ -196,7 +208,7 @@ namespace WMS_WEBAPI.Services
                     _unitOfWork.Notifications.Update(entity);
                 }
 
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
             }
@@ -206,14 +218,15 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> MarkAllAsReadAsync(long userId)
+        public async Task<ApiResponse<bool>> MarkAllAsReadAsync(long userId, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 // Get all unread notifications for the user
                 var entities = await _unitOfWork.Notifications.Query()
                     .Where(x => x.RecipientUserId == userId && !x.IsDeleted && !x.IsRead)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 if (entities == null || !entities.Any())
                 {
@@ -229,7 +242,7 @@ namespace WMS_WEBAPI.Services
                     _unitOfWork.Notifications.Update(entity);
                 }
 
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
             }
@@ -294,11 +307,12 @@ namespace WMS_WEBAPI.Services
         /// Publishes SignalR notifications for the given notification entities.
         /// Should be called after transaction is committed.
         /// </summary>
-        public async Task PublishSignalRNotificationsAsync(IEnumerable<Notification> notifications)
+        public async Task PublishSignalRNotificationsAsync(IEnumerable<Notification> notifications, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             foreach (var entity in notifications)
             {
-                await PublishSignalRNotificationAsync(entity);
+                await PublishSignalRNotificationAsync(entity, requestCancellationToken);
             }
         }
 
@@ -314,8 +328,10 @@ namespace WMS_WEBAPI.Services
             string entityType,
             string terminalActionCode,
             string titleLocalizationKey,
-            string messageLocalizationKey) where TTerminalLine : class
+            string messageLocalizationKey,
+            CancellationToken cancellationToken = default) where TTerminalLine : class
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             var notifications = CreateNotificationsForTerminalLines(
                 terminalLines,
                 orderNumber,
@@ -327,7 +343,7 @@ namespace WMS_WEBAPI.Services
 
             if (notifications.Count > 0)
             {
-                await _unitOfWork.Notifications.AddRangeAsync(notifications);
+                await _unitOfWork.Notifications.AddRangeAsync(notifications, requestCancellationToken);
                 // Note: Caller must call SaveChangesAsync before committing transaction
             }
 
@@ -338,8 +354,9 @@ namespace WMS_WEBAPI.Services
         /// Publishes SignalR notifications for the given notification entities.
         /// Should be called after transaction is committed so notification IDs are available.
         /// </summary>
-        public async Task PublishSignalRNotificationsForCreatedNotificationsAsync(List<Notification> notifications)
+        public async Task PublishSignalRNotificationsForCreatedNotificationsAsync(List<Notification> notifications, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             // After commit, notification IDs are assigned, so we can publish them
             if (notifications.Count == 0) return;
 
@@ -370,19 +387,20 @@ namespace WMS_WEBAPI.Services
                     && n.RecipientUserId.HasValue
                     && recipientUserIds.Contains(n.RecipientUserId.Value)
                     && (relatedEntityIds.Count == 0 || (n.RelatedEntityId.HasValue && relatedEntityIds.Contains(n.RelatedEntityId.Value)))
-                );
+                , requestCancellationToken);
 
             // Publish all matching notifications
             foreach (var notification in savedNotifications)
             {
-                await PublishSignalRNotificationAsync(notification);
+                await PublishSignalRNotificationAsync(notification, requestCancellationToken);
             }
         }
 
-        private async Task PublishSignalRNotificationAsync(Notification entity)
+        private async Task PublishSignalRNotificationAsync(Notification entity, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var type = entity.Severity switch
                 {
                     NotificationSeverity.Info => "info",

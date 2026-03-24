@@ -5,12 +5,12 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface INotificationService
     {
-        Task<ApiResponse<NotificationDto>> CreateAsync(CreateNotificationDto dto);
-        Task<ApiResponse<IEnumerable<NotificationDto>>> CreateForUsersAsync(CreateNotificationDto dto);
-        Task<ApiResponse<PagedResponse<NotificationDto>>> GetPagedByRecipientUserIdAsync(long userId, PagedRequest request);
-        Task<ApiResponse<bool>> MarkAsReadAsync(long id);
-        Task<ApiResponse<bool>> MarkAsReadBulkAsync(List<long> ids);
-        Task<ApiResponse<bool>> MarkAllAsReadAsync(long userId);
+        Task<ApiResponse<NotificationDto>> CreateAsync(CreateNotificationDto dto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<IEnumerable<NotificationDto>>> CreateForUsersAsync(CreateNotificationDto dto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<NotificationDto>>> GetPagedByRecipientUserIdAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> MarkAsReadAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> MarkAsReadBulkAsync(List<long> ids, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> MarkAllAsReadAsync(long userId, CancellationToken cancellationToken = default);
         
 
         /// <summary>
@@ -35,19 +35,20 @@ namespace WMS_WEBAPI.Interfaces
             string entityType,
             string terminalActionCode,
             string titleLocalizationKey,
-            string messageLocalizationKey) where TTerminalLine : class;
+            string messageLocalizationKey,
+            CancellationToken cancellationToken = default) where TTerminalLine : class;
 
         /// <summary>
         /// Publishes SignalR notifications for the given notification entities.
         /// Should be called after transaction is committed.
         /// </summary>
-        Task PublishSignalRNotificationsAsync(IEnumerable<Notification> notifications);
+        Task PublishSignalRNotificationsAsync(IEnumerable<Notification> notifications, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Publishes SignalR notifications for created notification entities.
         /// Fetches notifications from database (to get IDs) and publishes them via SignalR.
         /// Should be called after transaction is committed.
         /// </summary>
-        Task PublishSignalRNotificationsForCreatedNotificationsAsync(List<Notification> notifications);
+        Task PublishSignalRNotificationsForCreatedNotificationsAsync(List<Notification> notifications, CancellationToken cancellationToken = default);
     }
 }
