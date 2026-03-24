@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using WMS_WEBAPI.Data.Configuration;
 using WMS_WEBAPI.Models;
@@ -153,13 +154,20 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new PlatformPageGroupConfiguration());
             modelBuilder.ApplyConfiguration(new PlatformUserGroupMatchConfiguration());
             
-            // WarehouseTransfer configurations temporarily disabled
+            // WarehouseTransfer configurations
+            modelBuilder.ApplyConfiguration(new WtHeaderConfiguration());
+            modelBuilder.ApplyConfiguration(new WtLineConfiguration());
+            modelBuilder.ApplyConfiguration(new WtImportLineConfiguration());
+            modelBuilder.ApplyConfiguration(new WtRouteConfiguration());
+            modelBuilder.ApplyConfiguration(new WtTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new WtLineSerialConfiguration());
 
             modelBuilder.ApplyConfiguration(new PtHeaderConfiguration());
             modelBuilder.ApplyConfiguration(new PtLineConfiguration());
             modelBuilder.ApplyConfiguration(new PtImportLineConfiguration());
             modelBuilder.ApplyConfiguration(new PtRouteConfiguration());
             modelBuilder.ApplyConfiguration(new PtTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new PtLineSerialConfiguration());
 
             modelBuilder.ApplyConfiguration(new PrHeaderConfiguration());
             modelBuilder.ApplyConfiguration(new PrLineConfiguration());
@@ -175,6 +183,7 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new SitImportLineConfiguration());
             modelBuilder.ApplyConfiguration(new SitRouteConfiguration());
             modelBuilder.ApplyConfiguration(new SitTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new SitLineSerialConfiguration());
 
             // Apply SubcontractingReceiptTransfer configurations
             modelBuilder.ApplyConfiguration(new SrtHeaderConfiguration());
@@ -182,6 +191,7 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new SrtImportLineConfiguration());
             modelBuilder.ApplyConfiguration(new SrtRouteConfiguration());
             modelBuilder.ApplyConfiguration(new SrtTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new SrtLineSerialConfiguration());
 
             // WarehouseOutbound configurations
             modelBuilder.ApplyConfiguration(new WoHeaderConfiguration());
@@ -189,6 +199,7 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new WoImportLineConfiguration());
             modelBuilder.ApplyConfiguration(new WoRouteConfiguration());
             modelBuilder.ApplyConfiguration(new WoTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new WoLineSerialConfiguration());
 
             // WarehouseInbound configurations
             modelBuilder.ApplyConfiguration(new WiHeaderConfiguration());
@@ -196,6 +207,7 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new WiImportLineConfiguration());
             modelBuilder.ApplyConfiguration(new WiRouteConfiguration());
             modelBuilder.ApplyConfiguration(new WiTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new WiLineSerialConfiguration());
 
             // Shipping configurations
             modelBuilder.ApplyConfiguration(new ShHeaderConfiguration());
@@ -225,9 +237,30 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new IcParameterConfiguration());
             modelBuilder.ApplyConfiguration(new PParameterConfiguration());
 
-            // InventoryCount configurations temporarily disabled
-                        
+            // InventoryCount configurations
+            modelBuilder.ApplyConfiguration(new ICHeaderConfiguration());
+            modelBuilder.ApplyConfiguration(new IcImportLineConfiguration());
+            modelBuilder.ApplyConfiguration(new IcRouteConfiguration());
+            modelBuilder.ApplyConfiguration(new ICTerminalLineConfiguration());
+            ApplySoftDeleteQueryFilters(modelBuilder);
+        }
 
+        private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
+        {
+            var softDeleteEntities = modelBuilder.Model.GetEntityTypes()
+                .Where(entityType =>
+                    entityType.ClrType != null &&
+                    entityType.FindProperty("IsDeleted")?.ClrType == typeof(bool));
+
+            foreach (var entityType in softDeleteEntities)
+            {
+                var parameter = Expression.Parameter(entityType.ClrType, "e");
+                var isDeletedProperty = Expression.Property(parameter, "IsDeleted");
+                var compareExpression = Expression.Equal(isDeletedProperty, Expression.Constant(false));
+                var lambda = Expression.Lambda(compareExpression, parameter);
+
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
+            }
         }
     }
 }
