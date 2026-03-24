@@ -33,228 +33,158 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<UserDetailDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var entity = await _unitOfWork.UserDetails.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<UserDetailDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        404);
-                }
+var entity = await _unitOfWork.UserDetails.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<UserDetailDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        404);
+}
 
-                var dto = _mapper.Map<UserDetailDto>(entity);
-                return ApiResponse<UserDetailDto>.SuccessResult(dto, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDetailDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailRetrievalError"),
-                    ex.Message,
-                    500);
-            }
+var dto = _mapper.Map<UserDetailDto>(entity);
+return ApiResponse<UserDetailDto>.SuccessResult(dto, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<UserDetailDto>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var entity = await _unitOfWork.UserDetails.Query()
-                      // Add AsNoTracking to prevent tracking conflicts
-                    .Where(x => x.UserId == userId && !x.IsDeleted)
-                            .FirstOrDefaultAsync(RequestCancellationToken);
+var entity = await _unitOfWork.UserDetails.Query()
+      // Add AsNoTracking to prevent tracking conflicts
+    .Where(x => x.UserId == userId && !x.IsDeleted)
+            .FirstOrDefaultAsync(RequestCancellationToken);
 
-                if (entity == null)
-                {
-                    return ApiResponse<UserDetailDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        404);
-                }
+if (entity == null)
+{
+    return ApiResponse<UserDetailDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        404);
+}
 
-                var dto = _mapper.Map<UserDetailDto>(entity);
-                return ApiResponse<UserDetailDto>.SuccessResult(dto, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDetailDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailRetrievalError"),
-                    ex.Message,
-                    500);
-            }
+var dto = _mapper.Map<UserDetailDto>(entity);
+return ApiResponse<UserDetailDto>.SuccessResult(dto, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<UserDetailDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var entities = await _unitOfWork.UserDetails.Query()
-                    .Where(x => !x.IsDeleted)
-                    .ToListAsync(RequestCancellationToken);
+var entities = await _unitOfWork.UserDetails.Query()
+    .Where(x => !x.IsDeleted)
+    .ToListAsync(RequestCancellationToken);
 
-                var dtos = _mapper.Map<IEnumerable<UserDetailDto>>(entities);
-                return ApiResponse<IEnumerable<UserDetailDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<UserDetailDto>>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailRetrievalError"),
-                    ex.Message,
-                    500);
-            }
+var dtos = _mapper.Map<IEnumerable<UserDetailDto>>(entities);
+return ApiResponse<IEnumerable<UserDetailDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<PagedResponse<UserDetailDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                if (request.PageNumber < 1) request.PageNumber = 1;
-                if (request.PageSize < 1) request.PageSize = 20;
+if (request.PageNumber < 1) request.PageNumber = 1;
+if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.UserDetails.Query()
-                    .Where(x => !x.IsDeleted);
+var query = _unitOfWork.UserDetails.Query()
+    .Where(x => !x.IsDeleted);
 
-                query = query.ApplyFilters(request.Filters, request.FilterLogic);
+query = query.ApplyFilters(request.Filters, request.FilterLogic);
 
-                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync(RequestCancellationToken);
-                var items = await query
-                    .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync(RequestCancellationToken);
+var totalCount = await query.CountAsync(RequestCancellationToken);
+var items = await query
+    .ApplyPagination(request.PageNumber, request.PageSize)
+    .ToListAsync(RequestCancellationToken);
 
-                var dtos = _mapper.Map<List<UserDetailDto>>(items);
-                var result = new PagedResponse<UserDetailDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+var dtos = _mapper.Map<List<UserDetailDto>>(items);
+var result = new PagedResponse<UserDetailDto>(dtos, totalCount, request.PageNumber, request.PageSize);
 
-                return ApiResponse<PagedResponse<UserDetailDto>>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<UserDetailDto>>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailRetrievalError"),
-                    ex.Message ?? string.Empty,
-                    500);
-            }
+return ApiResponse<PagedResponse<UserDetailDto>>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<UserDetailDto>> CreateAsync(CreateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                // Check if user exists
-                var user = await _unitOfWork.Users.GetByIdAsync(dto.UserId);
-                if (user == null || user.IsDeleted)
-                {
-                    return ApiResponse<UserDetailDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("UserNotFound"),
-                        _localizationService.GetLocalizedString("UserNotFound"),
-                        404);
-                }
+// Check if user exists
+var user = await _unitOfWork.Users.GetByIdAsync(dto.UserId);
+if (user == null || user.IsDeleted)
+{
+    return ApiResponse<UserDetailDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserNotFound"),
+        _localizationService.GetLocalizedString("UserNotFound"),
+        404);
+}
 
-                // Check if user detail already exists
-                var existingDetail = await _unitOfWork.UserDetails.Query()
-                    .Where(x => x.UserId == dto.UserId && !x.IsDeleted)
-                            .FirstOrDefaultAsync(RequestCancellationToken);
+// Check if user detail already exists
+var existingDetail = await _unitOfWork.UserDetails.Query()
+    .Where(x => x.UserId == dto.UserId && !x.IsDeleted)
+            .FirstOrDefaultAsync(RequestCancellationToken);
 
-                if (existingDetail != null)
-                {
-                    return ApiResponse<UserDetailDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("UserDetailAlreadyExists"),
-                        _localizationService.GetLocalizedString("UserDetailAlreadyExists"),
-                        400);
-                }
+if (existingDetail != null)
+{
+    return ApiResponse<UserDetailDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserDetailAlreadyExists"),
+        _localizationService.GetLocalizedString("UserDetailAlreadyExists"),
+        400);
+}
 
-                var entity = _mapper.Map<UserDetail>(dto);
-                await _unitOfWork.UserDetails.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+var entity = _mapper.Map<UserDetail>(dto);
+await _unitOfWork.UserDetails.AddAsync(entity);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
-                var result = _mapper.Map<UserDetailDto>(entity);
-                return ApiResponse<UserDetailDto>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailCreatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDetailDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailCreationError"),
-                    ex.Message,
-                    500);
-            }
+var result = _mapper.Map<UserDetailDto>(entity);
+return ApiResponse<UserDetailDto>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailCreatedSuccessfully"));
         }
 
         public async Task<ApiResponse<UserDetailDto>> UpdateAsync(long id, UpdateUserDetailDto dto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var entity = await _unitOfWork.UserDetails.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<UserDetailDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        404);
-                }
+var entity = await _unitOfWork.UserDetails.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<UserDetailDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        404);
+}
 
-                // If profile picture exists in entity and is being changed or removed, delete old one
-                if (!string.IsNullOrEmpty(entity.ProfilePictureUrl) && 
-                    (string.IsNullOrEmpty(dto.ProfilePictureUrl) || entity.ProfilePictureUrl != dto.ProfilePictureUrl))
-                {
-                    // Delete old profile picture before updating
-                    await _fileUploadService.DeleteProfilePictureAsync(entity.ProfilePictureUrl);
-                }
+// If profile picture exists in entity and is being changed or removed, delete old one
+if (!string.IsNullOrEmpty(entity.ProfilePictureUrl) && 
+    (string.IsNullOrEmpty(dto.ProfilePictureUrl) || entity.ProfilePictureUrl != dto.ProfilePictureUrl))
+{
+    // Delete old profile picture before updating
+    await _fileUploadService.DeleteProfilePictureAsync(entity.ProfilePictureUrl);
+}
 
-                _mapper.Map(dto, entity);
-                entity.UpdatedDate = DateTimeProvider.Now;
-                
-                // Use Update which will handle tracking correctly
-                _unitOfWork.UserDetails.Update(entity);
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+_mapper.Map(dto, entity);
+entity.UpdatedDate = DateTimeProvider.Now;
 
-                var result = _mapper.Map<UserDetailDto>(entity);
-                return ApiResponse<UserDetailDto>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailUpdatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDetailDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailUpdateError"),
-                    ex.Message,
-                    500);
-            }
+// Use Update which will handle tracking correctly
+_unitOfWork.UserDetails.Update(entity);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+
+var result = _mapper.Map<UserDetailDto>(entity);
+return ApiResponse<UserDetailDto>.SuccessResult(result, _localizationService.GetLocalizedString("UserDetailUpdatedSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var entity = await _unitOfWork.UserDetails.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<bool>.ErrorResult(
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        _localizationService.GetLocalizedString("UserDetailNotFound"),
-                        404);
-                }
+var entity = await _unitOfWork.UserDetails.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        _localizationService.GetLocalizedString("UserDetailNotFound"),
+        404);
+}
 
-                entity.IsDeleted = true;
-                entity.DeletedDate = DateTimeProvider.Now;
-                _unitOfWork.UserDetails.Update(entity);
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+entity.IsDeleted = true;
+entity.DeletedDate = DateTimeProvider.Now;
+_unitOfWork.UserDetails.Update(entity);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("UserDetailDeletedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(
-                    _localizationService.GetLocalizedString("UserDetailDeletionError"),
-                    ex.Message,
-                    500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("UserDetailDeletedSuccessfully"));
         }
     }
 }

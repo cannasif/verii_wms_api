@@ -22,50 +22,43 @@ namespace WMS_WEBAPI.Services
 
         public ApiResponse<string> GenerateToken(User user, IReadOnlyCollection<string>? permissions = null, bool isSystemAdmin = false)
         {
-            try
-            {
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim("firstName", user.FirstName ?? ""),
-                    new Claim("lastName", user.LastName ?? ""),
-                    new Claim(ClaimTypes.Role, user.RoleNavigation?.Title ?? "User")
-                };
+var claims = new List<Claim>
+{
+    new Claim(ClaimTypes.Name, user.Username),
+    new Claim(ClaimTypes.Email, user.Email),
+    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+    new Claim("firstName", user.FirstName ?? ""),
+    new Claim("lastName", user.LastName ?? ""),
+    new Claim(ClaimTypes.Role, user.RoleNavigation?.Title ?? "User")
+};
 
-                if (isSystemAdmin)
-                {
-                    claims.Add(new Claim(ClaimConstants.SystemAdmin, "true"));
-                }
+if (isSystemAdmin)
+{
+    claims.Add(new Claim(ClaimConstants.SystemAdmin, "true"));
+}
 
-                if (permissions != null)
-                {
-                    claims.AddRange(
-                        permissions
-                            .Where(permission => !string.IsNullOrWhiteSpace(permission))
-                            .Distinct(StringComparer.OrdinalIgnoreCase)
-                            .Select(permission => new Claim(ClaimConstants.Permission, permission)));
-                }
+if (permissions != null)
+{
+    claims.AddRange(
+        permissions
+            .Where(permission => !string.IsNullOrWhiteSpace(permission))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(permission => new Claim(ClaimConstants.Permission, permission)));
+}
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!));
-                var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!));
+var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                var token = new JwtSecurityToken(
-                    issuer: _configuration["Jwt:Issuer"],
-                    audience: _configuration["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpirationMinutes"] ?? "60")),
-                    signingCredentials: credentials
-                );
+var token = new JwtSecurityToken(
+    issuer: _configuration["Jwt:Issuer"],
+    audience: _configuration["Jwt:Audience"],
+    claims: claims,
+    expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpirationMinutes"] ?? "60")),
+    signingCredentials: credentials
+);
 
-                var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-                return ApiResponse<string>.SuccessResult(tokenString, _localizationService.GetLocalizedString("TokenGeneratedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("TokenGenerationError"), ex.Message ?? string.Empty, 500);
-            }
+var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+return ApiResponse<string>.SuccessResult(tokenString, _localizationService.GetLocalizedString("TokenGeneratedSuccessfully"));
         }
     }
 }

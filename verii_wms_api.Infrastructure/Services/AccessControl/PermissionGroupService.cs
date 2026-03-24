@@ -27,198 +27,158 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<PagedResponse<PermissionGroupDto>>> GetAllAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                request ??= new PagedRequest();
-                request.Filters ??= new List<Filter>();
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+request ??= new PagedRequest();
+request.Filters ??= new List<Filter>();
 
-                var sortBy = string.IsNullOrWhiteSpace(request.SortBy) ? nameof(PermissionGroup.Id) : request.SortBy;
-                var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+var sortBy = string.IsNullOrWhiteSpace(request.SortBy) ? nameof(PermissionGroup.Id) : request.SortBy;
+var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-                var query = _unitOfWork.PermissionGroups.Query()
-                    .Include(x => x.CreatedByUser)
-                    .Include(x => x.UpdatedByUser)
-                    .Include(x => x.DeletedByUser)
-                    .Include(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
-                    .ThenInclude(x => x.PermissionDefinition)
-                    .ApplySearch(
-                        request.Search,
-                        nameof(PermissionGroup.Name),
-                        nameof(PermissionGroup.Description))
-                    .ApplyFilters(request.Filters)
-                    .ApplySorting(sortBy, desc);
+var query = _unitOfWork.PermissionGroups.Query()
+    .Include(x => x.CreatedByUser)
+    .Include(x => x.UpdatedByUser)
+    .Include(x => x.DeletedByUser)
+    .Include(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
+    .ThenInclude(x => x.PermissionDefinition)
+    .ApplySearch(
+        request.Search,
+        nameof(PermissionGroup.Name),
+        nameof(PermissionGroup.Description))
+    .ApplyFilters(request.Filters)
+    .ApplySorting(sortBy, desc);
 
-                var totalCount = await query.CountAsync(requestCancellationToken);
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
+var totalCount = await query.CountAsync(requestCancellationToken);
+var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
 
-                var dtoItems = items.Select(MapToDto).ToList();
-                var paged = new PagedResponse<PermissionGroupDto>(dtoItems, totalCount, request.PageNumber, request.PageSize);
+var dtoItems = items.Select(MapToDto).ToList();
+var paged = new PagedResponse<PermissionGroupDto>(dtoItems, totalCount, request.PageNumber, request.PageSize);
 
-                return ApiResponse<PagedResponse<PermissionGroupDto>>.SuccessResult(
-                    paged,
-                    _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<PermissionGroupDto>>.ErrorResult(
-                    _localizationService.GetLocalizedString("Error_GetAll"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return ApiResponse<PagedResponse<PermissionGroupDto>>.SuccessResult(
+    paged,
+    _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         public async Task<ApiResponse<PermissionGroupDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = await _unitOfWork.PermissionGroups.Query()
-                    .Include(x => x.CreatedByUser)
-                    .Include(x => x.UpdatedByUser)
-                    .Include(x => x.DeletedByUser)
-                    .Include(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
-                    .ThenInclude(x => x.PermissionDefinition)
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = await _unitOfWork.PermissionGroups.Query()
+    .Include(x => x.CreatedByUser)
+    .Include(x => x.UpdatedByUser)
+    .Include(x => x.DeletedByUser)
+    .Include(x => x.GroupPermissions.Where(gp => !gp.IsDeleted))
+    .ThenInclude(x => x.PermissionDefinition)
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
 
-                if (entity == null)
-                {
-                    return ApiResponse<PermissionGroupDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        StatusCodes.Status404NotFound);
-                }
+if (entity == null)
+{
+    return ApiResponse<PermissionGroupDto>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        StatusCodes.Status404NotFound);
+}
 
-                return ApiResponse<PermissionGroupDto>.SuccessResult(
-                    MapToDto(entity),
-                    _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PermissionGroupDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("Error_GetById"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return ApiResponse<PermissionGroupDto>.SuccessResult(
+    MapToDto(entity),
+    _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         public async Task<ApiResponse<PermissionGroupDto>> CreateAsync(CreatePermissionGroupDto dto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var duplicate = await _unitOfWork.PermissionGroups.Query()
-                    .Where(x => !x.IsDeleted && x.Name == dto.Name)
-                    .AnyAsync(requestCancellationToken);
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var duplicate = await _unitOfWork.PermissionGroups.Query()
+    .Where(x => !x.IsDeleted && x.Name == dto.Name)
+    .AnyAsync(requestCancellationToken);
 
-                if (duplicate)
-                {
-                    return ApiResponse<PermissionGroupDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        StatusCodes.Status400BadRequest);
-                }
+if (duplicate)
+{
+    return ApiResponse<PermissionGroupDto>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        StatusCodes.Status400BadRequest);
+}
 
-                var entity = new PermissionGroup
-                {
-                    Name = dto.Name.Trim(),
-                    Description = dto.Description?.Trim(),
-                    IsSystemAdmin = dto.IsSystemAdmin,
-                    IsActive = dto.IsActive
-                };
+var entity = new PermissionGroup
+{
+    Name = dto.Name.Trim(),
+    Description = dto.Description?.Trim(),
+    IsSystemAdmin = dto.IsSystemAdmin,
+    IsActive = dto.IsActive
+};
 
-                await _unitOfWork.PermissionGroups.AddAsync(entity, requestCancellationToken);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+await _unitOfWork.PermissionGroups.AddAsync(entity, requestCancellationToken);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                if (dto.PermissionDefinitionIds.Count > 0)
-                {
-                    var linkResult = await SetPermissionsInternalAsync(entity.Id, dto.PermissionDefinitionIds, requestCancellationToken);
-                    if (!linkResult.Success)
-                    {
-                        return ApiResponse<PermissionGroupDto>.ErrorResult(linkResult.Message, linkResult.ExceptionMessage, linkResult.StatusCode);
-                    }
-                }
+if (dto.PermissionDefinitionIds.Count > 0)
+{
+    var linkResult = await SetPermissionsInternalAsync(entity.Id, dto.PermissionDefinitionIds, requestCancellationToken);
+    if (!linkResult.Success)
+    {
+        return ApiResponse<PermissionGroupDto>.ErrorResult(linkResult.Message, linkResult.ExceptionMessage, linkResult.StatusCode);
+    }
+}
 
-                return await GetByIdAsync(entity.Id, requestCancellationToken);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PermissionGroupDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("Error_Create"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return await GetByIdAsync(entity.Id, requestCancellationToken);
         }
 
         public async Task<ApiResponse<PermissionGroupDto>> UpdateAsync(long id, UpdatePermissionGroupDto dto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = await _unitOfWork.PermissionGroups.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null)
-                {
-                    return ApiResponse<PermissionGroupDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        StatusCodes.Status404NotFound);
-                }
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = await _unitOfWork.PermissionGroups.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null)
+{
+    return ApiResponse<PermissionGroupDto>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        StatusCodes.Status404NotFound);
+}
 
-                if (entity.IsSystemAdmin)
-                {
-                    return ApiResponse<PermissionGroupDto>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        "System Admin permission group cannot be modified.",
-                        StatusCodes.Status403Forbidden);
-                }
+if (entity.IsSystemAdmin)
+{
+    return ApiResponse<PermissionGroupDto>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        "System Admin permission group cannot be modified.",
+        StatusCodes.Status403Forbidden);
+}
 
-                if (!string.IsNullOrWhiteSpace(dto.Name) && !dto.Name.Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
-                {
-                    var duplicate = await _unitOfWork.PermissionGroups.Query()
-                        .Where(x => !x.IsDeleted && x.Id != id && x.Name == dto.Name)
-                        .AnyAsync(requestCancellationToken);
+if (!string.IsNullOrWhiteSpace(dto.Name) && !dto.Name.Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
+{
+    var duplicate = await _unitOfWork.PermissionGroups.Query()
+        .Where(x => !x.IsDeleted && x.Id != id && x.Name == dto.Name)
+        .AnyAsync(requestCancellationToken);
 
-                    if (duplicate)
-                    {
-                        return ApiResponse<PermissionGroupDto>.ErrorResult(
-                            _localizationService.GetLocalizedString("ValidationError"),
-                            _localizationService.GetLocalizedString("ValidationError"),
-                            StatusCodes.Status400BadRequest);
-                    }
+    if (duplicate)
+    {
+        return ApiResponse<PermissionGroupDto>.ErrorResult(
+            _localizationService.GetLocalizedString("ValidationError"),
+            _localizationService.GetLocalizedString("ValidationError"),
+            StatusCodes.Status400BadRequest);
+    }
 
-                    entity.Name = dto.Name.Trim();
-                }
+    entity.Name = dto.Name.Trim();
+}
 
-                if (dto.Description != null)
-                {
-                    entity.Description = dto.Description.Trim();
-                }
+if (dto.Description != null)
+{
+    entity.Description = dto.Description.Trim();
+}
 
-                if (dto.IsSystemAdmin.HasValue)
-                {
-                    entity.IsSystemAdmin = dto.IsSystemAdmin.Value;
-                }
+if (dto.IsSystemAdmin.HasValue)
+{
+    entity.IsSystemAdmin = dto.IsSystemAdmin.Value;
+}
 
-                if (dto.IsActive.HasValue)
-                {
-                    entity.IsActive = dto.IsActive.Value;
-                }
+if (dto.IsActive.HasValue)
+{
+    entity.IsActive = dto.IsActive.Value;
+}
 
-                _unitOfWork.PermissionGroups.Update(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+_unitOfWork.PermissionGroups.Update(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return await GetByIdAsync(entity.Id, requestCancellationToken);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PermissionGroupDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("Error_Update"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return await GetByIdAsync(entity.Id, requestCancellationToken);
         }
 
         public async Task<ApiResponse<PermissionGroupDto>> SetPermissionsAsync(long id, SetPermissionGroupPermissionsDto dto, CancellationToken cancellationToken = default)
@@ -246,113 +206,93 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = await _unitOfWork.PermissionGroups.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null)
-                {
-                    return ApiResponse<bool>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        StatusCodes.Status404NotFound);
-                }
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = await _unitOfWork.PermissionGroups.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        StatusCodes.Status404NotFound);
+}
 
-                if (entity.IsSystemAdmin)
-                {
-                    return ApiResponse<bool>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        "System Admin permission group cannot be deleted.",
-                        StatusCodes.Status403Forbidden);
-                }
+if (entity.IsSystemAdmin)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        "System Admin permission group cannot be deleted.",
+        StatusCodes.Status403Forbidden);
+}
 
-                await _unitOfWork.PermissionGroups.SoftDelete(id, requestCancellationToken);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+await _unitOfWork.PermissionGroups.SoftDelete(id, requestCancellationToken);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(
-                    _localizationService.GetLocalizedString("Error_Delete"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         private async Task<ApiResponse<bool>> SetPermissionsInternalAsync(long groupId, List<long> permissionIds, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var group = await _unitOfWork.PermissionGroups.GetByIdAsync(groupId, requestCancellationToken);
-                if (group == null)
-                {
-                    return ApiResponse<bool>.ErrorResult(
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        _localizationService.GetLocalizedString("ValidationError"),
-                        StatusCodes.Status404NotFound);
-                }
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var group = await _unitOfWork.PermissionGroups.GetByIdAsync(groupId, requestCancellationToken);
+if (group == null)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        StatusCodes.Status404NotFound);
+}
 
-                var distinctPermissionIds = permissionIds.Distinct().ToList();
-                if (distinctPermissionIds.Count > 0)
-                {
-                    var validCount = await _unitOfWork.PermissionDefinitions.Query()
-                        .Where(x => !x.IsDeleted && distinctPermissionIds.Contains(x.Id))
-                        .CountAsync(requestCancellationToken);
+var distinctPermissionIds = permissionIds.Distinct().ToList();
+if (distinctPermissionIds.Count > 0)
+{
+    var validCount = await _unitOfWork.PermissionDefinitions.Query()
+        .Where(x => !x.IsDeleted && distinctPermissionIds.Contains(x.Id))
+        .CountAsync(requestCancellationToken);
 
-                    if (validCount != distinctPermissionIds.Count)
-                    {
-                        return ApiResponse<bool>.ErrorResult(
-                            _localizationService.GetLocalizedString("ValidationError"),
-                            _localizationService.GetLocalizedString("ValidationError"),
-                            StatusCodes.Status400BadRequest);
-                    }
-                }
+    if (validCount != distinctPermissionIds.Count)
+    {
+        return ApiResponse<bool>.ErrorResult(
+            _localizationService.GetLocalizedString("ValidationError"),
+            _localizationService.GetLocalizedString("ValidationError"),
+            StatusCodes.Status400BadRequest);
+    }
+}
 
-                var currentLinks = await _unitOfWork.PermissionGroupPermissions.Query(ignoreQueryFilters: true)
-                    .Where(x => x.PermissionGroupId == groupId)
-                    .ToListAsync(requestCancellationToken);
+var currentLinks = await _unitOfWork.PermissionGroupPermissions.Query(ignoreQueryFilters: true)
+    .Where(x => x.PermissionGroupId == groupId)
+    .ToListAsync(requestCancellationToken);
 
-                foreach (var link in currentLinks.Where(x => !x.IsDeleted && !distinctPermissionIds.Contains(x.PermissionDefinitionId)))
-                {
-                    await _unitOfWork.PermissionGroupPermissions.SoftDelete(link.Id, requestCancellationToken);
-                }
+foreach (var link in currentLinks.Where(x => !x.IsDeleted && !distinctPermissionIds.Contains(x.PermissionDefinitionId)))
+{
+    await _unitOfWork.PermissionGroupPermissions.SoftDelete(link.Id, requestCancellationToken);
+}
 
-                foreach (var permissionId in distinctPermissionIds)
-                {
-                    var existing = currentLinks.FirstOrDefault(x => x.PermissionDefinitionId == permissionId);
-                    if (existing == null)
-                    {
-                        await _unitOfWork.PermissionGroupPermissions.AddAsync(new PermissionGroupPermission
-                        {
-                            PermissionGroupId = groupId,
-                            PermissionDefinitionId = permissionId
-                        }, requestCancellationToken);
-                        continue;
-                    }
+foreach (var permissionId in distinctPermissionIds)
+{
+    var existing = currentLinks.FirstOrDefault(x => x.PermissionDefinitionId == permissionId);
+    if (existing == null)
+    {
+        await _unitOfWork.PermissionGroupPermissions.AddAsync(new PermissionGroupPermission
+        {
+            PermissionGroupId = groupId,
+            PermissionDefinitionId = permissionId
+        }, requestCancellationToken);
+        continue;
+    }
 
-                    if (existing.IsDeleted)
-                    {
-                        existing.IsDeleted = false;
-                        existing.DeletedDate = null;
-                        existing.DeletedBy = null;
-                        _unitOfWork.PermissionGroupPermissions.Update(existing);
-                    }
-                }
+    if (existing.IsDeleted)
+    {
+        existing.IsDeleted = false;
+        existing.DeletedDate = null;
+        existing.DeletedBy = null;
+        _unitOfWork.PermissionGroupPermissions.Update(existing);
+    }
+}
 
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(
-                    _localizationService.GetLocalizedString("Error_Update"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         private static PermissionGroupDto MapToDto(PermissionGroup entity)

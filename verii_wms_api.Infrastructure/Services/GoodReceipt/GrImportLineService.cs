@@ -35,782 +35,698 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<PagedResponse<GrImportLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var query = _unitOfWork.GrImportLines.Query();
-                query = query.ApplyFilters(request.Filters, request.FilterLogic);
-                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+var query = _unitOfWork.GrImportLines.Query();
+query = query.ApplyFilters(request.Filters, request.FilterLogic);
+bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync(requestCancellationToken);
-                var items = await query
-                    .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync(requestCancellationToken);
+var totalCount = await query.CountAsync(requestCancellationToken);
+var items = await query
+    .ApplyPagination(request.PageNumber, request.PageSize)
+    .ToListAsync(requestCancellationToken);
 
-                var dtos = _mapper.Map<List<GrImportLineDto>>(items);
+var dtos = _mapper.Map<List<GrImportLineDto>>(items);
 
-                var result = new PagedResponse<GrImportLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+var result = new PagedResponse<GrImportLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
 
-                return ApiResponse<PagedResponse<GrImportLineDto>>.SuccessResult(result, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<GrImportLineDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+return ApiResponse<PagedResponse<GrImportLineDto>>.SuccessResult(result, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<GrImportLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var grImportLines = await _unitOfWork.GrImportLines.GetAllAsync();
-                var grImportLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(grImportLines);
+var grImportLines = await _unitOfWork.GrImportLines.GetAllAsync();
+var grImportLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(grImportLines);
 
-                var enriched = await _erpService.PopulateStockNamesAsync(grImportLineDtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                
-                return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? grImportLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+var enriched = await _erpService.PopulateStockNamesAsync(grImportLineDtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+
+return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? grImportLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<GrImportLineDto?>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var grImportLine = await _unitOfWork.GrImportLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                
-                if (grImportLine == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
-                    return ApiResponse<GrImportLineDto?>.ErrorResult(nf, nf, 404);
-                }
+var grImportLine = await _unitOfWork.GrImportLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
 
-                var grImportLineDto = _mapper.Map<GrImportLineDto>(grImportLine);
+if (grImportLine == null)
+{
+    var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
+    return ApiResponse<GrImportLineDto?>.ErrorResult(nf, nf, 404);
+}
 
-                var enriched = await _erpService.PopulateStockNamesAsync(new[] { grImportLineDto });
-                if (!enriched.Success)
-                {
-                    return ApiResponse<GrImportLineDto?>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                var finalDto = enriched.Data?.FirstOrDefault() ?? grImportLineDto;
-                
-                return ApiResponse<GrImportLineDto?>.SuccessResult(finalDto, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<GrImportLineDto?>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+var grImportLineDto = _mapper.Map<GrImportLineDto>(grImportLine);
+
+var enriched = await _erpService.PopulateStockNamesAsync(new[] { grImportLineDto });
+if (!enriched.Success)
+{
+    return ApiResponse<GrImportLineDto?>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+var finalDto = enriched.Data?.FirstOrDefault() ?? grImportLineDto;
+
+return ApiResponse<GrImportLineDto?>.SuccessResult(finalDto, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<GrImportLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var grImportLines = await _unitOfWork.GrImportLines.FindAsync(x => x.HeaderId == headerId);
-                var grImportLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(grImportLines);
+var grImportLines = await _unitOfWork.GrImportLines.FindAsync(x => x.HeaderId == headerId);
+var grImportLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(grImportLines);
 
-                var enriched = await _erpService.PopulateStockNamesAsync(grImportLineDtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                
-                return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? grImportLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+var enriched = await _erpService.PopulateStockNamesAsync(grImportLineDtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+
+return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? grImportLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>> GetWithRoutesByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
+var header = await _unitOfWork.GrHeaders.GetByIdAsync(headerId);
+if (header == null || header.IsDeleted)
+{
+    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("GrHeaderNotFound"), _localizationService.GetLocalizedString("GrHeaderNotFound"), 404);
+}
+
+var importLines = await _unitOfWork.GrImportLines.Query()
+    .Where(x => x.HeaderId == headerId && !x.IsDeleted)
+    .ToListAsync(requestCancellationToken);
+
+if (!importLines.Any())
+{
+    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(
+        Array.Empty<GrImportLineWithRoutesDto>(),
+        _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
+}
+
+// 1. Tüm routes'ları tek sorguda çek - N+1 problemi çözüldü
+var importLineIds = importLines.Select(il => il.Id).ToList();
+var routes = await _unitOfWork.GrRoutes.Query()
+    .Where(r => importLineIds.Contains(r.ImportLineId) && !r.IsDeleted)
+    .ToListAsync(requestCancellationToken);
+
+// 2. Routes'ları ImportLineId'ye göre Dictionary'de grupla - O(1) lookup için
+var routesByImportLineId = routes
+    .GroupBy(r => r.ImportLineId)
+    .ToDictionary(g => g.Key, g => g.ToList());
+
+// 3. Package bilgilerini al ve Dictionary'de sakla - Join ile optimize edilmiş
+Dictionary<long, (long? PackageLineId, string? PackageNo, long? packageHeaderId)> packageInfoDict = new();
+if (routes.Count > 0)
+{
+    var routeIds = routes.Select(r => r.Id).ToList();
+    var packageInfoList = await (
+        from pl in _unitOfWork.PLines.Query()
+        join p in _unitOfWork.PPackages.Query() on pl.PackageId equals p.Id
+        join ph in _unitOfWork.PHeaders.Query() on p.PackingHeaderId equals ph.Id
+        where !pl.IsDeleted
+              && !p.IsDeleted
+              && !ph.IsDeleted
+              && pl.SourceRouteId.HasValue
+              && routeIds.Contains(pl.SourceRouteId.Value)
+              && ph.SourceHeaderId == headerId
+              && ph.SourceType == PHeaderSourceType.GR
+        select new
+        {
+            RouteId = pl.SourceRouteId!.Value,
+            PackageLineId = pl.Id,
+            PackageNo = p.PackageNo,
+            packageHeaderId = ph.Id
+        }
+    ).ToListAsync(requestCancellationToken);
+
+    packageInfoDict = packageInfoList
+        .GroupBy(x => x.RouteId)
+        .ToDictionary(g => g.Key, g => (g?.First().PackageLineId, g?.First().PackageNo, g?.First().packageHeaderId));
+}
+
+// 4. Dictionary'leri kullanarak DTO'ları oluştur - O(1) lookup
+var items = importLines.Select(importLine =>
+{
+    var importLineDto = _mapper.Map<GrImportLineDto>(importLine);
+
+    var routeDtos = routesByImportLineId
+        .GetValueOrDefault(importLine.Id, new List<GrRoute>())
+        .Select(route =>
+        {
+            var routeDto = _mapper.Map<GrRouteDto>(route);
+            if (packageInfoDict.TryGetValue(route.Id, out var packageInfo))
             {
-                var header = await _unitOfWork.GrHeaders.GetByIdAsync(headerId);
-                if (header == null || header.IsDeleted)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("GrHeaderNotFound"), _localizationService.GetLocalizedString("GrHeaderNotFound"), 404);
-                }
-
-                var importLines = await _unitOfWork.GrImportLines.Query()
-                    .Where(x => x.HeaderId == headerId && !x.IsDeleted)
-                    .ToListAsync(requestCancellationToken);
-
-                if (!importLines.Any())
-                {
-                    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(
-                        Array.Empty<GrImportLineWithRoutesDto>(),
-                        _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-                }
-
-                // 1. Tüm routes'ları tek sorguda çek - N+1 problemi çözüldü
-                var importLineIds = importLines.Select(il => il.Id).ToList();
-                var routes = await _unitOfWork.GrRoutes.Query()
-                    .Where(r => importLineIds.Contains(r.ImportLineId) && !r.IsDeleted)
-                    .ToListAsync(requestCancellationToken);
-
-                // 2. Routes'ları ImportLineId'ye göre Dictionary'de grupla - O(1) lookup için
-                var routesByImportLineId = routes
-                    .GroupBy(r => r.ImportLineId)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-
-                // 3. Package bilgilerini al ve Dictionary'de sakla - Join ile optimize edilmiş
-                Dictionary<long, (long? PackageLineId, string? PackageNo, long? packageHeaderId)> packageInfoDict = new();
-                if (routes.Count > 0)
-                {
-                    var routeIds = routes.Select(r => r.Id).ToList();
-                    var packageInfoList = await (
-                        from pl in _unitOfWork.PLines.Query()
-                        join p in _unitOfWork.PPackages.Query() on pl.PackageId equals p.Id
-                        join ph in _unitOfWork.PHeaders.Query() on p.PackingHeaderId equals ph.Id
-                        where !pl.IsDeleted
-                              && !p.IsDeleted
-                              && !ph.IsDeleted
-                              && pl.SourceRouteId.HasValue
-                              && routeIds.Contains(pl.SourceRouteId.Value)
-                              && ph.SourceHeaderId == headerId
-                              && ph.SourceType == PHeaderSourceType.GR
-                        select new
-                        {
-                            RouteId = pl.SourceRouteId!.Value,
-                            PackageLineId = pl.Id,
-                            PackageNo = p.PackageNo,
-                            packageHeaderId = ph.Id
-                        }
-                    ).ToListAsync(requestCancellationToken);
-
-                    packageInfoDict = packageInfoList
-                        .GroupBy(x => x.RouteId)
-                        .ToDictionary(g => g.Key, g => (g?.First().PackageLineId, g?.First().PackageNo, g?.First().packageHeaderId));
-                }
-
-                // 4. Dictionary'leri kullanarak DTO'ları oluştur - O(1) lookup
-                var items = importLines.Select(importLine =>
-                {
-                    var importLineDto = _mapper.Map<GrImportLineDto>(importLine);
-
-                    var routeDtos = routesByImportLineId
-                        .GetValueOrDefault(importLine.Id, new List<GrRoute>())
-                        .Select(route =>
-                        {
-                            var routeDto = _mapper.Map<GrRouteDto>(route);
-                            if (packageInfoDict.TryGetValue(route.Id, out var packageInfo))
-                            {
-                                routeDto.PackageLineId = packageInfo.PackageLineId;
-                                routeDto.PackageNo = packageInfo.PackageNo;
-                                routeDto.PackageHeaderId = packageInfo.packageHeaderId;
-                            }
-                            return routeDto;
-                        })
-                        .ToList();
-
-                    return new GrImportLineWithRoutesDto
-                    {
-                        ImportLine = importLineDto,
-                        Routes = routeDtos
-                    };
-                }).ToList();
-
-                var importLineDtos = items.Select(i => i.ImportLine).ToList();
-                var enriched = await _erpService.PopulateStockNamesAsync(importLineDtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(
-                        enriched.Message,
-                        enriched.ExceptionMessage,
-                        enriched.StatusCode
-                    );
-                }
-                var enrichedList = enriched.Data?.ToList() ?? importLineDtos;
-                for (int i = 0; i < items.Count && i < enrichedList.Count; i++)
-                {
-                    items[i].ImportLine = enrichedList[i];
-                }
-
-                return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(items, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
+                routeDto.PackageLineId = packageInfo.PackageLineId;
+                routeDto.PackageNo = packageInfo.PackageNo;
+                routeDto.PackageHeaderId = packageInfo.packageHeaderId;
             }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+            return routeDto;
+        })
+        .ToList();
+
+    return new GrImportLineWithRoutesDto
+    {
+        ImportLine = importLineDto,
+        Routes = routeDtos
+    };
+}).ToList();
+
+var importLineDtos = items.Select(i => i.ImportLine).ToList();
+var enriched = await _erpService.PopulateStockNamesAsync(importLineDtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(
+        enriched.Message,
+        enriched.ExceptionMessage,
+        enriched.StatusCode
+    );
+}
+var enrichedList = enriched.Data?.ToList() ?? importLineDtos;
+for (int i = 0; i < items.Count && i < enrichedList.Count; i++)
+{
+    items[i].ImportLine = enrichedList[i];
+}
+
+return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(items, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>> GetCollectedBarcodesByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
+var header = await _unitOfWork.GrHeaders.GetByIdAsync(headerId);
+if (header == null || header.IsDeleted)
+{
+    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("GrHeaderNotFound"), _localizationService.GetLocalizedString("GrHeaderNotFound"), 404);
+}
+
+var importLines = await _unitOfWork.GrImportLines.Query()
+    .Where(x => x.HeaderId == headerId && !x.IsDeleted)
+    .ToListAsync(requestCancellationToken);
+
+if (!importLines.Any())
+{
+    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(
+        Array.Empty<GrImportLineWithRoutesDto>(),
+        _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
+}
+
+// 1. Tüm routes'ları tek sorguda çek - N+1 problemi çözüldü
+var importLineIds = importLines.Select(il => il.Id).ToList();
+var routes = await _unitOfWork.GrRoutes.Query()
+    .Where(r => importLineIds.Contains(r.ImportLineId) && !r.IsDeleted)
+    .ToListAsync(requestCancellationToken);
+
+// 2. Routes'ları ImportLineId'ye göre Dictionary'de grupla - O(1) lookup için
+var routesByImportLineId = routes
+    .GroupBy(r => r.ImportLineId)
+    .ToDictionary(g => g.Key, g => g.ToList());
+
+// 3. Package bilgilerini al ve Dictionary'de sakla - Join ile optimize edilmiş
+Dictionary<long, (long? PackageLineId, string? PackageNo, long? packageHeaderId)> packageInfoDict = new();
+if (routes.Count > 0)
+{
+    var routeIds = routes.Select(r => r.Id).ToList();
+    var packageInfoList = await (
+        from pl in _unitOfWork.PLines.Query()
+        join p in _unitOfWork.PPackages.Query() on pl.PackageId equals p.Id
+        join ph in _unitOfWork.PHeaders.Query() on p.PackingHeaderId equals ph.Id
+        where !pl.IsDeleted
+              && !p.IsDeleted
+              && !ph.IsDeleted
+              && pl.SourceRouteId.HasValue
+              && routeIds.Contains(pl.SourceRouteId.Value)
+              && ph.SourceHeaderId == headerId
+              && ph.SourceType == PHeaderSourceType.GR
+        select new
+        {
+            RouteId = pl.SourceRouteId!.Value,
+            PackageLineId = pl.Id,
+            PackageNo = p.PackageNo,
+            packageHeaderId = ph.Id
+        }
+    ).ToListAsync(requestCancellationToken);
+
+    packageInfoDict = packageInfoList
+        .GroupBy(x => x.RouteId)
+        .ToDictionary(g => g.Key, g => (g?.First().PackageLineId, g?.First().PackageNo, g?.First().packageHeaderId));
+}
+
+// 4. Dictionary'leri kullanarak DTO'ları oluştur - O(1) lookup
+var items = importLines.Select(importLine =>
+{
+    var importLineDto = _mapper.Map<GrImportLineDto>(importLine);
+
+    var routeDtos = routesByImportLineId
+        .GetValueOrDefault(importLine.Id, new List<GrRoute>())
+        .Select(route =>
+        {
+            var routeDto = _mapper.Map<GrRouteDto>(route);
+            if (packageInfoDict.TryGetValue(route.Id, out var packageInfo))
             {
-                var header = await _unitOfWork.GrHeaders.GetByIdAsync(headerId);
-                if (header == null || header.IsDeleted)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("GrHeaderNotFound"), _localizationService.GetLocalizedString("GrHeaderNotFound"), 404);
-                }
-
-                var importLines = await _unitOfWork.GrImportLines.Query()
-                    .Where(x => x.HeaderId == headerId && !x.IsDeleted)
-                    .ToListAsync(requestCancellationToken);
-
-                if (!importLines.Any())
-                {
-                    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(
-                        Array.Empty<GrImportLineWithRoutesDto>(),
-                        _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-                }
-
-                // 1. Tüm routes'ları tek sorguda çek - N+1 problemi çözüldü
-                var importLineIds = importLines.Select(il => il.Id).ToList();
-                var routes = await _unitOfWork.GrRoutes.Query()
-                    .Where(r => importLineIds.Contains(r.ImportLineId) && !r.IsDeleted)
-                    .ToListAsync(requestCancellationToken);
-
-                // 2. Routes'ları ImportLineId'ye göre Dictionary'de grupla - O(1) lookup için
-                var routesByImportLineId = routes
-                    .GroupBy(r => r.ImportLineId)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-
-                // 3. Package bilgilerini al ve Dictionary'de sakla - Join ile optimize edilmiş
-                Dictionary<long, (long? PackageLineId, string? PackageNo, long? packageHeaderId)> packageInfoDict = new();
-                if (routes.Count > 0)
-                {
-                    var routeIds = routes.Select(r => r.Id).ToList();
-                    var packageInfoList = await (
-                        from pl in _unitOfWork.PLines.Query()
-                        join p in _unitOfWork.PPackages.Query() on pl.PackageId equals p.Id
-                        join ph in _unitOfWork.PHeaders.Query() on p.PackingHeaderId equals ph.Id
-                        where !pl.IsDeleted
-                              && !p.IsDeleted
-                              && !ph.IsDeleted
-                              && pl.SourceRouteId.HasValue
-                              && routeIds.Contains(pl.SourceRouteId.Value)
-                              && ph.SourceHeaderId == headerId
-                              && ph.SourceType == PHeaderSourceType.GR
-                        select new
-                        {
-                            RouteId = pl.SourceRouteId!.Value,
-                            PackageLineId = pl.Id,
-                            PackageNo = p.PackageNo,
-                            packageHeaderId = ph.Id
-                        }
-                    ).ToListAsync(requestCancellationToken);
-
-                    packageInfoDict = packageInfoList
-                        .GroupBy(x => x.RouteId)
-                        .ToDictionary(g => g.Key, g => (g?.First().PackageLineId, g?.First().PackageNo, g?.First().packageHeaderId));
-                }
-
-                // 4. Dictionary'leri kullanarak DTO'ları oluştur - O(1) lookup
-                var items = importLines.Select(importLine =>
-                {
-                    var importLineDto = _mapper.Map<GrImportLineDto>(importLine);
-
-                    var routeDtos = routesByImportLineId
-                        .GetValueOrDefault(importLine.Id, new List<GrRoute>())
-                        .Select(route =>
-                        {
-                            var routeDto = _mapper.Map<GrRouteDto>(route);
-                            if (packageInfoDict.TryGetValue(route.Id, out var packageInfo))
-                            {
-                                routeDto.PackageLineId = packageInfo.PackageLineId;
-                                routeDto.PackageNo = packageInfo.PackageNo;
-                                routeDto.PackageHeaderId = packageInfo.packageHeaderId;
-                            }
-                            return routeDto;
-                        })
-                        .ToList();
-
-                    return new GrImportLineWithRoutesDto
-                    {
-                        ImportLine = importLineDto,
-                        Routes = routeDtos
-                    };
-                }).ToList();
-
-                var importLineDtos = items.Select(i => i.ImportLine).ToList();
-                var enriched = await _erpService.PopulateStockNamesAsync(importLineDtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(
-                        enriched.Message,
-                        enriched.ExceptionMessage,
-                        enriched.StatusCode
-                    );
-                }
-                var enrichedList = enriched.Data?.ToList() ?? importLineDtos;
-                for (int i = 0; i < items.Count && i < enrichedList.Count; i++)
-                {
-                    items[i].ImportLine = enrichedList[i];
-                }
-
-                return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(items, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
+                routeDto.PackageLineId = packageInfo.PackageLineId;
+                routeDto.PackageNo = packageInfo.PackageNo;
+                routeDto.PackageHeaderId = packageInfo.packageHeaderId;
             }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+            return routeDto;
+        })
+        .ToList();
+
+    return new GrImportLineWithRoutesDto
+    {
+        ImportLine = importLineDto,
+        Routes = routeDtos
+    };
+}).ToList();
+
+var importLineDtos = items.Select(i => i.ImportLine).ToList();
+var enriched = await _erpService.PopulateStockNamesAsync(importLineDtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.ErrorResult(
+        enriched.Message,
+        enriched.ExceptionMessage,
+        enriched.StatusCode
+    );
+}
+var enrichedList = enriched.Data?.ToList() ?? importLineDtos;
+for (int i = 0; i < items.Count && i < enrichedList.Count; i++)
+{
+    items[i].ImportLine = enrichedList[i];
+}
+
+return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(items, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<GrImportLineDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var grImportLines = await _unitOfWork.GrImportLines.FindAsync(x => x.LineId == lineId);
-                var grImportLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(grImportLines);
+var grImportLines = await _unitOfWork.GrImportLines.FindAsync(x => x.LineId == lineId);
+var grImportLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(grImportLines);
 
-                var enriched = await _erpService.PopulateStockNamesAsync(grImportLineDtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                
-                return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? grImportLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+var enriched = await _erpService.PopulateStockNamesAsync(grImportLineDtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+
+return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? grImportLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
 
         public async Task<ApiResponse<GrImportLineDto>> CreateAsync(CreateGrImportLineDto createDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var grImportLine = _mapper.Map<GrImportLine>(createDto);
-                grImportLine.CreatedDate = DateTimeProvider.Now;
-                
-                await _unitOfWork.GrImportLines.AddAsync(grImportLine);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                
-                var grImportLineDto = _mapper.Map<GrImportLineDto>(grImportLine);
-                
-                return ApiResponse<GrImportLineDto>.SuccessResult(grImportLineDto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<GrImportLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineCreationError"), ex.Message, 500);
-            }
+var grImportLine = _mapper.Map<GrImportLine>(createDto);
+grImportLine.CreatedDate = DateTimeProvider.Now;
+
+await _unitOfWork.GrImportLines.AddAsync(grImportLine);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+
+var grImportLineDto = _mapper.Map<GrImportLineDto>(grImportLine);
+
+return ApiResponse<GrImportLineDto>.SuccessResult(grImportLineDto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
         }
 
         public async Task<ApiResponse<GrImportLineDto>> UpdateAsync(long id, UpdateGrImportLineDto updateDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var existingGrImportLine = await _unitOfWork.GrImportLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                
-                if (existingGrImportLine == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
-                    return ApiResponse<GrImportLineDto>.ErrorResult(nf, nf, 404);
-                }
+var existingGrImportLine = await _unitOfWork.GrImportLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
 
-                _mapper.Map(updateDto, existingGrImportLine);
-                existingGrImportLine.UpdatedDate = DateTimeProvider.Now;
-                
-                _unitOfWork.GrImportLines.Update(existingGrImportLine);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                
-                var grImportLineDto = _mapper.Map<GrImportLineDto>(existingGrImportLine);
-                
-                return ApiResponse<GrImportLineDto>.SuccessResult(grImportLineDto, _localizationService.GetLocalizedString("GrImportLineUpdatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<GrImportLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineUpdateError"), ex.Message, 500);
-            }
+if (existingGrImportLine == null)
+{
+    var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
+    return ApiResponse<GrImportLineDto>.ErrorResult(nf, nf, 404);
+}
+
+_mapper.Map(updateDto, existingGrImportLine);
+existingGrImportLine.UpdatedDate = DateTimeProvider.Now;
+
+_unitOfWork.GrImportLines.Update(existingGrImportLine);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+
+var grImportLineDto = _mapper.Map<GrImportLineDto>(existingGrImportLine);
+
+return ApiResponse<GrImportLineDto>.SuccessResult(grImportLineDto, _localizationService.GetLocalizedString("GrImportLineUpdatedSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.GrImportLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
-                    return ApiResponse<bool>.ErrorResult(nf, nf, 404);
-                }
-                var routes = await _unitOfWork.GrRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync(requestCancellationToken);
-                if (routes.Any())
-                {
-                    var msg = _localizationService.GetLocalizedString("GrImportLineRoutesExist");
-                    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-                }
-                var hasActiveLineSerials = entity.LineId.HasValue && await _unitOfWork.GrLineSerials.Query()
-                    .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId.Value)
-                            .AnyAsync(requestCancellationToken);
-                if (hasActiveLineSerials)
-                {
-                    var msg = _localizationService.GetLocalizedString("GrImportLineLineSerialsExist");
-                    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-                }
+var entity = await _unitOfWork.GrImportLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    var nf = _localizationService.GetLocalizedString("GrImportLineNotFound");
+    return ApiResponse<bool>.ErrorResult(nf, nf, 404);
+}
+var routes = await _unitOfWork.GrRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync(requestCancellationToken);
+if (routes.Any())
+{
+    var msg = _localizationService.GetLocalizedString("GrImportLineRoutesExist");
+    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+}
+var hasActiveLineSerials = entity.LineId.HasValue && await _unitOfWork.GrLineSerials.Query()
+    .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId.Value)
+            .AnyAsync(requestCancellationToken);
+if (hasActiveLineSerials)
+{
+    var msg = _localizationService.GetLocalizedString("GrImportLineLineSerialsExist");
+    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+}
 
-                using var tx = await _unitOfWork.BeginTransactionAsync();
-                try
-                {
-                    await _unitOfWork.GrImportLines.SoftDelete(id);
+using var tx = await _unitOfWork.BeginTransactionAsync();
+try
+{
+    await _unitOfWork.GrImportLines.SoftDelete(id);
 
-                    var headerId = entity.HeaderId;
-                    var hasOtherLines = await _unitOfWork.GrLines.Query()
-                        .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .AnyAsync(requestCancellationToken);
-                    var hasOtherImportLines = await _unitOfWork.GrImportLines.Query()
-                        .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync(requestCancellationToken);
-                    if (!hasOtherLines && !hasOtherImportLines)
-                    {
-                        await _unitOfWork.GrHeaders.SoftDelete(headerId);
-                    }
+    var headerId = entity.HeaderId;
+    var hasOtherLines = await _unitOfWork.GrLines.Query()
+        .Where(l => !l.IsDeleted && l.HeaderId == headerId)
+            .AnyAsync(requestCancellationToken);
+    var hasOtherImportLines = await _unitOfWork.GrImportLines.Query()
+        .Where(il => !il.IsDeleted && il.HeaderId == headerId)
+            .AnyAsync(requestCancellationToken);
+    if (!hasOtherLines && !hasOtherImportLines)
+    {
+        await _unitOfWork.GrHeaders.SoftDelete(headerId);
+    }
 
-                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                    await tx.CommitAsync();
-                    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrImportLineDeletedSuccessfully"));
-                }
-                catch
-                {
-                    await tx.RollbackAsync();
-                    throw;
-                }
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineDeletionError"), ex.Message, 500);
-            }
+    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+    await tx.CommitAsync();
+    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrImportLineDeletedSuccessfully"));
+}
+catch
+{
+    await tx.RollbackAsync();
+    throw;
+}
         }
 
         public async Task<ApiResponse<IEnumerable<GrImportLineDto>>> GetImportLinesByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var importLines = await _unitOfWork.GrImportLines.FindAsync(x => x.HeaderId == headerId);
-                var importLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(importLines);
+var importLines = await _unitOfWork.GrImportLines.FindAsync(x => x.HeaderId == headerId);
+var importLineDtos = _mapper.Map<IEnumerable<GrImportLineDto>>(importLines);
 
-                var enriched = await _erpService.PopulateStockNamesAsync(importLineDtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
+var enriched = await _erpService.PopulateStockNamesAsync(importLineDtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
 
-                return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? importLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<GrImportLineDto>>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineRetrievalError"), ex.Message, 500);
-            }
+return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(enriched.Data ?? importLineDtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<GrImportLineDto>> AddBarcodeBasedonAssignedOrderAsync(AddGrImportBarcodeRequestDto request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
+using (var tx = await _unitOfWork.BeginTransactionAsync())
+{
+    try
+    {
+        // ============================================
+        // 1) MİKTAR DOĞRULAMA: Negatif/0 miktara izin verilmez
+        // ============================================
+        if (request.Quantity <= 0)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return ApiResponse<GrImportLineDto>.ErrorResult(
+                _localizationService.GetLocalizedString("GrImportLineQuantityInvalid"), 
+                _localizationService.GetLocalizedString("GrImportLineQuantityInvalid"), 
+                400);
+        }
+
+        // ============================================
+        // 2) HEADER KONTROLÜ: İstekle gelen header aktif ve silinmemiş olmalı
+        // ============================================
+        var header = await _unitOfWork.GrHeaders.GetByIdAsync(request.HeaderId);
+        if (header == null || header.IsDeleted)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return ApiResponse<GrImportLineDto>.ErrorResult(
+                _localizationService.GetLocalizedString("GrHeaderNotFound"), 
+                _localizationService.GetLocalizedString("GrHeaderNotFound"), 
+                404);
+        }
+
+        // ============================================
+        // 3) LINE UYUMLULUĞU: StokKodu ve YapKod eşleşmesi ile header'a ait silinmemiş Line'ları bul
+        // ============================================
+        var reqStock = (request.StockCode ?? "").Trim();
+        var reqYap = (request.YapKod ?? "").Trim();
+        
+        var matchingLines = await _unitOfWork.GrLines.Query()
+            .Where(l => l.HeaderId == request.HeaderId 
+                && !l.IsDeleted
+                && ((l.StockCode ?? "").Trim() == reqStock)
+                && ((l.YapKod ?? "").Trim() == reqYap))
+            .ToListAsync(requestCancellationToken);
+        
+        if (!matchingLines.Any())
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return ApiResponse<GrImportLineDto>.ErrorResult(
+                _localizationService.GetLocalizedString("GrImportLineStokCodeAndYapCodeNotMatch"), 
+                _localizationService.GetLocalizedString("GrImportLineStokCodeAndYapCodeNotMatch"), 
+                404);
+        }
+
+        // ============================================
+        // 4) SERİ KONTROLÜ VE MİKTAR VALİDASYONU
+        // ============================================
+        var serialNo = (request.SerialNo ?? "").Trim();
+        var hasRequestSerial = !string.IsNullOrWhiteSpace(serialNo);
+
+        // Eşleşen Line'ların (StockCode + YapKod ile eşleşen) LineSerial'larını kontrol et
+        var lineIds = matchingLines.Select(l => l.Id).ToList();
+        var lineSerials = await _unitOfWork.GrLineSerials.Query()
+            .Where(ls => !ls.IsDeleted && ls.LineId.HasValue && lineIds.Contains(ls.LineId.Value))
+            .ToListAsync(requestCancellationToken);
+
+        // Eşleşen Line'ların LineSerial'larında SerialNo var mı kontrol et
+        var hasSerialInLineSerials = lineSerials.Any(ls =>
+            !string.IsNullOrWhiteSpace(ls.SerialNo));
+
+        // Get GrParameter for validation rules
+        var grParameter = await _unitOfWork.GrParameters.Query()
+            .Where(p => !p.IsDeleted)
+            .FirstOrDefaultAsync(requestCancellationToken);
+
+        {
+            // ============================================
+            // DURUM 1: Her ikisinde de SerialNo var → Seri eşleşmesi + Seri bazlı miktar kontrolü
+            // ============================================
+            if (hasSerialInLineSerials && hasRequestSerial)
             {
-                using (var tx = await _unitOfWork.BeginTransactionAsync())
+                var matchingLineSerials = lineSerials.Where(ls =>
+                    ((ls.SerialNo ?? "").Trim() == serialNo)
+                ).ToList();
+
+                if (!matchingLineSerials.Any())
                 {
-                    try
-                    {
-                        // ============================================
-                        // 1) MİKTAR DOĞRULAMA: Negatif/0 miktara izin verilmez
-                        // ============================================
-                        if (request.Quantity <= 0)
-                        {
-                            await _unitOfWork.RollbackTransactionAsync();
-                            return ApiResponse<GrImportLineDto>.ErrorResult(
-                                _localizationService.GetLocalizedString("GrImportLineQuantityInvalid"), 
-                                _localizationService.GetLocalizedString("GrImportLineQuantityInvalid"), 
-                                400);
-                        }
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return ApiResponse<GrImportLineDto>.ErrorResult(
+                        _localizationService.GetLocalizedString("GrImportLineSerialNotMatch"), 
+                        _localizationService.GetLocalizedString("GrImportLineSerialNotMatch"), 
+                        404);
+                }
 
-                        // ============================================
-                        // 2) HEADER KONTROLÜ: İstekle gelen header aktif ve silinmemiş olmalı
-                        // ============================================
-                        var header = await _unitOfWork.GrHeaders.GetByIdAsync(request.HeaderId);
-                        if (header == null || header.IsDeleted)
-                        {
-                            await _unitOfWork.RollbackTransactionAsync();
-                            return ApiResponse<GrImportLineDto>.ErrorResult(
-                                _localizationService.GetLocalizedString("GrHeaderNotFound"), 
-                                _localizationService.GetLocalizedString("GrHeaderNotFound"), 
-                                404);
-                        }
+                // Seri bazlı miktar kontrolü
+                var totalLineSerialQuantity = matchingLineSerials.Sum(ls => ls.Quantity);
+                
+                var totalRouteQuantity = await _unitOfWork.GrRoutes.Query()
+                    .Where(r => !r.IsDeleted
+                        && lineIds.Contains(r.ImportLine.LineId ?? 0)
+                        && !r.ImportLine.IsDeleted
+                        && ((r.SerialNo ?? "").Trim() == serialNo))
+                    .SumAsync(r => r.Quantity);
 
-                        // ============================================
-                        // 3) LINE UYUMLULUĞU: StokKodu ve YapKod eşleşmesi ile header'a ait silinmemiş Line'ları bul
-                        // ============================================
-                        var reqStock = (request.StockCode ?? "").Trim();
-                        var reqYap = (request.YapKod ?? "").Trim();
-                        
-                        var matchingLines = await _unitOfWork.GrLines.Query()
-                            .Where(l => l.HeaderId == request.HeaderId 
-                                && !l.IsDeleted
-                                && ((l.StockCode ?? "").Trim() == reqStock)
-                                && ((l.YapKod ?? "").Trim() == reqYap))
-                            .ToListAsync(requestCancellationToken);
-                        
-                        if (!matchingLines.Any())
-                        {
-                            await _unitOfWork.RollbackTransactionAsync();
-                            return ApiResponse<GrImportLineDto>.ErrorResult(
-                                _localizationService.GetLocalizedString("GrImportLineStokCodeAndYapCodeNotMatch"), 
-                                _localizationService.GetLocalizedString("GrImportLineStokCodeAndYapCodeNotMatch"), 
-                                404);
-                        }
+                // Miktar validasyonu: Sadece fazla alım kontrolü
+                var totalRouteQuantityAfterAdd = totalRouteQuantity + request.Quantity;
+                bool allowMore = grParameter?.AllowMoreQuantityBasedOnOrder ?? false;
 
-                        // ============================================
-                        // 4) SERİ KONTROLÜ VE MİKTAR VALİDASYONU
-                        // ============================================
-                        var serialNo = (request.SerialNo ?? "").Trim();
-                        var hasRequestSerial = !string.IsNullOrWhiteSpace(serialNo);
-
-                        // Eşleşen Line'ların (StockCode + YapKod ile eşleşen) LineSerial'larını kontrol et
-                        var lineIds = matchingLines.Select(l => l.Id).ToList();
-                        var lineSerials = await _unitOfWork.GrLineSerials.Query()
-                            .Where(ls => !ls.IsDeleted && ls.LineId.HasValue && lineIds.Contains(ls.LineId.Value))
-                            .ToListAsync(requestCancellationToken);
-
-                        // Eşleşen Line'ların LineSerial'larında SerialNo var mı kontrol et
-                        var hasSerialInLineSerials = lineSerials.Any(ls =>
-                            !string.IsNullOrWhiteSpace(ls.SerialNo));
-
-                        // Get GrParameter for validation rules
-                        var grParameter = await _unitOfWork.GrParameters.Query()
-                            .Where(p => !p.IsDeleted)
-                            .FirstOrDefaultAsync(requestCancellationToken);
-
-                        {
-                            // ============================================
-                            // DURUM 1: Her ikisinde de SerialNo var → Seri eşleşmesi + Seri bazlı miktar kontrolü
-                            // ============================================
-                            if (hasSerialInLineSerials && hasRequestSerial)
-                            {
-                                var matchingLineSerials = lineSerials.Where(ls =>
-                                    ((ls.SerialNo ?? "").Trim() == serialNo)
-                                ).ToList();
-
-                                if (!matchingLineSerials.Any())
-                                {
-                                    await _unitOfWork.RollbackTransactionAsync();
-                                    return ApiResponse<GrImportLineDto>.ErrorResult(
-                                        _localizationService.GetLocalizedString("GrImportLineSerialNotMatch"), 
-                                        _localizationService.GetLocalizedString("GrImportLineSerialNotMatch"), 
-                                        404);
-                                }
-
-                                // Seri bazlı miktar kontrolü
-                                var totalLineSerialQuantity = matchingLineSerials.Sum(ls => ls.Quantity);
-                                
-                                var totalRouteQuantity = await _unitOfWork.GrRoutes.Query()
-                                    .Where(r => !r.IsDeleted
-                                        && lineIds.Contains(r.ImportLine.LineId ?? 0)
-                                        && !r.ImportLine.IsDeleted
-                                        && ((r.SerialNo ?? "").Trim() == serialNo))
-                                    .SumAsync(r => r.Quantity);
-
-                                // Miktar validasyonu: Sadece fazla alım kontrolü
-                                var totalRouteQuantityAfterAdd = totalRouteQuantity + request.Quantity;
-                                bool allowMore = grParameter?.AllowMoreQuantityBasedOnOrder ?? false;
-
-                                // Eğer fazla alım izni yoksa ve Route miktarı LineSerial miktarını aşıyorsa hata
-                                if (!allowMore && totalRouteQuantityAfterAdd > totalLineSerialQuantity + 0.000001m)
-                                {
-                                    await _unitOfWork.RollbackTransactionAsync();
-                                    var localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityCannotBeGreater", 
-                                        matchingLines.First().Id, 
-                                        matchingLines.First().StockCode ?? string.Empty, 
-                                        matchingLines.First().YapKod ?? string.Empty, 
-                                        totalLineSerialQuantity, 
-                                        totalRouteQuantityAfterAdd);
-                                    var exceptionMessage = $"Serial {serialNo} (StockCode: {reqStock}, YapKod: {reqYap}): Route total after add ({totalRouteQuantityAfterAdd}) cannot be greater than LineSerial total ({totalLineSerialQuantity})";
-                                    return ApiResponse<GrImportLineDto>.ErrorResult(localizedMessage, exceptionMessage, 400);
-                                }
-                            }
-                            // ============================================
-                            // DURUM 2: LineSerial'da SerialNo yok VEYA Request'te SerialNo yok → Toplam miktar kontrolü (seri bazlı değil)
-                            // ============================================
-                            else
-                            {
-                                // Tüm LineSerial'ların toplam miktarı
-                                var totalLineSerialQuantity = lineSerials.Sum(ls => ls.Quantity);
-
-                                // Tüm Route'ların toplam miktarı (eşleşen Line'lar için)
-                                var totalRouteQuantity = await _unitOfWork.GrRoutes.Query()
-                                    .Where(r => !r.IsDeleted
-                                        && lineIds.Contains(r.ImportLine.LineId ?? 0)
-                                        && !r.ImportLine.IsDeleted)
-                                    .SumAsync(r => r.Quantity);
-
-                                // Miktar validasyonu: Sadece fazla alım kontrolü
-                                var totalRouteQuantityAfterAdd = totalRouteQuantity + request.Quantity;
-                                bool allowMore = grParameter?.AllowMoreQuantityBasedOnOrder ?? false;
-
-                                // Eğer fazla alım izni yoksa ve Route miktarı LineSerial miktarını aşıyorsa hata
-                                if (!allowMore && totalRouteQuantityAfterAdd > totalLineSerialQuantity + 0.000001m)
-                                {
-                                    await _unitOfWork.RollbackTransactionAsync();
-                                    var localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityCannotBeGreater", 
-                                        matchingLines.First().Id, 
-                                        matchingLines.First().StockCode ?? string.Empty, 
-                                        matchingLines.First().YapKod ?? string.Empty, 
-                                        totalLineSerialQuantity, 
-                                        totalRouteQuantityAfterAdd);
-                                    var exceptionMessage = $"StockCode: {reqStock}, YapKod: {reqYap}: Route total after add ({totalRouteQuantityAfterAdd}) cannot be greater than LineSerial total ({totalLineSerialQuantity})";
-                                    return ApiResponse<GrImportLineDto>.ErrorResult(localizedMessage, exceptionMessage, 400);
-                                }
-                            }
-                        }
-
-                        // ============================================
-                        // 5) IMPORTLINE BUL/OLUŞTUR: En uygun Line'ı seç ve ImportLine bul/oluştur
-                        // ============================================
-                        long? selectedLineId = null;
-
-                        // Eğer seri varsa ve sadece bir Line'da o seri varsa → O Line'ı seç
-                        if (hasSerialInLineSerials && hasRequestSerial)
-                        {
-                            var linesWithSerial = lineSerials
-                                .Where(ls => ((ls.SerialNo ?? "").Trim() == serialNo))
-                                .Select(ls => ls.LineId)
-                                .Distinct()
-                                .ToList();
-
-                            if (linesWithSerial.Count == 1)
-                            {
-                                // Sadece bir Line'da bu seri var → O Line'ı seç
-                                selectedLineId = linesWithSerial.First();
-                            }
-                            // Eğer birden fazla Line'da aynı seri varsa → Seri mantığı geçersiz, toplam miktar mantığına geç
-                        }
-
-                        // Eğer Line seçilmediyse (seri yok veya birden fazla Line'da seri var) → En fazla eksik olan Line'ı seç
-                        if (!selectedLineId.HasValue)
-                        {
-                            var lineQuantities = new List<(long LineId, decimal LineSerialTotal, decimal RouteTotal, decimal Remaining)>();
-
-                            foreach (var line in matchingLines)
-                            {
-                                // LineSerial toplam miktarı
-                                var lineSerialTotal = lineSerials
-                                    .Where(ls => ls.LineId == line.Id)
-                                    .Sum(ls => ls.Quantity);
-
-                                // Route toplam miktarı (bu Line'a bağlı ImportLine'ların Route'ları)
-                                var routeTotal = await _unitOfWork.GrRoutes.Query()
-                                    .Where(r => !r.IsDeleted
-                                        && r.ImportLine.LineId == line.Id
-                                        && !r.ImportLine.IsDeleted)
-                                    .SumAsync(r => r.Quantity);
-
-                                var remaining = lineSerialTotal - routeTotal;
-                                lineQuantities.Add((line.Id, lineSerialTotal, routeTotal, remaining));
-                            }
-
-                            // En fazla eksik olan Line'ı seç (remaining en yüksek olan)
-                            var bestLine = lineQuantities
-                                .OrderByDescending(x => x.Remaining)
-                                .FirstOrDefault();
-
-                            if (bestLine.LineId > 0)
-                            {
-                                selectedLineId = bestLine.LineId;
-                            }
-                            else
-                            {
-                                // Fallback: İlk eşleşen Line'ı seç
-                                selectedLineId = matchingLines.First().Id;
-                            }
-                        }
-
-                        // Seçilen Line için ImportLine bul veya oluştur
-                        if (!selectedLineId.HasValue)
-                        {
-                            await _unitOfWork.RollbackTransactionAsync();
-                            return ApiResponse<GrImportLineDto>.ErrorResult(
-                                _localizationService.GetLocalizedString("GrImportLineNoMatchingLine"), 
-                                _localizationService.GetLocalizedString("GrImportLineNoMatchingLine"), 
-                                400);
-                        }
-
-                        GrImportLine? importLine = await _unitOfWork.GrImportLines.Query()
-                            .Where(il => il.HeaderId == request.HeaderId
-                                && il.LineId == selectedLineId.Value
-                                && ((il.StockCode ?? "").Trim() == reqStock)
-                                && ((il.YapKod ?? "").Trim() == reqYap)
-                                && !il.IsDeleted)
-                            .FirstOrDefaultAsync(requestCancellationToken);
-
-                        if (importLine == null)
-                        {
-                            var createImportLineDto = new CreateGrImportLineDto
-                            {
-                                HeaderId = request.HeaderId,
-                                LineId = selectedLineId.Value,
-                                StockCode = request.StockCode ?? reqStock,
-                                YapKod = request.YapKod ?? reqYap
-                            };
-                            importLine = _mapper.Map<GrImportLine>(createImportLineDto);
-                            await _unitOfWork.GrImportLines.AddAsync(importLine);
-                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                        }
-
-                        // ============================================
-                        // 6) ROUTE KAYDI: Barkod, miktar, seri ve lokasyon bilgileri ile importLine'a bağlı route eklenir
-                        // ============================================
-                        var createRouteDto = new CreateGrRouteDto
-                        {
-                            ImportLineId = importLine.Id,
-                            ScannedBarcode = request.Barcode,
-                            Quantity = request.Quantity,
-                            SerialNo = request.SerialNo,
-                            SerialNo2 = request.SerialNo2,
-                            SerialNo3 = request.SerialNo3,
-                            SerialNo4 = request.SerialNo4,
-                            SourceCellCode = request.SourceCellCode,
-                            TargetCellCode = request.TargetCellCode
-                        };
-                        var route = _mapper.Map<GrRoute>(createRouteDto);
-
-                        await _unitOfWork.GrRoutes.AddAsync(route);
-                        await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-
-                        // ============================================
-                        // 7) SONUÇ: importLine DTO döndürülür ve işlem tamamlanır
-                        // ============================================
-                        await _unitOfWork.CommitTransactionAsync();
-                        var dto = _mapper.Map<GrImportLineDto>(importLine);
-                        return ApiResponse<GrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
-                    }
-                    catch
-                    {
-                        await _unitOfWork.RollbackTransactionAsync();
-                        throw;
-                    }
+                // Eğer fazla alım izni yoksa ve Route miktarı LineSerial miktarını aşıyorsa hata
+                if (!allowMore && totalRouteQuantityAfterAdd > totalLineSerialQuantity + 0.000001m)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    var localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityCannotBeGreater", 
+                        matchingLines.First().Id, 
+                        matchingLines.First().StockCode ?? string.Empty, 
+                        matchingLines.First().YapKod ?? string.Empty, 
+                        totalLineSerialQuantity, 
+                        totalRouteQuantityAfterAdd);
+                    var exceptionMessage = $"Serial {serialNo} (StockCode: {reqStock}, YapKod: {reqYap}): Route total after add ({totalRouteQuantityAfterAdd}) cannot be greater than LineSerial total ({totalLineSerialQuantity})";
+                    return ApiResponse<GrImportLineDto>.ErrorResult(localizedMessage, exceptionMessage, 400);
                 }
             }
-            catch (Exception ex)
+            // ============================================
+            // DURUM 2: LineSerial'da SerialNo yok VEYA Request'te SerialNo yok → Toplam miktar kontrolü (seri bazlı değil)
+            // ============================================
+            else
             {
-                return ApiResponse<GrImportLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrImportLineErrorOccurred"), ex.Message ?? string.Empty, 500);
+                // Tüm LineSerial'ların toplam miktarı
+                var totalLineSerialQuantity = lineSerials.Sum(ls => ls.Quantity);
+
+                // Tüm Route'ların toplam miktarı (eşleşen Line'lar için)
+                var totalRouteQuantity = await _unitOfWork.GrRoutes.Query()
+                    .Where(r => !r.IsDeleted
+                        && lineIds.Contains(r.ImportLine.LineId ?? 0)
+                        && !r.ImportLine.IsDeleted)
+                    .SumAsync(r => r.Quantity);
+
+                // Miktar validasyonu: Sadece fazla alım kontrolü
+                var totalRouteQuantityAfterAdd = totalRouteQuantity + request.Quantity;
+                bool allowMore = grParameter?.AllowMoreQuantityBasedOnOrder ?? false;
+
+                // Eğer fazla alım izni yoksa ve Route miktarı LineSerial miktarını aşıyorsa hata
+                if (!allowMore && totalRouteQuantityAfterAdd > totalLineSerialQuantity + 0.000001m)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    var localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityCannotBeGreater", 
+                        matchingLines.First().Id, 
+                        matchingLines.First().StockCode ?? string.Empty, 
+                        matchingLines.First().YapKod ?? string.Empty, 
+                        totalLineSerialQuantity, 
+                        totalRouteQuantityAfterAdd);
+                    var exceptionMessage = $"StockCode: {reqStock}, YapKod: {reqYap}: Route total after add ({totalRouteQuantityAfterAdd}) cannot be greater than LineSerial total ({totalLineSerialQuantity})";
+                    return ApiResponse<GrImportLineDto>.ErrorResult(localizedMessage, exceptionMessage, 400);
+                }
             }
+        }
+
+        // ============================================
+        // 5) IMPORTLINE BUL/OLUŞTUR: En uygun Line'ı seç ve ImportLine bul/oluştur
+        // ============================================
+        long? selectedLineId = null;
+
+        // Eğer seri varsa ve sadece bir Line'da o seri varsa → O Line'ı seç
+        if (hasSerialInLineSerials && hasRequestSerial)
+        {
+            var linesWithSerial = lineSerials
+                .Where(ls => ((ls.SerialNo ?? "").Trim() == serialNo))
+                .Select(ls => ls.LineId)
+                .Distinct()
+                .ToList();
+
+            if (linesWithSerial.Count == 1)
+            {
+                // Sadece bir Line'da bu seri var → O Line'ı seç
+                selectedLineId = linesWithSerial.First();
+            }
+            // Eğer birden fazla Line'da aynı seri varsa → Seri mantığı geçersiz, toplam miktar mantığına geç
+        }
+
+        // Eğer Line seçilmediyse (seri yok veya birden fazla Line'da seri var) → En fazla eksik olan Line'ı seç
+        if (!selectedLineId.HasValue)
+        {
+            var lineQuantities = new List<(long LineId, decimal LineSerialTotal, decimal RouteTotal, decimal Remaining)>();
+
+            foreach (var line in matchingLines)
+            {
+                // LineSerial toplam miktarı
+                var lineSerialTotal = lineSerials
+                    .Where(ls => ls.LineId == line.Id)
+                    .Sum(ls => ls.Quantity);
+
+                // Route toplam miktarı (bu Line'a bağlı ImportLine'ların Route'ları)
+                var routeTotal = await _unitOfWork.GrRoutes.Query()
+                    .Where(r => !r.IsDeleted
+                        && r.ImportLine.LineId == line.Id
+                        && !r.ImportLine.IsDeleted)
+                    .SumAsync(r => r.Quantity);
+
+                var remaining = lineSerialTotal - routeTotal;
+                lineQuantities.Add((line.Id, lineSerialTotal, routeTotal, remaining));
+            }
+
+            // En fazla eksik olan Line'ı seç (remaining en yüksek olan)
+            var bestLine = lineQuantities
+                .OrderByDescending(x => x.Remaining)
+                .FirstOrDefault();
+
+            if (bestLine.LineId > 0)
+            {
+                selectedLineId = bestLine.LineId;
+            }
+            else
+            {
+                // Fallback: İlk eşleşen Line'ı seç
+                selectedLineId = matchingLines.First().Id;
+            }
+        }
+
+        // Seçilen Line için ImportLine bul veya oluştur
+        if (!selectedLineId.HasValue)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return ApiResponse<GrImportLineDto>.ErrorResult(
+                _localizationService.GetLocalizedString("GrImportLineNoMatchingLine"), 
+                _localizationService.GetLocalizedString("GrImportLineNoMatchingLine"), 
+                400);
+        }
+
+        GrImportLine? importLine = await _unitOfWork.GrImportLines.Query()
+            .Where(il => il.HeaderId == request.HeaderId
+                && il.LineId == selectedLineId.Value
+                && ((il.StockCode ?? "").Trim() == reqStock)
+                && ((il.YapKod ?? "").Trim() == reqYap)
+                && !il.IsDeleted)
+            .FirstOrDefaultAsync(requestCancellationToken);
+
+        if (importLine == null)
+        {
+            var createImportLineDto = new CreateGrImportLineDto
+            {
+                HeaderId = request.HeaderId,
+                LineId = selectedLineId.Value,
+                StockCode = request.StockCode ?? reqStock,
+                YapKod = request.YapKod ?? reqYap
+            };
+            importLine = _mapper.Map<GrImportLine>(createImportLineDto);
+            await _unitOfWork.GrImportLines.AddAsync(importLine);
+            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+        }
+
+        // ============================================
+        // 6) ROUTE KAYDI: Barkod, miktar, seri ve lokasyon bilgileri ile importLine'a bağlı route eklenir
+        // ============================================
+        var createRouteDto = new CreateGrRouteDto
+        {
+            ImportLineId = importLine.Id,
+            ScannedBarcode = request.Barcode,
+            Quantity = request.Quantity,
+            SerialNo = request.SerialNo,
+            SerialNo2 = request.SerialNo2,
+            SerialNo3 = request.SerialNo3,
+            SerialNo4 = request.SerialNo4,
+            SourceCellCode = request.SourceCellCode,
+            TargetCellCode = request.TargetCellCode
+        };
+        var route = _mapper.Map<GrRoute>(createRouteDto);
+
+        await _unitOfWork.GrRoutes.AddAsync(route);
+        await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+
+        // ============================================
+        // 7) SONUÇ: importLine DTO döndürülür ve işlem tamamlanır
+        // ============================================
+        await _unitOfWork.CommitTransactionAsync();
+        var dto = _mapper.Map<GrImportLineDto>(importLine);
+        return ApiResponse<GrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
+    }
+    catch
+    {
+        await _unitOfWork.RollbackTransactionAsync();
+        throw;
+    }
+}
         }
         
     }

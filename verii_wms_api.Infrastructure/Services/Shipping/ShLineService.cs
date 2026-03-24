@@ -33,100 +33,72 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<IEnumerable<ShLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.ShLines.Query().ToListAsync(requestCancellationToken);
-                var dtos = _mapper.Map<IEnumerable<ShLineDto>>(entities);
-                var enriched = await _erpService.PopulateStockNamesAsync(dtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<ShLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                return ApiResponse<IEnumerable<ShLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ShLineDto>>.ErrorResult(_localizationService.GetLocalizedString("ShLineRetrievalError"), ex.Message ?? string.Empty, 500);
-            }
+var entities = await _unitOfWork.ShLines.Query().ToListAsync(requestCancellationToken);
+var dtos = _mapper.Map<IEnumerable<ShLineDto>>(entities);
+var enriched = await _erpService.PopulateStockNamesAsync(dtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<ShLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+return ApiResponse<IEnumerable<ShLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<PagedResponse<ShLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                if (request.PageNumber < 1) request.PageNumber = 1;
-                if (request.PageSize < 1) request.PageSize = 20;
+if (request.PageNumber < 1) request.PageNumber = 1;
+if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.ShLines.Query();
-                query = query.ApplyFilters(request.Filters, request.FilterLogic);
-                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+var query = _unitOfWork.ShLines.Query();
+query = query.ApplyFilters(request.Filters, request.FilterLogic);
+bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync(requestCancellationToken);
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
-                var dtos = _mapper.Map<List<ShLineDto>>(items);
-                var enriched = await _erpService.PopulateStockNamesAsync(dtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<PagedResponse<ShLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                dtos = enriched.Data?.ToList() ?? dtos;
-                var result = new PagedResponse<ShLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
-                return ApiResponse<PagedResponse<ShLineDto>>.SuccessResult(result, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<ShLineDto>>.ErrorResult(_localizationService.GetLocalizedString("ShLineRetrievalError"), ex.Message ?? string.Empty, 500);
-            }
+var totalCount = await query.CountAsync(requestCancellationToken);
+var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
+var dtos = _mapper.Map<List<ShLineDto>>(items);
+var enriched = await _erpService.PopulateStockNamesAsync(dtos);
+if (!enriched.Success)
+{
+    return ApiResponse<PagedResponse<ShLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+dtos = enriched.Data?.ToList() ?? dtos;
+var result = new PagedResponse<ShLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+return ApiResponse<PagedResponse<ShLineDto>>.SuccessResult(result, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<ShLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.ShLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("ShLineNotFound");
-                    return ApiResponse<ShLineDto>.ErrorResult(nf, nf, 404);
-                }
-                var dto = _mapper.Map<ShLineDto>(entity);
-                var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
-                if (!enriched.Success)
-                {
-                    return ApiResponse<ShLineDto>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                var finalDto = enriched.Data?.FirstOrDefault() ?? dto;
-                return ApiResponse<ShLineDto>.SuccessResult(finalDto, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<ShLineDto>.ErrorResult(_localizationService.GetLocalizedString("ShLineRetrievalError"), ex.Message ?? string.Empty, 500);
-            }
+var entity = await _unitOfWork.ShLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null)
+{
+    var nf = _localizationService.GetLocalizedString("ShLineNotFound");
+    return ApiResponse<ShLineDto>.ErrorResult(nf, nf, 404);
+}
+var dto = _mapper.Map<ShLineDto>(entity);
+var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
+if (!enriched.Success)
+{
+    return ApiResponse<ShLineDto>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+var finalDto = enriched.Data?.FirstOrDefault() ?? dto;
+return ApiResponse<ShLineDto>.SuccessResult(finalDto, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<ShLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.ShLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
-                var dtos = _mapper.Map<IEnumerable<ShLineDto>>(entities);
-                var enriched = await _erpService.PopulateStockNamesAsync(dtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<ShLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                return ApiResponse<IEnumerable<ShLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ShLineDto>>.ErrorResult(_localizationService.GetLocalizedString("ShLineRetrievalError"), ex.Message ?? string.Empty, 500);
-            }
+var entities = await _unitOfWork.ShLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
+var dtos = _mapper.Map<IEnumerable<ShLineDto>>(entities);
+var enriched = await _erpService.PopulateStockNamesAsync(dtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<ShLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+return ApiResponse<IEnumerable<ShLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("ShLineRetrievedSuccessfully"));
         }
 
         
@@ -135,110 +107,89 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<ShLineDto>> CreateAsync(CreateShLineDto createDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = _mapper.Map<ShLine>(createDto);
-                var created = await _unitOfWork.ShLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                var dto = _mapper.Map<ShLineDto>(created);
-                return ApiResponse<ShLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineCreatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<ShLineDto>.ErrorResult(_localizationService.GetLocalizedString("ShLineCreationError"), ex.Message ?? string.Empty, 500);
-            }
+var entity = _mapper.Map<ShLine>(createDto);
+var created = await _unitOfWork.ShLines.AddAsync(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+var dto = _mapper.Map<ShLineDto>(created);
+return ApiResponse<ShLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineCreatedSuccessfully"));
         }
 
         public async Task<ApiResponse<ShLineDto>> UpdateAsync(long id, UpdateShLineDto updateDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var existing = await _unitOfWork.ShLines.Query(tracking: true)
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (existing == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("ShLineNotFound");
-                    return ApiResponse<ShLineDto>.ErrorResult(nf, nf, 404);
-                }
-                var entity = _mapper.Map(updateDto, existing);
-                _unitOfWork.ShLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                var dto = _mapper.Map<ShLineDto>(entity);
-                return ApiResponse<ShLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineUpdatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<ShLineDto>.ErrorResult(_localizationService.GetLocalizedString("ShLineUpdateError"), ex.Message ?? string.Empty, 500);
-            }
+var existing = await _unitOfWork.ShLines.Query(tracking: true)
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (existing == null)
+{
+    var nf = _localizationService.GetLocalizedString("ShLineNotFound");
+    return ApiResponse<ShLineDto>.ErrorResult(nf, nf, 404);
+}
+var entity = _mapper.Map(updateDto, existing);
+_unitOfWork.ShLines.Update(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+var dto = _mapper.Map<ShLineDto>(entity);
+return ApiResponse<ShLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineUpdatedSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.ShLines.Query(tracking: true)
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    var nf = _localizationService.GetLocalizedString("ShLineNotFound");
-                    return ApiResponse<bool>.ErrorResult(nf, nf, 404);
-                }
+var entity = await _unitOfWork.ShLines.Query(tracking: true)
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    var nf = _localizationService.GetLocalizedString("ShLineNotFound");
+    return ApiResponse<bool>.ErrorResult(nf, nf, 404);
+}
 
-                var hasActiveLineSerials = await _unitOfWork.ShLineSerials
-                    .Query()
-                    .Where(ls => ls.LineId == id)
-                            .AnyAsync(requestCancellationToken);
-                if (hasActiveLineSerials)
-                {
-                    var msg = _localizationService.GetLocalizedString("ShLineLineSerialsExist");
-                    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-                }
+var hasActiveLineSerials = await _unitOfWork.ShLineSerials
+    .Query()
+    .Where(ls => ls.LineId == id)
+            .AnyAsync(requestCancellationToken);
+if (hasActiveLineSerials)
+{
+    var msg = _localizationService.GetLocalizedString("ShLineLineSerialsExist");
+    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+}
 
-                var importLines = await _unitOfWork.ShImportLines.Query().Where(x => x.LineId == id).ToListAsync(requestCancellationToken);
-                if (importLines.Any())
-                {
-                    var msg = _localizationService.GetLocalizedString("ShLineImportLinesExist");
-                    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-                }
+var importLines = await _unitOfWork.ShImportLines.Query().Where(x => x.LineId == id).ToListAsync(requestCancellationToken);
+if (importLines.Any())
+{
+    var msg = _localizationService.GetLocalizedString("ShLineImportLinesExist");
+    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+}
 
-                var headerId = entity.HeaderId;
-                using var tx = await _unitOfWork.BeginTransactionAsync();
-                try
-                {
-                    await _unitOfWork.ShLines.SoftDelete(id);
+var headerId = entity.HeaderId;
+using var tx = await _unitOfWork.BeginTransactionAsync();
+try
+{
+    await _unitOfWork.ShLines.SoftDelete(id);
 
-                    var hasOtherLines = await _unitOfWork.ShLines
-                        .Query()
-                        .Where(l => l.HeaderId == headerId)
-                            .AnyAsync(requestCancellationToken);
-                    var hasOtherImportLines = await _unitOfWork.ShImportLines
-                        .Query()
-                        .Where(il => il.HeaderId == headerId)
-                            .AnyAsync(requestCancellationToken);
-                    if (!hasOtherLines && !hasOtherImportLines)
-                    {
-                        await _unitOfWork.ShHeaders.SoftDelete(headerId);
-                    }
+    var hasOtherLines = await _unitOfWork.ShLines
+        .Query()
+        .Where(l => l.HeaderId == headerId)
+            .AnyAsync(requestCancellationToken);
+    var hasOtherImportLines = await _unitOfWork.ShImportLines
+        .Query()
+        .Where(il => il.HeaderId == headerId)
+            .AnyAsync(requestCancellationToken);
+    if (!hasOtherLines && !hasOtherImportLines)
+    {
+        await _unitOfWork.ShHeaders.SoftDelete(headerId);
+    }
 
-                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                    await tx.CommitAsync();
-                }
-                catch
-                {
-                    await tx.RollbackAsync();
-                    throw;
-                }
+    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+    await tx.CommitAsync();
+}
+catch
+{
+    await tx.RollbackAsync();
+    throw;
+}
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("ShLineDeletedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("ShLineDeletionError"), ex.Message ?? string.Empty, 500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("ShLineDeletedSuccessfully"));
         }
     }
 }

@@ -43,336 +43,273 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<UserDto>> GetUserByUsernameAsync(string username, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var query = _unitOfWork.Users.Query().Include(u => u.RoleNavigation);
-                var user = await query.Where(u => u.Username == username)
-                            .FirstOrDefaultAsync(RequestCancellationToken);
-                
-                if (user == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
-                    return ApiResponse<UserDto>.ErrorResult(nf, nf, 404);
-                }
+var query = _unitOfWork.Users.Query().Include(u => u.RoleNavigation);
+var user = await query.Where(u => u.Username == username)
+            .FirstOrDefaultAsync(RequestCancellationToken);
 
-                var dto = MapToUserDto(user);
-                return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDto>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+if (user == null)
+{
+    var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
+    return ApiResponse<UserDto>.ErrorResult(nf, nf, 404);
+}
+
+var dto = MapToUserDto(user);
+return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<UserDto>> GetUserByIdAsync(long id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var user = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation)
-                    .Where(u => u.Id == id)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                
-                if (user == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
-                    return ApiResponse<UserDto>.ErrorResult(nf, nf, 404);
-                }
+var user = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation)
+    .Where(u => u.Id == id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
 
-                var dto = MapToUserDto(user);
-                return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDto>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+if (user == null)
+{
+    var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
+    return ApiResponse<UserDto>.ErrorResult(nf, nf, 404);
+}
+
+var dto = MapToUserDto(user);
+return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<UserDto>> RegisterUserAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                // Check if user already exists
-                var existingUserResponse = await GetUserByUsernameAsync(registerDto.Username);
-                if (existingUserResponse.Success)
-                {
-                    var msg = _localizationService.GetLocalizedString("AuthUserAlreadyExists");
-                    return ApiResponse<UserDto>.ErrorResult(msg, msg, 400);
-                }
+// Check if user already exists
+var existingUserResponse = await GetUserByUsernameAsync(registerDto.Username);
+if (existingUserResponse.Success)
+{
+    var msg = _localizationService.GetLocalizedString("AuthUserAlreadyExists");
+    return ApiResponse<UserDto>.ErrorResult(msg, msg, 400);
+}
 
-                // Create new user
-                var user = new User
-                {
-                    Username = registerDto.Username,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
-                    Email = registerDto.Email,
-                    FirstName = registerDto.FirstName,
-                    LastName = registerDto.LastName
-                };
+// Create new user
+var user = new User
+{
+    Username = registerDto.Username,
+    PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+    Email = registerDto.Email,
+    FirstName = registerDto.FirstName,
+    LastName = registerDto.LastName
+};
 
-                await _unitOfWork.Users.AddAsync(user);
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+await _unitOfWork.Users.AddAsync(user);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
-                var dto = MapToUserDto(user);
-                return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRegisteredSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<UserDto>.ErrorResult(_localizationService.GetLocalizedString("AuthRegistrationFailed"), ex.Message ?? string.Empty, 500);
-            }
+var dto = MapToUserDto(user);
+return ApiResponse<UserDto>.SuccessResult(dto, _localizationService.GetLocalizedString("AuthUserRegisteredSuccessfully"));
         }
 
         public async Task<ApiResponse<string>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var loginDto = new LoginDto
-                {
-                    Username = request.Email,
-                    Password = request.Password
-                };
-                // Email veya username ile kullanıcı arama
-                var user = await _unitOfWork.Users.Query()
-                    .Include(u => u.RoleNavigation)
-                    .Where(u => u.Username == loginDto.Username || u.Email == loginDto.Username)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                
-                if (user == null)
-                {
-                    var msg = _localizationService.GetLocalizedString("Error.User.InvalidCredentials");
-                    return ApiResponse<string>.ErrorResult(msg, msg, 401);
-                }
-                
-                if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
-                {
-                    var msg = _localizationService.GetLocalizedString("Error.User.InvalidCredentials");
-                    return ApiResponse<string>.ErrorResult(msg, msg, 401);
-                }
+var loginDto = new LoginDto
+{
+    Username = request.Email,
+    Password = request.Password
+};
+// Email veya username ile kullanıcı arama
+var user = await _unitOfWork.Users.Query()
+    .Include(u => u.RoleNavigation)
+    .Where(u => u.Username == loginDto.Username || u.Email == loginDto.Username)
+    .FirstOrDefaultAsync(RequestCancellationToken);
 
-                var (permissions, isSystemAdmin) = await GetPermissionClaimsAsync(user.Id, user.RoleId);
-                var tokenResponse = _jwtService.GenerateToken(user, permissions, isSystemAdmin);
-                if (!tokenResponse.Success)
-                {
-                    return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("Error.User.LoginFailed"), tokenResponse.Message ?? string.Empty, 500);
-                }
-                var token = tokenResponse.Data!;
+if (user == null)
+{
+    var msg = _localizationService.GetLocalizedString("Error.User.InvalidCredentials");
+    return ApiResponse<string>.ErrorResult(msg, msg, 401);
+}
 
-                var activeSession = await _unitOfWork.UserSessions.Query(tracking: true)
-                    .Where(s => s.UserId == user.Id && s.RevokedAt == null)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                if (activeSession != null)
-                {
-                    activeSession.RevokedAt = DateTimeProvider.Now;
-                    await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
-                    await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, user.Id.ToString());
-                }
+if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+{
+    var msg = _localizationService.GetLocalizedString("Error.User.InvalidCredentials");
+    return ApiResponse<string>.ErrorResult(msg, msg, 401);
+}
 
-                var session = new UserSession
-                {
-                    UserId = user.Id,
-                    SessionId = Guid.NewGuid(),
-                    CreatedAt = DateTimeProvider.Now,
-                    Token = ComputeSha256Hash(token),
-                    IsDeleted = false,
-                    CreatedDate = DateTimeProvider.Now
-                };
-                await _unitOfWork.UserSessions.AddAsync(session);
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
-                
-                return ApiResponse<string>.SuccessResult(token, _localizationService.GetLocalizedString("Success.User.LoginSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("Error.User.LoginFailed"), ex.Message ?? string.Empty, 500);
-            }
+var (permissions, isSystemAdmin) = await GetPermissionClaimsAsync(user.Id, user.RoleId);
+var tokenResponse = _jwtService.GenerateToken(user, permissions, isSystemAdmin);
+if (!tokenResponse.Success)
+{
+    return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("Error.User.LoginFailed"), tokenResponse.Message ?? string.Empty, 500);
+}
+var token = tokenResponse.Data!;
+
+var activeSession = await _unitOfWork.UserSessions.Query(tracking: true)
+    .Where(s => s.UserId == user.Id && s.RevokedAt == null)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+if (activeSession != null)
+{
+    activeSession.RevokedAt = DateTimeProvider.Now;
+    await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+    await WMS_WEBAPI.Hubs.AuthHub.ForceLogoutUser(_hubContext, user.Id.ToString());
+}
+
+var session = new UserSession
+{
+    UserId = user.Id,
+    SessionId = Guid.NewGuid(),
+    CreatedAt = DateTimeProvider.Now,
+    Token = ComputeSha256Hash(token),
+    IsDeleted = false,
+    CreatedDate = DateTimeProvider.Now
+};
+await _unitOfWork.UserSessions.AddAsync(session);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+
+return ApiResponse<string>.SuccessResult(token, _localizationService.GetLocalizedString("Success.User.LoginSuccessful"));
         }
 
         public async Task<ApiResponse<IEnumerable<UserDto>>> GetAllUsersAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var users = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation).ToListAsync(RequestCancellationToken);
-                var dtos = users.Select(MapToUserDto).ToList();
-                return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<UserDto>>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var users = await _unitOfWork.Users.Query().Include(u => u.RoleNavigation).ToListAsync(RequestCancellationToken);
+var dtos = users.Select(MapToUserDto).ToList();
+return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<UserDto>>> GetActiveUsersAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var users = await _unitOfWork.Users.Query()
-                    .Include(u => u.RoleNavigation)
-                    .Where(u => u.IsActive == true)
-                    .ToListAsync(RequestCancellationToken);
-                var dtos = users.Select(MapToUserDto).ToList();
-                return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ActiveUsersRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<UserDto>>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var users = await _unitOfWork.Users.Query()
+    .Include(u => u.RoleNavigation)
+    .Where(u => u.IsActive == true)
+    .ToListAsync(RequestCancellationToken);
+var dtos = users.Select(MapToUserDto).ToList();
+return ApiResponse<IEnumerable<UserDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ActiveUsersRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<string>> RequestPasswordResetAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var user = await _unitOfWork.Users.Query().Where(u => u.Email == request.Email)
-                            .FirstOrDefaultAsync(RequestCancellationToken);
-                var token = Guid.NewGuid().ToString("N");
-                var tokenHash = ComputeSha256Hash(token);
-                var expiresAt = DateTime.UtcNow.AddMinutes(30);
+var user = await _unitOfWork.Users.Query().Where(u => u.Email == request.Email)
+            .FirstOrDefaultAsync(RequestCancellationToken);
+var token = Guid.NewGuid().ToString("N");
+var tokenHash = ComputeSha256Hash(token);
+var expiresAt = DateTime.UtcNow.AddMinutes(30);
 
-                if (user != null)
-                {
-                    var reset = new PasswordResetRequest
-                    {
-                        UserId = user.Id,
-                        TokenHash = tokenHash,
-                        ExpiresAt = expiresAt,
-                        CreatedDate = DateTimeProvider.Now,
-                        IsDeleted = false
-                    };
-                    await _unitOfWork.PasswordResetRequests.AddAsync(reset);
-                    await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
-                    
-                    var fullName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
-                    if (string.IsNullOrWhiteSpace(fullName))
-                    {
-                        fullName = user.Username;
-                    }
-                    BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
-                        job.SendPasswordResetEmailAsync(user.Email, fullName, token));
-                }
+if (user != null)
+{
+    var reset = new PasswordResetRequest
+    {
+        UserId = user.Id,
+        TokenHash = tokenHash,
+        ExpiresAt = expiresAt,
+        CreatedDate = DateTimeProvider.Now,
+        IsDeleted = false
+    };
+    await _unitOfWork.PasswordResetRequests.AddAsync(reset);
+    await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+    
+    var fullName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    if (string.IsNullOrWhiteSpace(fullName))
+    {
+        fullName = user.Username;
+    }
+    BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
+        job.SendPasswordResetEmailAsync(user.Email, fullName, token));
+}
 
-                var msg = _localizationService.GetLocalizedString("OperationSuccessful");
-                return ApiResponse<string>.SuccessResult(string.Empty, msg);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var msg = _localizationService.GetLocalizedString("OperationSuccessful");
+return ApiResponse<string>.SuccessResult(string.Empty, msg);
         }
 
         public async Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var tokenHash = ComputeSha256Hash(request.Token);
-                var now = DateTime.UtcNow;
+var tokenHash = ComputeSha256Hash(request.Token);
+var now = DateTime.UtcNow;
 
-                var reset = await _unitOfWork.PasswordResetRequests.Query(tracking: true)
-                    .Include(r => r.User)
-                    .Where(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
+var reset = await _unitOfWork.PasswordResetRequests.Query(tracking: true)
+    .Include(r => r.User)
+    .Where(r => r.TokenHash == tokenHash && r.UsedAt == null && r.ExpiresAt > now)
+    .FirstOrDefaultAsync(RequestCancellationToken);
 
-                if (reset == null || reset.User == null)
-                {
-                    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("ValidationError"), _localizationService.GetLocalizedString("ValidationError"), 400);
-                }
+if (reset == null || reset.User == null)
+{
+    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("ValidationError"), _localizationService.GetLocalizedString("ValidationError"), 400);
+}
 
-                reset.UsedAt = now;
-                reset.UpdatedDate = now;
+reset.UsedAt = now;
+reset.UpdatedDate = now;
 
-                reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-                reset.User.UpdatedDate = now;
+reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+reset.User.UpdatedDate = now;
 
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
-                await InvalidateUserSessionsAsync(reset.User.Id);
+await InvalidateUserSessionsAsync(reset.User.Id);
 
-                var displayName = string.Join(" ", new[] { reset.User.FirstName, reset.User.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
-                if (string.IsNullOrWhiteSpace(displayName))
-                {
-                    displayName = reset.User.Username;
-                }
-                BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
-                    job.SendPasswordResetCompletedEmailAsync(reset.User.Email, displayName));
+var displayName = string.Join(" ", new[] { reset.User.FirstName, reset.User.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+if (string.IsNullOrWhiteSpace(displayName))
+{
+    displayName = reset.User.Username;
+}
+BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
+    job.SendPasswordResetCompletedEmailAsync(reset.User.Email, displayName));
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         public async Task<ApiResponse<string>> ChangePasswordAsync(long userId, ChangePasswordRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var user = await _unitOfWork.Users.Query()
-                    .Include(u => u.RoleNavigation)
-                    .Where(u => u.Id == userId)
-                    .FirstOrDefaultAsync(RequestCancellationToken);
-                if (user == null)
-                {
-                    var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
-                    return ApiResponse<string>.ErrorResult(nf, nf, 404);
-                }
+var user = await _unitOfWork.Users.Query()
+    .Include(u => u.RoleNavigation)
+    .Where(u => u.Id == userId)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+if (user == null)
+{
+    var nf = _localizationService.GetLocalizedString("AuthUserNotFound");
+    return ApiResponse<string>.ErrorResult(nf, nf, 404);
+}
 
-                if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
-                {
-                    var msg = _localizationService.GetLocalizedString("Error.User.CurrentPasswordIncorrect");
-                    if (msg == "Error.User.CurrentPasswordIncorrect")
-                    {
-                        msg = _localizationService.GetLocalizedString("Error.User.InvalidCredentials");
-                    }
-                    return ApiResponse<string>.ErrorResult(msg, msg, 400);
-                }
+if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+{
+    var msg = _localizationService.GetLocalizedString("Error.User.CurrentPasswordIncorrect");
+    if (msg == "Error.User.CurrentPasswordIncorrect")
+    {
+        msg = _localizationService.GetLocalizedString("Error.User.InvalidCredentials");
+    }
+    return ApiResponse<string>.ErrorResult(msg, msg, 400);
+}
 
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-                user.UpdatedDate = DateTimeProvider.Now;
-                var affectedRows = await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
-                if (affectedRows == 0 || !BCrypt.Net.BCrypt.Verify(request.NewPassword, user.PasswordHash))
-                {
-                    var saveMsg = _localizationService.GetLocalizedString("AuthErrorOccurred");
-                    return ApiResponse<string>.ErrorResult(saveMsg, saveMsg, 500);
-                }
+user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+user.UpdatedDate = DateTimeProvider.Now;
+var affectedRows = await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+if (affectedRows == 0 || !BCrypt.Net.BCrypt.Verify(request.NewPassword, user.PasswordHash))
+{
+    var saveMsg = _localizationService.GetLocalizedString("AuthErrorOccurred");
+    return ApiResponse<string>.ErrorResult(saveMsg, saveMsg, 500);
+}
 
-                await InvalidateUserSessionsAsync(user.Id);
+await InvalidateUserSessionsAsync(user.Id);
 
-                var (permissions, isSystemAdmin) = await GetPermissionClaimsAsync(user.Id, user.RoleId);
-                var tokenResponse = _jwtService.GenerateToken(user, permissions, isSystemAdmin);
-                if (!tokenResponse.Success || string.IsNullOrWhiteSpace(tokenResponse.Data))
-                {
-                    return ApiResponse<string>.ErrorResult(
-                        _localizationService.GetLocalizedString("Error.User.LoginFailed"),
-                        tokenResponse.ExceptionMessage,
-                        tokenResponse.StatusCode == 0 ? 500 : tokenResponse.StatusCode);
-                }
+var (permissions, isSystemAdmin) = await GetPermissionClaimsAsync(user.Id, user.RoleId);
+var tokenResponse = _jwtService.GenerateToken(user, permissions, isSystemAdmin);
+if (!tokenResponse.Success || string.IsNullOrWhiteSpace(tokenResponse.Data))
+{
+    return ApiResponse<string>.ErrorResult(
+        _localizationService.GetLocalizedString("Error.User.LoginFailed"),
+        tokenResponse.ExceptionMessage,
+        tokenResponse.StatusCode == 0 ? 500 : tokenResponse.StatusCode);
+}
 
-                var newToken = tokenResponse.Data!;
-                var session = new UserSession
-                {
-                    UserId = user.Id,
-                    SessionId = Guid.NewGuid(),
-                    CreatedAt = DateTimeProvider.Now,
-                    Token = ComputeSha256Hash(newToken),
-                    IsDeleted = false,
-                    CreatedDate = DateTimeProvider.Now
-                };
-                await _unitOfWork.UserSessions.AddAsync(session);
-                await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+var newToken = tokenResponse.Data!;
+var session = new UserSession
+{
+    UserId = user.Id,
+    SessionId = Guid.NewGuid(),
+    CreatedAt = DateTimeProvider.Now,
+    Token = ComputeSha256Hash(newToken),
+    IsDeleted = false,
+    CreatedDate = DateTimeProvider.Now
+};
+await _unitOfWork.UserSessions.AddAsync(session);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
 
-                var displayName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
-                if (string.IsNullOrWhiteSpace(displayName))
-                {
-                    displayName = user.Username;
-                }
-                BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
-                    job.SendPasswordChangedEmailAsync(user.Email, displayName));
+var displayName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+if (string.IsNullOrWhiteSpace(displayName))
+{
+    displayName = user.Username;
+}
+BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
+    job.SendPasswordChangedEmailAsync(user.Email, displayName));
 
-                return ApiResponse<string>.SuccessResult(newToken, _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<string>.ErrorResult(_localizationService.GetLocalizedString("AuthErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+return ApiResponse<string>.SuccessResult(newToken, _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         static string ComputeSha256Hash(string rawData)

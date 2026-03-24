@@ -33,99 +33,71 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<PagedResponse<SitLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                if (request.PageNumber < 1) request.PageNumber = 1;
-                if (request.PageSize < 1) request.PageSize = 20;
+if (request.PageNumber < 1) request.PageNumber = 1;
+if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.SitLines.Query();
-                query = query.ApplyFilters(request.Filters, request.FilterLogic);
-                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+var query = _unitOfWork.SitLines.Query();
+query = query.ApplyFilters(request.Filters, request.FilterLogic);
+bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync(requestCancellationToken);
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
-                var dtos = _mapper.Map<List<SitLineDto>>(items);
-                var enriched = await _erpService.PopulateStockNamesAsync(dtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<PagedResponse<SitLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                dtos = enriched.Data?.ToList() ?? dtos;
-                var result = new PagedResponse<SitLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
-                return ApiResponse<PagedResponse<SitLineDto>>.SuccessResult(result, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<SitLineDto>>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+var totalCount = await query.CountAsync(requestCancellationToken);
+var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
+var dtos = _mapper.Map<List<SitLineDto>>(items);
+var enriched = await _erpService.PopulateStockNamesAsync(dtos);
+if (!enriched.Success)
+{
+    return ApiResponse<PagedResponse<SitLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+dtos = enriched.Data?.ToList() ?? dtos;
+var result = new PagedResponse<SitLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+return ApiResponse<PagedResponse<SitLineDto>>.SuccessResult(result, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<SitLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.SitLines.Query().ToListAsync(requestCancellationToken);
-                var dtos = _mapper.Map<IEnumerable<SitLineDto>>(entities);
-                var enriched = await _erpService.PopulateStockNamesAsync(dtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<SitLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                return ApiResponse<IEnumerable<SitLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<SitLineDto>>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+var entities = await _unitOfWork.SitLines.Query().ToListAsync(requestCancellationToken);
+var dtos = _mapper.Map<IEnumerable<SitLineDto>>(entities);
+var enriched = await _erpService.PopulateStockNamesAsync(dtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<SitLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+return ApiResponse<IEnumerable<SitLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<SitLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.SitLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineNotFound"), _localizationService.GetLocalizedString("SitLineNotFound"), 404);
-                }
-                var dto = _mapper.Map<SitLineDto>(entity);
-                var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
-                if (!enriched.Success)
-                {
-                    return ApiResponse<SitLineDto>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                var finalDto = enriched.Data?.FirstOrDefault() ?? dto;
-                return ApiResponse<SitLineDto>.SuccessResult(finalDto, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+var entity = await _unitOfWork.SitLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineNotFound"), _localizationService.GetLocalizedString("SitLineNotFound"), 404);
+}
+var dto = _mapper.Map<SitLineDto>(entity);
+var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
+if (!enriched.Success)
+{
+    return ApiResponse<SitLineDto>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+var finalDto = enriched.Data?.FirstOrDefault() ?? dto;
+return ApiResponse<SitLineDto>.SuccessResult(finalDto, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<SitLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.SitLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
-                var dtos = _mapper.Map<IEnumerable<SitLineDto>>(entities);
-                var enriched = await _erpService.PopulateStockNamesAsync(dtos);
-                if (!enriched.Success)
-                {
-                    return ApiResponse<IEnumerable<SitLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
-                }
-                return ApiResponse<IEnumerable<SitLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<SitLineDto>>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+var entities = await _unitOfWork.SitLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
+var dtos = _mapper.Map<IEnumerable<SitLineDto>>(entities);
+var enriched = await _erpService.PopulateStockNamesAsync(dtos);
+if (!enriched.Success)
+{
+    return ApiResponse<IEnumerable<SitLineDto>>.ErrorResult(enriched.Message, enriched.ExceptionMessage, enriched.StatusCode);
+}
+return ApiResponse<IEnumerable<SitLineDto>>.SuccessResult(enriched.Data ?? dtos, _localizationService.GetLocalizedString("SitLineRetrievedSuccessfully"));
         }
 
         
@@ -135,109 +107,88 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<SitLineDto>> CreateAsync(CreateSitLineDto createDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = _mapper.Map<SitLine>(createDto);
-                entity.CreatedDate = DateTimeProvider.Now;
-                entity.IsDeleted = false;
-                await _unitOfWork.SitLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                var dto = _mapper.Map<SitLineDto>(entity);
-                return ApiResponse<SitLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitLineCreatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+var entity = _mapper.Map<SitLine>(createDto);
+entity.CreatedDate = DateTimeProvider.Now;
+entity.IsDeleted = false;
+await _unitOfWork.SitLines.AddAsync(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+var dto = _mapper.Map<SitLineDto>(entity);
+return ApiResponse<SitLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitLineCreatedSuccessfully"));
         }
 
         public async Task<ApiResponse<SitLineDto>> UpdateAsync(long id, UpdateSitLineDto updateDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.SitLines.Query(tracking: true)
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineNotFound"), _localizationService.GetLocalizedString("SitLineNotFound"), 404);
-                }
-                _mapper.Map(updateDto, entity);
-                entity.UpdatedDate = DateTimeProvider.Now;
-                _unitOfWork.SitLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                var dto = _mapper.Map<SitLineDto>(entity);
-                return ApiResponse<SitLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitLineUpdatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+var entity = await _unitOfWork.SitLines.Query(tracking: true)
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<SitLineDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineNotFound"), _localizationService.GetLocalizedString("SitLineNotFound"), 404);
+}
+_mapper.Map(updateDto, entity);
+entity.UpdatedDate = DateTimeProvider.Now;
+_unitOfWork.SitLines.Update(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+var dto = _mapper.Map<SitLineDto>(entity);
+return ApiResponse<SitLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitLineUpdatedSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.SitLines.Query(tracking: true)
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SitLineNotFound"), _localizationService.GetLocalizedString("SitLineNotFound"), 404);
-                }
+var entity = await _unitOfWork.SitLines.Query(tracking: true)
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SitLineNotFound"), _localizationService.GetLocalizedString("SitLineNotFound"), 404);
+}
 
-                var hasActiveLineSerials = await _unitOfWork.SitLineSerials
-                    .Query()
-                    .Where(ls => ls.LineId == id)
-                            .AnyAsync(requestCancellationToken);
-                if (hasActiveLineSerials)
-                {
-                    var msg = _localizationService.GetLocalizedString("SitLineLineSerialsExist");
-                    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-                }
+var hasActiveLineSerials = await _unitOfWork.SitLineSerials
+    .Query()
+    .Where(ls => ls.LineId == id)
+            .AnyAsync(requestCancellationToken);
+if (hasActiveLineSerials)
+{
+    var msg = _localizationService.GetLocalizedString("SitLineLineSerialsExist");
+    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+}
 
-                var importLines = await _unitOfWork.SitImportLines.Query().Where(x => x.LineId == id).ToListAsync(requestCancellationToken);
-                if (importLines.Any())
-                {
-                    var msg = _localizationService.GetLocalizedString("SitLineImportLinesExist");
-                    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-                }
+var importLines = await _unitOfWork.SitImportLines.Query().Where(x => x.LineId == id).ToListAsync(requestCancellationToken);
+if (importLines.Any())
+{
+    var msg = _localizationService.GetLocalizedString("SitLineImportLinesExist");
+    return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+}
 
-                var headerId = entity.HeaderId;
-                using var tx = await _unitOfWork.BeginTransactionAsync();
-                try
-                {
-                    await _unitOfWork.SitLines.SoftDelete(id);
+var headerId = entity.HeaderId;
+using var tx = await _unitOfWork.BeginTransactionAsync();
+try
+{
+    await _unitOfWork.SitLines.SoftDelete(id);
 
-                    var hasOtherLines = await _unitOfWork.SitLines.Query()
-                        .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .AnyAsync(requestCancellationToken);
-                    var hasOtherImportLines = await _unitOfWork.SitImportLines.Query()
-                        .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync(requestCancellationToken);
-                    if (!hasOtherLines && !hasOtherImportLines)
-                    {
-                        await _unitOfWork.SitHeaders.SoftDelete(headerId);
-                    }
+    var hasOtherLines = await _unitOfWork.SitLines.Query()
+        .Where(l => !l.IsDeleted && l.HeaderId == headerId)
+            .AnyAsync(requestCancellationToken);
+    var hasOtherImportLines = await _unitOfWork.SitImportLines.Query()
+        .Where(il => !il.IsDeleted && il.HeaderId == headerId)
+            .AnyAsync(requestCancellationToken);
+    if (!hasOtherLines && !hasOtherImportLines)
+    {
+        await _unitOfWork.SitHeaders.SoftDelete(headerId);
+    }
 
-                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                    await tx.CommitAsync();
-                }
-                catch
-                {
-                    await tx.RollbackAsync();
-                    throw;
-                }
+    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+    await tx.CommitAsync();
+}
+catch
+{
+    await tx.RollbackAsync();
+    throw;
+}
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("SitLineDeletedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SitLineErrorOccurred"), ex.Message ?? String.Empty, 500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("SitLineDeletedSuccessfully"));
         }
     }
 }

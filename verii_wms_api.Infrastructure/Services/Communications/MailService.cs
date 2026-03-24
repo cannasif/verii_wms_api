@@ -40,78 +40,70 @@ namespace WMS_WEBAPI.Services
             List<string>? attachments = null,
             CancellationToken cancellationToken = default)
         {
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var smtp = await _smtpSettingsService.GetRuntimeAsync(cancellationToken);
+cancellationToken.ThrowIfCancellationRequested();
+var smtp = await _smtpSettingsService.GetRuntimeAsync(cancellationToken);
 
-                if (string.IsNullOrWhiteSpace(smtp.Host) ||
-                    string.IsNullOrWhiteSpace(smtp.Username) ||
-                    string.IsNullOrWhiteSpace(smtp.Password))
-                {
-                    _logger.LogError("SMTP host/username/password is not configured.");
-                    return false;
-                }
+if (string.IsNullOrWhiteSpace(smtp.Host) ||
+    string.IsNullOrWhiteSpace(smtp.Username) ||
+    string.IsNullOrWhiteSpace(smtp.Password))
+{
+    _logger.LogError("SMTP host/username/password is not configured.");
+    return false;
+}
 
-                using var client = new SmtpClient(smtp.Host, smtp.Port)
-                {
-                    EnableSsl = smtp.EnableSsl,
-                    Credentials = new NetworkCredential(smtp.Username, smtp.Password),
-                    Timeout = smtp.Timeout * 1000
-                };
+using var client = new SmtpClient(smtp.Host, smtp.Port)
+{
+    EnableSsl = smtp.EnableSsl,
+    Credentials = new NetworkCredential(smtp.Username, smtp.Password),
+    Timeout = smtp.Timeout * 1000
+};
 
-                using var message = new MailMessage();
+using var message = new MailMessage();
 
-                var resolvedFromEmail = !string.IsNullOrWhiteSpace(fromEmail) ? fromEmail : smtp.FromEmail;
-                var resolvedFromName = !string.IsNullOrWhiteSpace(fromName) ? fromName : smtp.FromName;
+var resolvedFromEmail = !string.IsNullOrWhiteSpace(fromEmail) ? fromEmail : smtp.FromEmail;
+var resolvedFromName = !string.IsNullOrWhiteSpace(fromName) ? fromName : smtp.FromName;
 
-                if (string.IsNullOrWhiteSpace(resolvedFromEmail))
-                {
-                    _logger.LogError("SMTP from email is not configured.");
-                    return false;
-                }
+if (string.IsNullOrWhiteSpace(resolvedFromEmail))
+{
+    _logger.LogError("SMTP from email is not configured.");
+    return false;
+}
 
-                message.From = new MailAddress(resolvedFromEmail, resolvedFromName);
-                message.To.Add(to);
+message.From = new MailAddress(resolvedFromEmail, resolvedFromName);
+message.To.Add(to);
 
-                if (!string.IsNullOrWhiteSpace(cc))
-                {
-                    message.CC.Add(cc);
-                }
+if (!string.IsNullOrWhiteSpace(cc))
+{
+    message.CC.Add(cc);
+}
 
-                if (!string.IsNullOrWhiteSpace(bcc))
-                {
-                    message.Bcc.Add(bcc);
-                }
+if (!string.IsNullOrWhiteSpace(bcc))
+{
+    message.Bcc.Add(bcc);
+}
 
-                message.Subject = subject;
-                message.Body = body;
-                message.IsBodyHtml = isHtml;
+message.Subject = subject;
+message.Body = body;
+message.IsBodyHtml = isHtml;
 
-                if (attachments != null && attachments.Count > 0)
-                {
-                    foreach (var attachmentPath in attachments)
-                    {
-                        if (File.Exists(attachmentPath))
-                        {
-                            message.Attachments.Add(new Attachment(attachmentPath));
-                        }
-                        else
-                        {
-                            _logger.LogWarning("Attachment file not found: {AttachmentPath}", attachmentPath);
-                        }
-                    }
-                }
+if (attachments != null && attachments.Count > 0)
+{
+    foreach (var attachmentPath in attachments)
+    {
+        if (File.Exists(attachmentPath))
+        {
+            message.Attachments.Add(new Attachment(attachmentPath));
+        }
+        else
+        {
+            _logger.LogWarning("Attachment file not found: {AttachmentPath}", attachmentPath);
+        }
+    }
+}
 
-                cancellationToken.ThrowIfCancellationRequested();
-                await client.SendMailAsync(message);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send email to {To}", to);
-                return false;
-            }
+cancellationToken.ThrowIfCancellationRequested();
+await client.SendMailAsync(message);
+return true;
         }
     }
 }

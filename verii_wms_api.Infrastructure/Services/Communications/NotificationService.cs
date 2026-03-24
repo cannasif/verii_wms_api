@@ -34,222 +34,180 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<NotificationDto>> CreateAsync(CreateNotificationDto dto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = _mapper.Map<Notification>(dto);
-                entity.DeliveredAt = DateTimeProvider.Now; // Auto-set delivery time
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = _mapper.Map<Notification>(dto);
+entity.DeliveredAt = DateTimeProvider.Now; // Auto-set delivery time
 
-                await _unitOfWork.Notifications.AddAsync(entity, requestCancellationToken);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+await _unitOfWork.Notifications.AddAsync(entity, requestCancellationToken);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                var result = LocalizeNotification(_mapper.Map<NotificationDto>(entity));
+var result = LocalizeNotification(_mapper.Map<NotificationDto>(entity));
 
-                await PublishSignalRNotificationAsync(entity, requestCancellationToken);
-                return ApiResponse<NotificationDto>.SuccessResult(result, _localizationService.GetLocalizedString("NotificationCreatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<NotificationDto>.ErrorResult(_localizationService.GetLocalizedString("NotificationCreationError"), ex.Message, 500);
-            }
+await PublishSignalRNotificationAsync(entity, requestCancellationToken);
+return ApiResponse<NotificationDto>.SuccessResult(result, _localizationService.GetLocalizedString("NotificationCreatedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<NotificationDto>>> CreateForUsersAsync(CreateNotificationDto dto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                using var tx = await _unitOfWork.BeginTransactionAsync(requestCancellationToken);
-                var recipients = dto.RecipientUserIds ?? new List<long>();
-                if (dto.RecipientUserId.HasValue)
-                {
-                    recipients.Add(dto.RecipientUserId.Value);
-                }
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+using var tx = await _unitOfWork.BeginTransactionAsync(requestCancellationToken);
+var recipients = dto.RecipientUserIds ?? new List<long>();
+if (dto.RecipientUserId.HasValue)
+{
+    recipients.Add(dto.RecipientUserId.Value);
+}
 
-                if (recipients.Count == 0)
-                {
-                    return ApiResponse<IEnumerable<NotificationDto>>.ErrorResult(_localizationService.GetLocalizedString("NotificationRecipientsRequired"), _localizationService.GetLocalizedString("NotificationRecipientsRequired"), 400);
-                }
+if (recipients.Count == 0)
+{
+    return ApiResponse<IEnumerable<NotificationDto>>.ErrorResult(_localizationService.GetLocalizedString("NotificationRecipientsRequired"), _localizationService.GetLocalizedString("NotificationRecipientsRequired"), 400);
+}
 
-                try
-                {
-                    var entities = new List<Notification>();
-                    foreach (var userId in recipients.Distinct())
-                    {
-                        var entity = _mapper.Map<Notification>(dto);
-                        entity.RecipientUserId = userId;
-                        entity.DeliveredAt = DateTimeProvider.Now; // Auto-set delivery time
-                        entities.Add(entity);
-                    }
+try
+{
+    var entities = new List<Notification>();
+    foreach (var userId in recipients.Distinct())
+    {
+        var entity = _mapper.Map<Notification>(dto);
+        entity.RecipientUserId = userId;
+        entity.DeliveredAt = DateTimeProvider.Now; // Auto-set delivery time
+        entities.Add(entity);
+    }
 
-                    await _unitOfWork.Notifications.AddRangeAsync(entities, requestCancellationToken);
-                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+    await _unitOfWork.Notifications.AddRangeAsync(entities, requestCancellationToken);
+    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                    await _unitOfWork.CommitTransactionAsync(requestCancellationToken);
+    await _unitOfWork.CommitTransactionAsync(requestCancellationToken);
 
-                    foreach (var entity in entities)
-                    {
-                        await PublishSignalRNotificationAsync(entity, requestCancellationToken);
-                    }
+    foreach (var entity in entities)
+    {
+        await PublishSignalRNotificationAsync(entity, requestCancellationToken);
+    }
 
-                    var dtos = LocalizeNotifications(_mapper.Map<List<NotificationDto>>(entities));
-                    return ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("NotificationBulkCreatedSuccessfully"));
-                }
-                catch
-                {
-                    await _unitOfWork.RollbackTransactionAsync(requestCancellationToken);
-                    throw;
-                }
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<NotificationDto>>.ErrorResult(_localizationService.GetLocalizedString("NotificationBulkCreationError"), ex.Message, 500);
-            }
+    var dtos = LocalizeNotifications(_mapper.Map<List<NotificationDto>>(entities));
+    return ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("NotificationBulkCreatedSuccessfully"));
+}
+catch
+{
+    await _unitOfWork.RollbackTransactionAsync(requestCancellationToken);
+    throw;
+}
         }
 
         public async Task<ApiResponse<PagedResponse<NotificationDto>>> GetPagedByRecipientUserIdAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                if (request.PageNumber < 1) request.PageNumber = 1;
-                if (request.PageSize < 1) request.PageSize = 20;
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+if (request.PageNumber < 1) request.PageNumber = 1;
+if (request.PageSize < 1) request.PageSize = 20;
 
-                var baseQuery = _unitOfWork.Notifications.Query()
-                    .Where(x => x.RecipientUserId == userId && !x.IsDeleted);
+var baseQuery = _unitOfWork.Notifications.Query()
+    .Where(x => x.RecipientUserId == userId && !x.IsDeleted);
 
-                baseQuery = baseQuery.ApplyFilters(request.Filters, request.FilterLogic);
+baseQuery = baseQuery.ApplyFilters(request.Filters, request.FilterLogic);
 
-                // Get unread count (totalCount will be unread notifications count)
-                var unreadCount = await baseQuery
-                    .Where(x => !x.IsRead)
-                    .CountAsync(requestCancellationToken);
+// Get unread count (totalCount will be unread notifications count)
+var unreadCount = await baseQuery
+    .Where(x => !x.IsRead)
+    .CountAsync(requestCancellationToken);
 
-                // Sort: Unread first, then by Id descending (newest first)
-                var query = baseQuery
-                    .OrderBy(x => x.IsRead)            // false (unread) comes first, then true (read)
-                    .ThenByDescending(x => x.Id);      // Within each group, newest first
+// Sort: Unread first, then by Id descending (newest first)
+var query = baseQuery
+    .OrderBy(x => x.IsRead)            // false (unread) comes first, then true (read)
+    .ThenByDescending(x => x.Id);      // Within each group, newest first
 
-                var items = await query
-                    .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync(requestCancellationToken);
+var items = await query
+    .ApplyPagination(request.PageNumber, request.PageSize)
+    .ToListAsync(requestCancellationToken);
 
-                var dtos = _mapper.Map<List<NotificationDto>>(items);
-                dtos = LocalizeNotifications(dtos);
+var dtos = _mapper.Map<List<NotificationDto>>(items);
+dtos = LocalizeNotifications(dtos);
 
-                var result = new PagedResponse<NotificationDto>(dtos, unreadCount, request.PageNumber, request.PageSize);
-                return ApiResponse<PagedResponse<NotificationDto>>.SuccessResult(result, _localizationService.GetLocalizedString("NotificationRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<NotificationDto>>.ErrorResult(_localizationService.GetLocalizedString("NotificationRetrievalError"), ex.Message ?? string.Empty, 500);
-            }
+var result = new PagedResponse<NotificationDto>(dtos, unreadCount, request.PageNumber, request.PageSize);
+return ApiResponse<PagedResponse<NotificationDto>>.SuccessResult(result, _localizationService.GetLocalizedString("NotificationRetrievedSuccessfully"));
         }
 
 
         public async Task<ApiResponse<bool>> MarkAsReadAsync(long id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = await _unitOfWork.Notifications.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null || entity.IsDeleted)
-                {
-                    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("NotificationNotFound"), _localizationService.GetLocalizedString("NotificationNotFound"), 404);
-                }
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = await _unitOfWork.Notifications.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null || entity.IsDeleted)
+{
+    return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("NotificationNotFound"), _localizationService.GetLocalizedString("NotificationNotFound"), 404);
+}
 
-                entity.IsRead = true;
-                entity.ReadDate = DateTime.UtcNow;
-                _unitOfWork.Notifications.Update(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+entity.IsRead = true;
+entity.ReadDate = DateTime.UtcNow;
+_unitOfWork.Notifications.Update(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("NotificationMarkReadError"), ex.Message, 500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> MarkAsReadBulkAsync(List<long> ids, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                if (ids == null || ids.Count == 0)
-                {
-                    return ApiResponse<bool>.ErrorResult(
-                        _localizationService.GetLocalizedString("InvalidModelState"),
-                        _localizationService.GetLocalizedString("NotificationIdsRequired"),
-                        400);
-                }
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+if (ids == null || ids.Count == 0)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("InvalidModelState"),
+        _localizationService.GetLocalizedString("NotificationIdsRequired"),
+        400);
+}
 
-                // Get all notifications that are not deleted and match the provided IDs
-                var entities = await _unitOfWork.Notifications.Query()
-                    .Where(x => ids.Contains(x.Id) && !x.IsDeleted)
-                    .ToListAsync(requestCancellationToken);
+// Get all notifications that are not deleted and match the provided IDs
+var entities = await _unitOfWork.Notifications.Query()
+    .Where(x => ids.Contains(x.Id) && !x.IsDeleted)
+    .ToListAsync(requestCancellationToken);
 
-                if (entities == null || !entities.Any())
-                {
-                    return ApiResponse<bool>.ErrorResult(
-                        _localizationService.GetLocalizedString("NotificationNotFound"),
-                        _localizationService.GetLocalizedString("NotificationValidRecordsNotFound"),
-                        404);
-                }
+if (entities == null || !entities.Any())
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("NotificationNotFound"),
+        _localizationService.GetLocalizedString("NotificationValidRecordsNotFound"),
+        404);
+}
 
-                var now = DateTime.UtcNow;
-                foreach (var entity in entities)
-                {
-                    entity.IsRead = true;
-                    entity.ReadDate = now;
-                    entity.UpdatedDate = now;
-                    _unitOfWork.Notifications.Update(entity);
-                }
+var now = DateTime.UtcNow;
+foreach (var entity in entities)
+{
+    entity.IsRead = true;
+    entity.ReadDate = now;
+    entity.UpdatedDate = now;
+    _unitOfWork.Notifications.Update(entity);
+}
 
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("NotificationMarkReadError"), ex.Message ?? string.Empty, 500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> MarkAllAsReadAsync(long userId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                // Get all unread notifications for the user
-                var entities = await _unitOfWork.Notifications.Query()
-                    .Where(x => x.RecipientUserId == userId && !x.IsDeleted && !x.IsRead)
-                    .ToListAsync(requestCancellationToken);
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+// Get all unread notifications for the user
+var entities = await _unitOfWork.Notifications.Query()
+    .Where(x => x.RecipientUserId == userId && !x.IsDeleted && !x.IsRead)
+    .ToListAsync(requestCancellationToken);
 
-                if (entities == null || !entities.Any())
-                {
-                    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
-                }
+if (entities == null || !entities.Any())
+{
+    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
+}
 
-                var now = DateTime.UtcNow;
-                foreach (var entity in entities)
-                {
-                    entity.IsRead = true;
-                    entity.ReadDate = now;
-                    entity.UpdatedDate = now;
-                    _unitOfWork.Notifications.Update(entity);
-                }
+var now = DateTime.UtcNow;
+foreach (var entity in entities)
+{
+    entity.IsRead = true;
+    entity.ReadDate = now;
+    entity.UpdatedDate = now;
+    _unitOfWork.Notifications.Update(entity);
+}
 
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("NotificationMarkReadError"), ex.Message ?? string.Empty, 500);
-            }
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("NotificationMarkedReadSuccessfully"));
         }
 
    
@@ -398,65 +356,56 @@ namespace WMS_WEBAPI.Services
 
         private async Task PublishSignalRNotificationAsync(Notification entity, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var type = entity.Severity switch
-                {
-                    NotificationSeverity.Info => "info",
-                    NotificationSeverity.Warning => "warning",
-                    NotificationSeverity.Error => "error",
-                    _ => "info"
-                };
+cancellationToken.ThrowIfCancellationRequested();
+var type = entity.Severity switch
+{
+    NotificationSeverity.Info => "info",
+    NotificationSeverity.Warning => "warning",
+    NotificationSeverity.Error => "error",
+    _ => "info"
+};
 
-                // Localize title and message if keys are present
-                string localizedTitle = entity.Title;
-                string localizedMessage = entity.Message;
-                
-                if (!string.IsNullOrEmpty(entity.TitleKey))
-                {
-                    // Get order number from RelatedEntityId
-                    var orderNumber = entity.RelatedEntityId?.ToString() ?? string.Empty;
-                    localizedTitle = _localizationService.GetLocalizedString(entity.TitleKey, orderNumber);
-                }
-                
-                if (!string.IsNullOrEmpty(entity.MessageKey))
-                {
-                    // Get order number from RelatedEntityId
-                    var orderNumber = entity.RelatedEntityId?.ToString() ?? string.Empty;
-                    localizedMessage = _localizationService.GetLocalizedString(entity.MessageKey, orderNumber);
-                }
+// Localize title and message if keys are present
+string localizedTitle = entity.Title;
+string localizedMessage = entity.Message;
 
-                var payload = new
-                {
-                    id = entity.Id,
-                    title = localizedTitle,
-                    message = localizedMessage,
-                    type,
-                    timestamp = DateTime.UtcNow,
-                    channel = entity.Channel,
-                    recipientUserId = entity.RecipientUserId,
-                    relatedEntityType = entity.RelatedEntityType,
-                    relatedEntityId = entity.RelatedEntityId,
-                };
+if (!string.IsNullOrEmpty(entity.TitleKey))
+{
+    // Get order number from RelatedEntityId
+    var orderNumber = entity.RelatedEntityId?.ToString() ?? string.Empty;
+    localizedTitle = _localizationService.GetLocalizedString(entity.TitleKey, orderNumber);
+}
 
-                // Send to user (if specified)
-                if (entity.RecipientUserId.HasValue)
-                {
-                    await NotificationHub.SendNotificationToUser(_notificationHub, entity.RecipientUserId.Value.ToString(), payload);
-                }
-                else
-                {
-                    // If no specific recipient, send to all
-                    await NotificationHub.SendNotificationToAll(_notificationHub, payload);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't throw - notification sending failure shouldn't break the main flow
-                // In production, use proper logging framework (ILogger)
-                System.Diagnostics.Debug.WriteLine($"Error sending SignalR notification: {ex.Message}");
-            }
+if (!string.IsNullOrEmpty(entity.MessageKey))
+{
+    // Get order number from RelatedEntityId
+    var orderNumber = entity.RelatedEntityId?.ToString() ?? string.Empty;
+    localizedMessage = _localizationService.GetLocalizedString(entity.MessageKey, orderNumber);
+}
+
+var payload = new
+{
+    id = entity.Id,
+    title = localizedTitle,
+    message = localizedMessage,
+    type,
+    timestamp = DateTime.UtcNow,
+    channel = entity.Channel,
+    recipientUserId = entity.RecipientUserId,
+    relatedEntityType = entity.RelatedEntityType,
+    relatedEntityId = entity.RelatedEntityId,
+};
+
+// Send to user (if specified)
+if (entity.RecipientUserId.HasValue)
+{
+    await NotificationHub.SendNotificationToUser(_notificationHub, entity.RecipientUserId.Value.ToString(), payload);
+}
+else
+{
+    // If no specific recipient, send to all
+    await NotificationHub.SendNotificationToAll(_notificationHub, payload);
+}
         }
 
         /// <summary>
@@ -466,28 +415,19 @@ namespace WMS_WEBAPI.Services
         {
             if (dto == null) return dto!;
 
-            try
-            {
-                // If TitleKey exists, localize Title using RelatedEntityId as order number
-                if (!string.IsNullOrEmpty(dto.TitleKey))
-                {
-                    var orderNumber = dto.RelatedEntityId?.ToString() ?? string.Empty;
-                    dto.Title = _localizationService.GetLocalizedString(dto.TitleKey, orderNumber);
-                }
+// If TitleKey exists, localize Title using RelatedEntityId as order number
+if (!string.IsNullOrEmpty(dto.TitleKey))
+{
+    var orderNumber = dto.RelatedEntityId?.ToString() ?? string.Empty;
+    dto.Title = _localizationService.GetLocalizedString(dto.TitleKey, orderNumber);
+}
 
-                // If MessageKey exists, localize Message using RelatedEntityId as order number
-                if (!string.IsNullOrEmpty(dto.MessageKey))
-                {
-                    var orderNumber = dto.RelatedEntityId?.ToString() ?? string.Empty;
-                    dto.Message = _localizationService.GetLocalizedString(dto.MessageKey, orderNumber);
-                }
-            }
-            catch (Exception ex)
-            {
-                // If localization fails, keep original Title and Message
-                // Log error but don't throw - this allows notifications to still be returned
-                System.Diagnostics.Debug.WriteLine($"Error localizing notification {dto.Id}: {ex.Message}");
-            }
+// If MessageKey exists, localize Message using RelatedEntityId as order number
+if (!string.IsNullOrEmpty(dto.MessageKey))
+{
+    var orderNumber = dto.RelatedEntityId?.ToString() ?? string.Empty;
+    dto.Message = _localizationService.GetLocalizedString(dto.MessageKey, orderNumber);
+}
 
             return dto;
         }

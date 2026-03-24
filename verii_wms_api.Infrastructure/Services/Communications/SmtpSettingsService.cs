@@ -52,102 +52,82 @@ namespace WMS_WEBAPI.Services
 
         public async Task<ApiResponse<SmtpSettingsDto>> GetAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = await EnsureSeededSettingsAsync(requestCancellationToken);
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = await EnsureSeededSettingsAsync(requestCancellationToken);
 
-                return ApiResponse<SmtpSettingsDto>.SuccessResult(
-                    _mapper.Map<SmtpSettingsDto>(entity),
-                    _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<SmtpSettingsDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("InternalServerError"),
-                    ex.Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return ApiResponse<SmtpSettingsDto>.SuccessResult(
+    _mapper.Map<SmtpSettingsDto>(entity),
+    _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<SmtpSettingsDto>> UpdateAsync(UpdateSmtpSettingsDto dto, long userId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-                var entity = await _unitOfWork.SmtpSettings.Query()
-                    .OrderBy(x => x.Id)
-                    .Where(x => !x.IsDeleted)
-                    .FirstOrDefaultAsync(requestCancellationToken);
+var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+var entity = await _unitOfWork.SmtpSettings.Query()
+    .OrderBy(x => x.Id)
+    .Where(x => !x.IsDeleted)
+    .FirstOrDefaultAsync(requestCancellationToken);
 
-                if (entity == null)
-                {
-                    // Soft-deleted record exists: revive and reuse it instead of inserting explicit Id.
-                    entity = await _unitOfWork.SmtpSettings.Query(ignoreQueryFilters: true)
-                        .OrderBy(x => x.Id)
-                        .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null)
+{
+    // Soft-deleted record exists: revive and reuse it instead of inserting explicit Id.
+    entity = await _unitOfWork.SmtpSettings.Query(ignoreQueryFilters: true)
+        .OrderBy(x => x.Id)
+        .FirstOrDefaultAsync(requestCancellationToken);
 
-                    if (entity != null)
-                    {
-                        entity.IsDeleted = false;
-                        entity.DeletedDate = null;
-                        entity.DeletedBy = null;
-                    }
-                }
+    if (entity != null)
+    {
+        entity.IsDeleted = false;
+        entity.DeletedDate = null;
+        entity.DeletedBy = null;
+    }
+}
 
-                if (entity == null)
-                {
-                    entity = new SmtpSetting
-                    {
-                        IsDeleted = false,
-                        CreatedDate = DateTimeProvider.Now,
-                        CreatedBy = userId
-                    };
+if (entity == null)
+{
+    entity = new SmtpSetting
+    {
+        IsDeleted = false,
+        CreatedDate = DateTimeProvider.Now,
+        CreatedBy = userId
+    };
 
-                    _mapper.Map(dto, entity);
-                    if (!string.IsNullOrWhiteSpace(dto.Password))
-                    {
-                        entity.PasswordEncrypted = _protector.Protect(dto.Password);
-                    }
+    _mapper.Map(dto, entity);
+    if (!string.IsNullOrWhiteSpace(dto.Password))
+    {
+        entity.PasswordEncrypted = _protector.Protect(dto.Password);
+    }
 
-                    entity.UpdatedDate = DateTimeProvider.Now;
-                    entity.UpdatedBy = userId;
+    entity.UpdatedDate = DateTimeProvider.Now;
+    entity.UpdatedBy = userId;
 
-                    await _unitOfWork.SmtpSettings.AddAsync(entity, requestCancellationToken);
-                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+    await _unitOfWork.SmtpSettings.AddAsync(entity, requestCancellationToken);
+    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                    InvalidateCache();
+    InvalidateCache();
 
-                    return ApiResponse<SmtpSettingsDto>.SuccessResult(
-                        _mapper.Map<SmtpSettingsDto>(entity),
-                        _localizationService.GetLocalizedString("OperationSuccessful"));
-                }
+    return ApiResponse<SmtpSettingsDto>.SuccessResult(
+        _mapper.Map<SmtpSettingsDto>(entity),
+        _localizationService.GetLocalizedString("OperationSuccessful"));
+}
 
-                _mapper.Map(dto, entity);
-                if (!string.IsNullOrWhiteSpace(dto.Password))
-                {
-                    entity.PasswordEncrypted = _protector.Protect(dto.Password);
-                }
+_mapper.Map(dto, entity);
+if (!string.IsNullOrWhiteSpace(dto.Password))
+{
+    entity.PasswordEncrypted = _protector.Protect(dto.Password);
+}
 
-                entity.UpdatedDate = DateTimeProvider.Now;
-                entity.UpdatedBy = userId;
+entity.UpdatedDate = DateTimeProvider.Now;
+entity.UpdatedBy = userId;
 
-                _unitOfWork.SmtpSettings.Update(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+_unitOfWork.SmtpSettings.Update(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                InvalidateCache();
+InvalidateCache();
 
-                return ApiResponse<SmtpSettingsDto>.SuccessResult(
-                    _mapper.Map<SmtpSettingsDto>(entity),
-                    _localizationService.GetLocalizedString("OperationSuccessful"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<SmtpSettingsDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("InternalServerError"),
-                    ex.GetBaseException().Message,
-                    StatusCodes.Status500InternalServerError);
-            }
+return ApiResponse<SmtpSettingsDto>.SuccessResult(
+    _mapper.Map<SmtpSettingsDto>(entity),
+    _localizationService.GetLocalizedString("OperationSuccessful"));
         }
 
         public async Task<SmtpSettingsRuntimeDto> GetRuntimeAsync(CancellationToken cancellationToken = default)

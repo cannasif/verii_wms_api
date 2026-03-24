@@ -31,154 +31,95 @@ namespace WMS_WEBAPI.Services
         public async Task<ApiResponse<IEnumerable<WiTerminalLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.WiTerminalLines.GetAllAsync();
-                var dtos = _mapper.Map<IEnumerable<WiTerminalLineDto>>(entities);
-                return ApiResponse<IEnumerable<WiTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<WiTerminalLineDto>>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var entities = await _unitOfWork.WiTerminalLines.GetAllAsync();
+var dtos = _mapper.Map<IEnumerable<WiTerminalLineDto>>(entities);
+return ApiResponse<IEnumerable<WiTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<PagedResponse<WiTerminalLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                request ??= new PagedRequest();
-                if (request.PageNumber < 1) request.PageNumber = 1;
-                if (request.PageSize < 1) request.PageSize = 20;
+request ??= new PagedRequest();
+if (request.PageNumber < 1) request.PageNumber = 1;
+if (request.PageSize < 1) request.PageSize = 20;
 
-                var query = _unitOfWork.WiTerminalLines.Query();
-                query = query.ApplyFilters(request.Filters, request.FilterLogic);
-                bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-                query = query.ApplySorting(request.SortBy ?? "Id", desc);
+var query = _unitOfWork.WiTerminalLines.Query();
+query = query.ApplyFilters(request.Filters, request.FilterLogic);
+bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync(requestCancellationToken);
-                var entities = await query
-                    .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync(requestCancellationToken);
+var totalCount = await query.CountAsync(requestCancellationToken);
+var entities = await query
+    .ApplyPagination(request.PageNumber, request.PageSize)
+    .ToListAsync(requestCancellationToken);
 
-                var dtos = _mapper.Map<List<WiTerminalLineDto>>(entities);
-                var result = new PagedResponse<WiTerminalLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+var dtos = _mapper.Map<List<WiTerminalLineDto>>(entities);
+var result = new PagedResponse<WiTerminalLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
 
-                return ApiResponse<PagedResponse<WiTerminalLineDto>>.SuccessResult(
-                    result,
-                    _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<PagedResponse<WiTerminalLineDto>>.ErrorResult(
-                    _localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"),
-                    ex.Message ?? string.Empty,
-                    500);
-            }
+return ApiResponse<PagedResponse<WiTerminalLineDto>>.SuccessResult(
+    result,
+    _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
         }
 
 
         public async Task<ApiResponse<WiTerminalLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = await _unitOfWork.WiTerminalLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (entity == null) return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineNotFound"), _localizationService.GetLocalizedString("WiTerminalLineNotFound"), 404);
-                var dto = _mapper.Map<WiTerminalLineDto>(entity);
-                return ApiResponse<WiTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var entity = await _unitOfWork.WiTerminalLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (entity == null) return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineNotFound"), _localizationService.GetLocalizedString("WiTerminalLineNotFound"), 404);
+var dto = _mapper.Map<WiTerminalLineDto>(entity);
+return ApiResponse<WiTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<WiTerminalLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.WiTerminalLines.FindAsync(x => x.HeaderId == headerId);
-                var dtos = _mapper.Map<IEnumerable<WiTerminalLineDto>>(entities);
-                return ApiResponse<IEnumerable<WiTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<WiTerminalLineDto>>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var entities = await _unitOfWork.WiTerminalLines.FindAsync(x => x.HeaderId == headerId);
+var dtos = _mapper.Map<IEnumerable<WiTerminalLineDto>>(entities);
+return ApiResponse<IEnumerable<WiTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
         }
 
         public async Task<ApiResponse<IEnumerable<WiTerminalLineDto>>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entities = await _unitOfWork.WiTerminalLines.FindAsync(x => x.TerminalUserId == userId);
-                var dtos = _mapper.Map<IEnumerable<WiTerminalLineDto>>(entities);
-                return ApiResponse<IEnumerable<WiTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<WiTerminalLineDto>>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var entities = await _unitOfWork.WiTerminalLines.FindAsync(x => x.TerminalUserId == userId);
+var dtos = _mapper.Map<IEnumerable<WiTerminalLineDto>>(entities);
+return ApiResponse<IEnumerable<WiTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiTerminalLineRetrievedSuccessfully"));
         }
 
 
         public async Task<ApiResponse<WiTerminalLineDto>> CreateAsync(CreateWiTerminalLineDto createDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var entity = _mapper.Map<WiTerminalLine>(createDto);
-                var created = await _unitOfWork.WiTerminalLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                var dto = _mapper.Map<WiTerminalLineDto>(created);
-                return ApiResponse<WiTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiTerminalLineCreatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var entity = _mapper.Map<WiTerminalLine>(createDto);
+var created = await _unitOfWork.WiTerminalLines.AddAsync(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+var dto = _mapper.Map<WiTerminalLineDto>(created);
+return ApiResponse<WiTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiTerminalLineCreatedSuccessfully"));
         }
 
         public async Task<ApiResponse<WiTerminalLineDto>> UpdateAsync(long id, UpdateWiTerminalLineDto updateDto, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                var existing = await _unitOfWork.WiTerminalLines.Query()
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync(requestCancellationToken);
-                if (existing == null) return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineNotFound"), _localizationService.GetLocalizedString("WiTerminalLineNotFound"), 404);
-                var entity = _mapper.Map(updateDto, existing);
-                _unitOfWork.WiTerminalLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                var dto = _mapper.Map<WiTerminalLineDto>(entity);
-                return ApiResponse<WiTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiTerminalLineUpdatedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+var existing = await _unitOfWork.WiTerminalLines.Query()
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(requestCancellationToken);
+if (existing == null) return ApiResponse<WiTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineNotFound"), _localizationService.GetLocalizedString("WiTerminalLineNotFound"), 404);
+var entity = _mapper.Map(updateDto, existing);
+_unitOfWork.WiTerminalLines.Update(entity);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+var dto = _mapper.Map<WiTerminalLineDto>(entity);
+return ApiResponse<WiTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiTerminalLineUpdatedSuccessfully"));
         }
 
         public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-            try
-            {
-                await _unitOfWork.WiTerminalLines.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("WiTerminalLineDeletedSuccessfully"));
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WiTerminalLineErrorOccurred"), ex.Message ?? string.Empty, 500);
-            }
+await _unitOfWork.WiTerminalLines.SoftDelete(id);
+await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("WiTerminalLineDeletedSuccessfully"));
         }
     }
 }
