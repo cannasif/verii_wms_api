@@ -11,18 +11,26 @@ namespace WMS_WEBAPI.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public UserPermissionGroupService(IUnitOfWork unitOfWork, ILocalizationService localizationService)
+        public UserPermissionGroupService(IUnitOfWork unitOfWork, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
 
-        public async Task<ApiResponse<UserPermissionGroupDto>> GetByUserIdAsync(long userId)
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
+
+        public async Task<ApiResponse<UserPermissionGroupDto>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         {
             try
             {
-                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                var user = await _unitOfWork.Users.GetByIdAsync(userId, requestCancellationToken);
                 if (user == null)
                 {
                     return ApiResponse<UserPermissionGroupDto>.ErrorResult(
@@ -34,7 +42,7 @@ namespace WMS_WEBAPI.Services
                 var links = await _unitOfWork.UserPermissionGroups.Query()
                     .Where(x => x.UserId == userId && !x.IsDeleted)
                     .Include(x => x.PermissionGroup)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dto = new UserPermissionGroupDto
                 {
@@ -59,11 +67,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<UserPermissionGroupDto>> SetUserGroupsAsync(long userId, SetUserPermissionGroupsDto dto)
+        public async Task<ApiResponse<UserPermissionGroupDto>> SetUserGroupsAsync(long userId, SetUserPermissionGroupsDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
-                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                var user = await _unitOfWork.Users.GetByIdAsync(userId, requestCancellationToken);
                 if (user == null)
                 {
                     return ApiResponse<UserPermissionGroupDto>.ErrorResult(
@@ -77,7 +86,7 @@ namespace WMS_WEBAPI.Services
                 {
                     var validCount = await _unitOfWork.PermissionGroups.Query()
                         .Where(x => !x.IsDeleted && distinctGroupIds.Contains(x.Id))
-                            .CountAsync();
+                        .CountAsync(requestCancellationToken);
 
                     if (validCount != distinctGroupIds.Count)
                     {
@@ -89,11 +98,11 @@ namespace WMS_WEBAPI.Services
 
                     var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.Query()
                         .Where(x => !x.IsDeleted && x.IsSystemAdmin && distinctGroupIds.Contains(x.Id))
-                            .AnyAsync();
+                        .AnyAsync(requestCancellationToken);
 
                     if (hasSystemAdminGroup)
                     {
-                        var isAdminRole = await IsAdminRoleAsync(user.RoleId);
+                        var isAdminRole = await IsAdminRoleAsync(user.RoleId, requestCancellationToken);
                         if (!isAdminRole)
                         {
                             return ApiResponse<UserPermissionGroupDto>.ErrorResult(
@@ -105,13 +114,12 @@ namespace WMS_WEBAPI.Services
                 }
 
                 var currentLinks = await _unitOfWork.UserPermissionGroups.Query(ignoreQueryFilters: true)
-                    
                     .Where(x => x.UserId == userId)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 foreach (var link in currentLinks.Where(x => !x.IsDeleted && !distinctGroupIds.Contains(x.PermissionGroupId)))
                 {
-                    await _unitOfWork.UserPermissionGroups.SoftDelete(link.Id);
+                    await _unitOfWork.UserPermissionGroups.SoftDelete(link.Id, requestCancellationToken);
                 }
 
                 foreach (var groupId in distinctGroupIds)
@@ -123,7 +131,7 @@ namespace WMS_WEBAPI.Services
                         {
                             UserId = userId,
                             PermissionGroupId = groupId
-                        });
+                        }, requestCancellationToken);
                         continue;
                     }
 
@@ -136,8 +144,8 @@ namespace WMS_WEBAPI.Services
                     }
                 }
 
-                await _unitOfWork.SaveChangesAsync();
-                return await GetByUserIdAsync(userId);
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
+                return await GetByUserIdAsync(userId, requestCancellationToken);
             }
             catch (Exception ex)
             {
@@ -148,12 +156,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        private async Task<bool> IsAdminRoleAsync(long roleId)
+        private async Task<bool> IsAdminRoleAsync(long roleId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             var roleTitle = await _unitOfWork.UserAuthorities.Query()
                 .Where(x => !x.IsDeleted && x.Id == roleId)
                 .Select(x => x.Title)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(requestCancellationToken);
 
             return !string.IsNullOrWhiteSpace(roleTitle) &&
                    roleTitle.Contains("admin", StringComparison.OrdinalIgnoreCase);

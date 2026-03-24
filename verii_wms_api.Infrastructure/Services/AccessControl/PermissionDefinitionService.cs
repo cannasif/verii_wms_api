@@ -11,17 +11,25 @@ namespace WMS_WEBAPI.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public PermissionDefinitionService(IUnitOfWork unitOfWork, ILocalizationService localizationService)
+        public PermissionDefinitionService(IUnitOfWork unitOfWork, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
 
-        public async Task<ApiResponse<PagedResponse<PermissionDefinitionDto>>> GetAllAsync(PagedRequest request)
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
+
+        public async Task<ApiResponse<PagedResponse<PermissionDefinitionDto>>> GetAllAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 request ??= new PagedRequest();
                 request.Filters ??= new List<Filter>();
 
@@ -40,8 +48,8 @@ namespace WMS_WEBAPI.Services
                     .ApplyFilters(request.Filters)
                     .ApplySorting(sortBy, desc);
 
-                var totalCount = await query.CountAsync();
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
+                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
 
                 var dtoItems = items.Select(MapToDto).ToList();
                 var paged = new PagedResponse<PermissionDefinitionDto>(dtoItems, totalCount, request.PageNumber, request.PageSize);
@@ -59,16 +67,17 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PermissionDefinitionDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<PermissionDefinitionDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = await _unitOfWork.PermissionDefinitions.Query()
                     .Include(x => x.CreatedByUser)
                     .Include(x => x.UpdatedByUser)
                     .Include(x => x.DeletedByUser)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 if (entity == null)
                 {
@@ -91,13 +100,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PermissionDefinitionDto>> CreateAsync(CreatePermissionDefinitionDto dto)
+        public async Task<ApiResponse<PermissionDefinitionDto>> CreateAsync(CreatePermissionDefinitionDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var exists = await _unitOfWork.PermissionDefinitions.Query()
                     .Where(x => !x.IsDeleted && x.Code == dto.Code)
-                            .AnyAsync();
+                    .AnyAsync(requestCancellationToken);
 
                 if (exists)
                 {
@@ -115,10 +125,10 @@ namespace WMS_WEBAPI.Services
                     IsActive = dto.IsActive
                 };
 
-                await _unitOfWork.PermissionDefinitions.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.PermissionDefinitions.AddAsync(entity, requestCancellationToken);
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return await GetByIdAsync(entity.Id);
+                return await GetByIdAsync(entity.Id, requestCancellationToken);
             }
             catch (Exception ex)
             {
@@ -129,13 +139,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PermissionDefinitionDto>> UpdateAsync(long id, UpdatePermissionDefinitionDto dto)
+        public async Task<ApiResponse<PermissionDefinitionDto>> UpdateAsync(long id, UpdatePermissionDefinitionDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = await _unitOfWork.PermissionDefinitions.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null)
                 {
                     return ApiResponse<PermissionDefinitionDto>.ErrorResult(
@@ -148,7 +159,7 @@ namespace WMS_WEBAPI.Services
                 {
                     var duplicate = await _unitOfWork.PermissionDefinitions.Query()
                         .Where(x => !x.IsDeleted && x.Id != id && x.Code == dto.Code)
-                            .AnyAsync();
+                        .AnyAsync(requestCancellationToken);
 
                     if (duplicate)
                     {
@@ -177,9 +188,9 @@ namespace WMS_WEBAPI.Services
                 }
 
                 _unitOfWork.PermissionDefinitions.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
-                return await GetByIdAsync(entity.Id);
+                return await GetByIdAsync(entity.Id, requestCancellationToken);
             }
             catch (Exception ex)
             {
@@ -190,10 +201,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PermissionDefinitionSyncResultDto>> SyncAsync(SyncPermissionDefinitionsDto dto)
+        public async Task<ApiResponse<PermissionDefinitionSyncResultDto>> SyncAsync(SyncPermissionDefinitionsDto dto, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 dto ??= new SyncPermissionDefinitionsDto();
                 dto.Items ??= new List<SyncPermissionDefinitionItemDto>();
 
@@ -223,7 +235,7 @@ namespace WMS_WEBAPI.Services
                 var existingAll = await _unitOfWork.PermissionDefinitions.Query()
                     .IgnoreQueryFilters()
                     .Where(x => distinctCodes.Contains(x.Code))
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var existingByCode = existingAll
                     .GroupBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
@@ -288,13 +300,13 @@ namespace WMS_WEBAPI.Services
                         IsActive = item.IsActive
                     };
 
-                    await _unitOfWork.PermissionDefinitions.AddAsync(newEntity);
+                    await _unitOfWork.PermissionDefinitions.AddAsync(newEntity, requestCancellationToken);
                     created++;
                 }
 
                 if (created > 0 || updated > 0 || reactivated > 0)
                 {
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 }
 
                 return ApiResponse<PermissionDefinitionSyncResultDto>.SuccessResult(
@@ -316,11 +328,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
-                var exists = await _unitOfWork.PermissionDefinitions.ExistsAsync(id);
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                var exists = await _unitOfWork.PermissionDefinitions.ExistsAsync(id, requestCancellationToken);
                 if (!exists)
                 {
                     return ApiResponse<bool>.ErrorResult(
@@ -329,8 +342,8 @@ namespace WMS_WEBAPI.Services
                         StatusCodes.Status404NotFound);
                 }
 
-                await _unitOfWork.PermissionDefinitions.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.PermissionDefinitions.SoftDelete(id, requestCancellationToken);
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
             }

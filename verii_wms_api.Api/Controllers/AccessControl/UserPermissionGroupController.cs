@@ -18,16 +18,16 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet("{userId:long}")]
-        public async Task<ActionResult<ApiResponse<UserPermissionGroupDto>>> GetByUserId(long userId)
+        public async Task<ActionResult<ApiResponse<UserPermissionGroupDto>>> GetByUserId(long userId, CancellationToken cancellationToken = default)
         {
-            var result = await _userPermissionGroupService.GetByUserIdAsync(userId);
+            var result = await _userPermissionGroupService.GetByUserIdAsync(userId, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{userId:long}")]
-        public async Task<ActionResult<ApiResponse<UserPermissionGroupDto>>> SetUserGroups(long userId, [FromBody] SetUserPermissionGroupsDto dto)
+        public async Task<ActionResult<ApiResponse<UserPermissionGroupDto>>> SetUserGroups(long userId, [FromBody] SetUserPermissionGroupsDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _userPermissionGroupService.SetUserGroupsAsync(userId, dto);
+            var result = await _userPermissionGroupService.SetUserGroupsAsync(userId, dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

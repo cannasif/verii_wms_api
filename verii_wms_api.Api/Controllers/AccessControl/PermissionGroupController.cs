@@ -19,51 +19,51 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<PagedResponse<PermissionGroupDto>>>> GetAll([FromQuery] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<PermissionGroupDto>>>> GetAll([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.GetAllAsync(request);
+            var result = await _permissionGroupService.GetAllAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<PermissionGroupDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<PermissionGroupDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.GetAllAsync(request);
+            var result = await _permissionGroupService.GetAllAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.GetByIdAsync(id);
+            var result = await _permissionGroupService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> Create([FromBody] CreatePermissionGroupDto dto)
+        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> Create([FromBody] CreatePermissionGroupDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.CreateAsync(dto);
+            var result = await _permissionGroupService.CreateAsync(dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id:long}")]
-        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> Update(long id, [FromBody] UpdatePermissionGroupDto dto)
+        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> Update(long id, [FromBody] UpdatePermissionGroupDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.UpdateAsync(id, dto);
+            var result = await _permissionGroupService.UpdateAsync(id, dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id:long}/permissions")]
-        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> SetPermissions(long id, [FromBody] SetPermissionGroupPermissionsDto dto)
+        public async Task<ActionResult<ApiResponse<PermissionGroupDto>>> SetPermissions(long id, [FromBody] SetPermissionGroupPermissionsDto dto, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.SetPermissionsAsync(id, dto);
+            var result = await _permissionGroupService.SetPermissionsAsync(id, dto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id:long}")]
-        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _permissionGroupService.SoftDeleteAsync(id);
+            var result = await _permissionGroupService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }
