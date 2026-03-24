@@ -12,19 +12,27 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GrParameterService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public GrParameterService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
 
-        public async Task<ApiResponse<IEnumerable<GrParameterDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
+
+        public async Task<ApiResponse<IEnumerable<GrParameterDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var entities = await _unitOfWork.GrParameters.GetAllAsync();
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                var entities = await _unitOfWork.GrParameters.GetAllAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<GrParameterDto>>(entities);
                 return ApiResponse<IEnumerable<GrParameterDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ParameterRetrievedSuccessfully"));
             }
@@ -34,10 +42,11 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<GrParameterDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<GrParameterDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 request ??= new PagedRequest();
                 if (request.PageNumber < 1) request.PageNumber = 1;
                 if (request.PageSize < 1) request.PageSize = 20;
@@ -47,10 +56,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<GrParameterDto>>(entities);
                 var result = new PagedResponse<GrParameterDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -69,13 +78,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<GrParameterDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<GrParameterDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = await _unitOfWork.GrParameters.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null)
                 {
                     return ApiResponse<GrParameterDto>.ErrorResult(_localizationService.GetLocalizedString("ParameterNotFound"), _localizationService.GetLocalizedString("ParameterNotFound"), 404);
@@ -90,13 +100,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrParameterDto>> CreateAsync(CreateGrParameterDto createDto)
+        public async Task<ApiResponse<GrParameterDto>> CreateAsync(CreateGrParameterDto createDto, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = _mapper.Map<GrParameter>(createDto);
-                await _unitOfWork.GrParameters.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.GrParameters.AddAsync(entity, requestCancellationToken);
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<GrParameterDto>(entity);
                 return ApiResponse<GrParameterDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ParameterCreatedSuccessfully"));
@@ -107,13 +118,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrParameterDto>> UpdateAsync(long id, UpdateGrParameterDto updateDto)
+        public async Task<ApiResponse<GrParameterDto>> UpdateAsync(long id, UpdateGrParameterDto updateDto, CancellationToken cancellationToken = default)
         {
             try
             {
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
                 var entity = await _unitOfWork.GrParameters.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null)
                 {
                     return ApiResponse<GrParameterDto>.ErrorResult(_localizationService.GetLocalizedString("ParameterNotFound"), _localizationService.GetLocalizedString("ParameterNotFound"), 404);
@@ -121,7 +133,7 @@ namespace WMS_WEBAPI.Services
 
                 _mapper.Map(updateDto, entity);
                 _unitOfWork.GrParameters.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<GrParameterDto>(entity);
                 return ApiResponse<GrParameterDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ParameterUpdatedSuccessfully"));
@@ -132,18 +144,19 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
             try
             {
-                var exists = await _unitOfWork.GrParameters.ExistsAsync(id);
+                var requestCancellationToken = ResolveCancellationToken(cancellationToken);
+                var exists = await _unitOfWork.GrParameters.ExistsAsync(id, requestCancellationToken);
                 if (!exists)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("ParameterNotFound"), _localizationService.GetLocalizedString("ParameterNotFound"), 404);
                 }
 
-                await _unitOfWork.GrParameters.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.GrParameters.SoftDelete(id, requestCancellationToken);
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("ParameterDeletedSuccessfully"));
             }

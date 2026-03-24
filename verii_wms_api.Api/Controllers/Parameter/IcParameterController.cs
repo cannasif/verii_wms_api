@@ -21,55 +21,55 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _icParameterService.GetPagedAsync(request);
+            var result = await _icParameterService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<IcParameterDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<IcParameterDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _icParameterService.GetPagedAsync(request);
+            var result = await _icParameterService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
 
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<ApiResponse<IcParameterDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<IcParameterDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _icParameterService.GetByIdAsync(id);
+            var result = await _icParameterService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<IcParameterDto>>> Create([FromBody] CreateIcParameterDto createDto)
+        public async Task<ActionResult<ApiResponse<IcParameterDto>>> Create([FromBody] CreateIcParameterDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<IcParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _icParameterService.CreateAsync(createDto);
+            var result = await _icParameterService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id:long}")]
-        public async Task<ActionResult<ApiResponse<IcParameterDto>>> Update(long id, [FromBody] UpdateIcParameterDto updateDto)
+        public async Task<ActionResult<ApiResponse<IcParameterDto>>> Update(long id, [FromBody] UpdateIcParameterDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<IcParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _icParameterService.UpdateAsync(id, updateDto);
+            var result = await _icParameterService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id:long}")]
-        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _icParameterService.SoftDeleteAsync(id);
+            var result = await _icParameterService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

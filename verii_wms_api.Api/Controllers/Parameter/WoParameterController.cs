@@ -21,55 +21,55 @@ namespace WMS_WEBAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] PagedRequest request)
+        public async Task<IActionResult> Get([FromQuery] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _woParameterService.GetPagedAsync(request);
+            var result = await _woParameterService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("paged")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<WoParameterDto>>>> GetPaged([FromBody] PagedRequest request)
+        public async Task<ActionResult<ApiResponse<PagedResponse<WoParameterDto>>>> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _woParameterService.GetPagedAsync(request);
+            var result = await _woParameterService.GetPagedAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
 
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<ApiResponse<WoParameterDto>>> GetById(long id)
+        public async Task<ActionResult<ApiResponse<WoParameterDto>>> GetById(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _woParameterService.GetByIdAsync(id);
+            var result = await _woParameterService.GetByIdAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<WoParameterDto>>> Create([FromBody] CreateWoParameterDto createDto)
+        public async Task<ActionResult<ApiResponse<WoParameterDto>>> Create([FromBody] CreateWoParameterDto createDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<WoParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _woParameterService.CreateAsync(createDto);
+            var result = await _woParameterService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id:long}")]
-        public async Task<ActionResult<ApiResponse<WoParameterDto>>> Update(long id, [FromBody] UpdateWoParameterDto updateDto)
+        public async Task<ActionResult<ApiResponse<WoParameterDto>>> Update(long id, [FromBody] UpdateWoParameterDto updateDto, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return StatusCode(400, ApiResponse<WoParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
             }
 
-            var result = await _woParameterService.UpdateAsync(id, updateDto);
+            var result = await _woParameterService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id:long}")]
-        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id)
+        public async Task<ActionResult<ApiResponse<bool>>> SoftDelete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _woParameterService.SoftDeleteAsync(id);
+            var result = await _woParameterService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
     }

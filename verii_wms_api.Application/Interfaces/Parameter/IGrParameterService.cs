@@ -4,12 +4,12 @@ namespace WMS_WEBAPI.Interfaces
 {
     public interface IGrParameterService
     {
-        Task<ApiResponse<IEnumerable<GrParameterDto>>> GetAllAsync();
-        Task<ApiResponse<PagedResponse<GrParameterDto>>> GetPagedAsync(PagedRequest request);
-        Task<ApiResponse<GrParameterDto>> GetByIdAsync(long id);
-        Task<ApiResponse<GrParameterDto>> CreateAsync(CreateGrParameterDto createDto);
-        Task<ApiResponse<GrParameterDto>> UpdateAsync(long id, UpdateGrParameterDto updateDto);
-        Task<ApiResponse<bool>> SoftDeleteAsync(long id);
+        Task<ApiResponse<IEnumerable<GrParameterDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<ApiResponse<PagedResponse<GrParameterDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+        Task<ApiResponse<GrParameterDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        Task<ApiResponse<GrParameterDto>> CreateAsync(CreateGrParameterDto createDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<GrParameterDto>> UpdateAsync(long id, UpdateGrParameterDto updateDto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }
 
