@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using WMS_WEBAPI.Data;
@@ -14,7 +13,7 @@ namespace WMS_WEBAPI.UnitOfWork
     public class UnitOfWork : IUnitOfWork
     {
         private readonly WmsDbContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private bool _disposed = false;
 
@@ -138,305 +137,305 @@ namespace WMS_WEBAPI.UnitOfWork
 
         public UnitOfWork(
             WmsDbContext context,
-            IHttpContextAccessor httpContextAccessor,
+            IExecutionContextAccessor executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor)
         {
             _context = context;
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _requestCancellationAccessor = requestCancellationAccessor;
         }
 
         // Repository properties
 
         public IGenericRepository<User> Users =>
-            _users ??= new GenericRepository<User>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _users ??= new GenericRepository<User>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<UserDetail> UserDetails =>
-            _userDetails ??= new GenericRepository<UserDetail>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _userDetails ??= new GenericRepository<UserDetail>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<UserSession> UserSessions =>
-            _userSessions ??= new GenericRepository<UserSession>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _userSessions ??= new GenericRepository<UserSession>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PasswordResetRequest> PasswordResetRequests =>
-            _passwordResetRequests ??= new GenericRepository<PasswordResetRequest>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _passwordResetRequests ??= new GenericRepository<PasswordResetRequest>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<BaseEntity> BaseEntities =>
-            _baseEntities ??= new GenericRepository<BaseEntity>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _baseEntities ??= new GenericRepository<BaseEntity>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<BaseHeaderEntity> BaseHeaderEntities =>
-            _baseHeaderEntities ??= new GenericRepository<BaseHeaderEntity>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _baseHeaderEntities ??= new GenericRepository<BaseHeaderEntity>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // GoodReceipt repository properties
         public IGenericRepository<GrHeader> GrHeaders =>
-            _grHeaders ??= new GenericRepository<GrHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grHeaders ??= new GenericRepository<GrHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<GrLine> GrLines =>
-            _grLines ??= new GenericRepository<GrLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grLines ??= new GenericRepository<GrLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<GrImportDocument> GrImportDocuments =>
-            _grImportDocuments ??= new GenericRepository<GrImportDocument>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grImportDocuments ??= new GenericRepository<GrImportDocument>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<GrImportLine> GrImportLines =>
-            _grImportLines ??= new GenericRepository<GrImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grImportLines ??= new GenericRepository<GrImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<GrLineSerial> GrLineSerials =>
-            _grLineSerials ??= new GenericRepository<GrLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grLineSerials ??= new GenericRepository<GrLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<GrRoute> GrRoutes =>
-            _grRoutes ??= new GenericRepository<GrRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grRoutes ??= new GenericRepository<GrRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<GrTerminalLine> GrTerminalLines =>
-            _grTerminalLines ??= new GenericRepository<GrTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grTerminalLines ??= new GenericRepository<GrTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
         
         // User and Authority repository properties
         public IGenericRepository<UserAuthority> UserAuthorities =>
-            _userAuthorities ??= new GenericRepository<UserAuthority>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _userAuthorities ??= new GenericRepository<UserAuthority>(_context, _executionContextAccessor, _requestCancellationAccessor);
         public IGenericRepository<SmtpSetting> SmtpSettings =>
-            _smtpSettings ??= new GenericRepository<SmtpSetting>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _smtpSettings ??= new GenericRepository<SmtpSetting>(_context, _executionContextAccessor, _requestCancellationAccessor);
         public IGenericRepository<PermissionDefinition> PermissionDefinitions =>
-            _permissionDefinitions ??= new GenericRepository<PermissionDefinition>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _permissionDefinitions ??= new GenericRepository<PermissionDefinition>(_context, _executionContextAccessor, _requestCancellationAccessor);
         public IGenericRepository<PermissionGroup> PermissionGroups =>
-            _permissionGroups ??= new GenericRepository<PermissionGroup>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _permissionGroups ??= new GenericRepository<PermissionGroup>(_context, _executionContextAccessor, _requestCancellationAccessor);
         public IGenericRepository<PermissionGroupPermission> PermissionGroupPermissions =>
-            _permissionGroupPermissions ??= new GenericRepository<PermissionGroupPermission>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _permissionGroupPermissions ??= new GenericRepository<PermissionGroupPermission>(_context, _executionContextAccessor, _requestCancellationAccessor);
         public IGenericRepository<UserPermissionGroup> UserPermissionGroups =>
-            _userPermissionGroups ??= new GenericRepository<UserPermissionGroup>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _userPermissionGroups ??= new GenericRepository<UserPermissionGroup>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PlatformPageGroup> PlatformPageGroups =>
-            _platformPageGroups ??= new GenericRepository<PlatformPageGroup>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _platformPageGroups ??= new GenericRepository<PlatformPageGroup>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PlatformUserGroupMatch> PlatformUserGroupMatches =>
-            _platformUserGroupMatches ??= new GenericRepository<PlatformUserGroupMatch>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _platformUserGroupMatches ??= new GenericRepository<PlatformUserGroupMatch>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<MobilePageGroup> MobilePageGroups =>
-            _mobilePageGroups ??= new GenericRepository<MobilePageGroup>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _mobilePageGroups ??= new GenericRepository<MobilePageGroup>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<MobileUserGroupMatch> MobileUserGroupMatches =>
-            _mobileUserGroupMatches ??= new GenericRepository<MobileUserGroupMatch>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _mobileUserGroupMatches ??= new GenericRepository<MobileUserGroupMatch>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // WarehouseTransfer repository properties
         public IGenericRepository<WtLine> WtLines =>
-            _wtLines ??= new GenericRepository<WtLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtLines ??= new GenericRepository<WtLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WtHeader> WtHeaders =>
-            _wtHeaders ??= new GenericRepository<WtHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtHeaders ??= new GenericRepository<WtHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WtRoute> WtRoutes =>
-            _wtRoutes ??= new GenericRepository<WtRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtRoutes ??= new GenericRepository<WtRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WtTerminalLine> WtTerminalLines =>
-            _wtTerminalLines ??= new GenericRepository<WtTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtTerminalLines ??= new GenericRepository<WtTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WtImportLine> WtImportLines =>
-            _wtImportLines ??= new GenericRepository<WtImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtImportLines ??= new GenericRepository<WtImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WtLineSerial> WtLineSerials =>
-            _wtLineSerials ??= new GenericRepository<WtLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtLineSerials ??= new GenericRepository<WtLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // ProductTransfer repository properties
         public IGenericRepository<PtHeader> PtHeaders =>
-            _ptHeaders ??= new GenericRepository<PtHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptHeaders ??= new GenericRepository<PtHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PtLine> PtLines =>
-            _ptLines ??= new GenericRepository<PtLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptLines ??= new GenericRepository<PtLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PtImportLine> PtImportLines =>
-            _ptImportLines ??= new GenericRepository<PtImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptImportLines ??= new GenericRepository<PtImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PtRoute> PtRoutes =>
-            _ptRoutes ??= new GenericRepository<PtRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptRoutes ??= new GenericRepository<PtRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PtTerminalLine> PtTerminalLines =>
-            _ptTerminalLines ??= new GenericRepository<PtTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptTerminalLines ??= new GenericRepository<PtTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PtLineSerial> PtLineSerials =>
-            _ptLineSerials ??= new GenericRepository<PtLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptLineSerials ??= new GenericRepository<PtLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // Production repository properties
         public IGenericRepository<PrHeader> PrHeaders =>
-            _prHeaders ??= new GenericRepository<PrHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prHeaders ??= new GenericRepository<PrHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrLine> PrLines =>
-            _prLines ??= new GenericRepository<PrLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prLines ??= new GenericRepository<PrLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrImportLine> PrImportLines =>
-            _prImportLines ??= new GenericRepository<PrImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prImportLines ??= new GenericRepository<PrImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrRoute> PrRoutes =>
-            _prRoutes ??= new GenericRepository<PrRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prRoutes ??= new GenericRepository<PrRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrTerminalLine> PrTerminalLines =>
-            _prTerminalLines ??= new GenericRepository<PrTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prTerminalLines ??= new GenericRepository<PrTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrLineSerial> PrLineSerials =>
-            _prLineSerials ??= new GenericRepository<PrLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prLineSerials ??= new GenericRepository<PrLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrHeaderSerial> PrHeaderSerials =>
-            _prHeaderSerials ??= new GenericRepository<PrHeaderSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prHeaderSerials ??= new GenericRepository<PrHeaderSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // SubcontractingIssueTransfer repository properties
         public IGenericRepository<SitHeader> SitHeaders =>
-            _sitHeaders ??= new GenericRepository<SitHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitHeaders ??= new GenericRepository<SitHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SitLine> SitLines =>
-            _sitLines ??= new GenericRepository<SitLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitLines ??= new GenericRepository<SitLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SitImportLine> SitImportLines =>
-            _sitImportLines ??= new GenericRepository<SitImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitImportLines ??= new GenericRepository<SitImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SitRoute> SitRoutes =>
-            _sitRoutes ??= new GenericRepository<SitRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitRoutes ??= new GenericRepository<SitRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SitTerminalLine> SitTerminalLines =>
-            _sitTerminalLines ??= new GenericRepository<SitTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitTerminalLines ??= new GenericRepository<SitTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SitLineSerial> SitLineSerials =>
-            _sitLineSerials ??= new GenericRepository<SitLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitLineSerials ??= new GenericRepository<SitLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // SubcontractingReceiptTransfer repository properties
         public IGenericRepository<SrtHeader> SrtHeaders =>
-            _srtHeaders ??= new GenericRepository<SrtHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtHeaders ??= new GenericRepository<SrtHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SrtLine> SrtLines =>
-            _srtLines ??= new GenericRepository<SrtLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtLines ??= new GenericRepository<SrtLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SrtImportLine> SrtImportLines =>
-            _srtImportLines ??= new GenericRepository<SrtImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtImportLines ??= new GenericRepository<SrtImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SrtRoute> SrtRoutes =>
-            _srtRoutes ??= new GenericRepository<SrtRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtRoutes ??= new GenericRepository<SrtRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SrtTerminalLine> SrtTerminalLines =>
-            _srtTerminalLines ??= new GenericRepository<SrtTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtTerminalLines ??= new GenericRepository<SrtTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SrtLineSerial> SrtLineSerials =>
-            _srtLineSerials ??= new GenericRepository<SrtLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtLineSerials ??= new GenericRepository<SrtLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // WarehouseOutbound repository properties
         public IGenericRepository<WoHeader> WoHeaders =>
-            _woHeaders ??= new GenericRepository<WoHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woHeaders ??= new GenericRepository<WoHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WoLine> WoLines =>
-            _woLines ??= new GenericRepository<WoLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woLines ??= new GenericRepository<WoLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WoImportLine> WoImportLines =>
-            _woImportLines ??= new GenericRepository<WoImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woImportLines ??= new GenericRepository<WoImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WoRoute> WoRoutes =>
-            _woRoutes ??= new GenericRepository<WoRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woRoutes ??= new GenericRepository<WoRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WoTerminalLine> WoTerminalLines =>
-            _woTerminalLines ??= new GenericRepository<WoTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woTerminalLines ??= new GenericRepository<WoTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WoLineSerial> WoLineSerials =>
-            _woLineSerials ??= new GenericRepository<WoLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woLineSerials ??= new GenericRepository<WoLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // WarehouseInbound repository properties
         public IGenericRepository<WiHeader> WiHeaders =>
-            _wiHeaders ??= new GenericRepository<WiHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiHeaders ??= new GenericRepository<WiHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WiLine> WiLines =>
-            _wiLines ??= new GenericRepository<WiLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiLines ??= new GenericRepository<WiLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WiImportLine> WiImportLines =>
-            _wiImportLines ??= new GenericRepository<WiImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiImportLines ??= new GenericRepository<WiImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WiRoute> WiRoutes =>
-            _wiRoutes ??= new GenericRepository<WiRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiRoutes ??= new GenericRepository<WiRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WiTerminalLine> WiTerminalLines =>
-            _wiTerminalLines ??= new GenericRepository<WiTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiTerminalLines ??= new GenericRepository<WiTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WiLineSerial> WiLineSerials =>
-            _wiLineSerials ??= new GenericRepository<WiLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiLineSerials ??= new GenericRepository<WiLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // Shipping repository properties
         public IGenericRepository<ShHeader> ShHeaders =>
-            _shHeaders ??= new GenericRepository<ShHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shHeaders ??= new GenericRepository<ShHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<ShLine> ShLines =>
-            _shLines ??= new GenericRepository<ShLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shLines ??= new GenericRepository<ShLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<ShImportLine> ShImportLines =>
-            _shImportLines ??= new GenericRepository<ShImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shImportLines ??= new GenericRepository<ShImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<ShRoute> ShRoutes =>
-            _shRoutes ??= new GenericRepository<ShRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shRoutes ??= new GenericRepository<ShRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<ShTerminalLine> ShTerminalLines =>
-            _shTerminalLines ??= new GenericRepository<ShTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shTerminalLines ??= new GenericRepository<ShTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<ShLineSerial> ShLineSerials =>
-            _shLineSerials ??= new GenericRepository<ShLineSerial>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shLineSerials ??= new GenericRepository<ShLineSerial>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // InventoryCount repository properties
         public IGenericRepository<IcHeader> ICHeaders =>
-            _icHeaders ??= new GenericRepository<IcHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _icHeaders ??= new GenericRepository<IcHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<IcImportLine> IcImportLines =>
-            _icImportLines ??= new GenericRepository<IcImportLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _icImportLines ??= new GenericRepository<IcImportLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<IcRoute> IcRoutes =>
-            _icRoutes ??= new GenericRepository<IcRoute>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _icRoutes ??= new GenericRepository<IcRoute>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<IcTerminalLine> IcTerminalLines =>
-            _icTerminalLines ??= new GenericRepository<IcTerminalLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _icTerminalLines ??= new GenericRepository<IcTerminalLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<Notification> Notifications =>
-            _notifications ??= new GenericRepository<Notification>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _notifications ??= new GenericRepository<Notification>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<Customer> Customers =>
-            _customers ??= new GenericRepository<Customer>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _customers ??= new GenericRepository<Customer>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<Stock> Stocks =>
-            _stocks ??= new GenericRepository<Stock>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _stocks ??= new GenericRepository<Stock>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<JobFailureLog> JobFailureLogs =>
-            _jobFailureLogs ??= new GenericRepository<JobFailureLog>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _jobFailureLogs ??= new GenericRepository<JobFailureLog>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // Package repository properties
         public IGenericRepository<PHeader> PHeaders =>
-            _pHeaders ??= new GenericRepository<PHeader>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _pHeaders ??= new GenericRepository<PHeader>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PPackage> PPackages =>
-            _pPackages ??= new GenericRepository<PPackage>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _pPackages ??= new GenericRepository<PPackage>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PLine> PLines =>
-            _pLines ??= new GenericRepository<PLine>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _pLines ??= new GenericRepository<PLine>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         // Parameter repository properties
         public IGenericRepository<GrParameter> GrParameters =>
-            _grParameters ??= new GenericRepository<GrParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _grParameters ??= new GenericRepository<GrParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WtParameter> WtParameters =>
-            _wtParameters ??= new GenericRepository<WtParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wtParameters ??= new GenericRepository<WtParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WoParameter> WoParameters =>
-            _woParameters ??= new GenericRepository<WoParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _woParameters ??= new GenericRepository<WoParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<WiParameter> WiParameters =>
-            _wiParameters ??= new GenericRepository<WiParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _wiParameters ??= new GenericRepository<WiParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<ShParameter> ShParameters =>
-            _shParameters ??= new GenericRepository<ShParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _shParameters ??= new GenericRepository<ShParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SrtParameter> SrtParameters =>
-            _srtParameters ??= new GenericRepository<SrtParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _srtParameters ??= new GenericRepository<SrtParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<SitParameter> SitParameters =>
-            _sitParameters ??= new GenericRepository<SitParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _sitParameters ??= new GenericRepository<SitParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PtParameter> PtParameters =>
-            _ptParameters ??= new GenericRepository<PtParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _ptParameters ??= new GenericRepository<PtParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PrParameter> PrParameters =>
-            _prParameters ??= new GenericRepository<PrParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _prParameters ??= new GenericRepository<PrParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<IcParameter> IcParameters =>
-            _icParameters ??= new GenericRepository<IcParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _icParameters ??= new GenericRepository<IcParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IGenericRepository<PParameter> PParameters =>
-            _pParameters ??= new GenericRepository<PParameter>(_context, _httpContextAccessor, _requestCancellationAccessor);
+            _pParameters ??= new GenericRepository<PParameter>(_context, _executionContextAccessor, _requestCancellationAccessor);
 
         public IQueryable<TEntity> SqlQuery<TEntity>(string sql, params object[] parameters) where TEntity : class
         {

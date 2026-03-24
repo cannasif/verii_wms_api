@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using System.Security.Claims;
 using WMS_WEBAPI.Data;
 using WMS_WEBAPI.Interfaces;
 using WMS_WEBAPI.Models;
@@ -15,17 +14,17 @@ namespace WMS_WEBAPI.Repositories
     {
         protected readonly WmsDbContext _context;
         protected readonly DbSet<T> _dbSet;
-        protected readonly IHttpContextAccessor _httpContextAccessor;
+        protected readonly IExecutionContextAccessor _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         public GenericRepository(
             WmsDbContext context,
-            IHttpContextAccessor httpContextAccessor,
+            IExecutionContextAccessor executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor)
         {
             _context = context;
             _dbSet = context.Set<T>();
-            _httpContextAccessor = httpContextAccessor;
+            _executionContextAccessor = executionContextAccessor;
             _requestCancellationAccessor = requestCancellationAccessor;
         }
 
@@ -35,11 +34,7 @@ namespace WMS_WEBAPI.Repositories
         }
         private long? GetCurrentUserId()
         {
-            // Prefer standard NameIdentifier claim; fallback to custom "UserId" if present
-            var httpUser = _httpContextAccessor.HttpContext?.User;
-            var userIdClaim = httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                              ?? httpUser?.FindFirst("UserId")?.Value;
-            return long.TryParse(userIdClaim, out var userId) ? userId : null;
+            return _executionContextAccessor.UserId;
         }
 
         public IQueryable<T> Query(bool tracking = false, bool ignoreQueryFilters = false)
