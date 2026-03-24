@@ -12,16 +12,25 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WiRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public WiRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<WiRouteDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<WiRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.WiRoutes.GetAllAsync();
@@ -34,8 +43,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<WiRouteDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<WiRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -47,10 +57,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<WiRouteDto>>(entities);
                 var result = new PagedResponse<WiRouteDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -69,13 +79,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<WiRouteDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<WiRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WiRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null) return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteNotFound"), _localizationService.GetLocalizedString("WiRouteNotFound"), 404);
                 var dto = _mapper.Map<WiRouteDto>(entity);
                 return ApiResponse<WiRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiRouteRetrievedSuccessfully"));
@@ -86,13 +97,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WiRouteDto>> CreateAsync(CreateWiRouteDto createDto)
+        public async Task<ApiResponse<WiRouteDto>> CreateAsync(CreateWiRouteDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<WiRoute>(createDto);
                 var created = await _unitOfWork.WiRoutes.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<WiRouteDto>(created);
                 return ApiResponse<WiRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiRouteCreatedSuccessfully"));
             }
@@ -102,17 +114,18 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WiRouteDto>> UpdateAsync(long id, UpdateWiRouteDto updateDto)
+        public async Task<ApiResponse<WiRouteDto>> UpdateAsync(long id, UpdateWiRouteDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var existing = await _unitOfWork.WiRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (existing == null) return ApiResponse<WiRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WiRouteNotFound"), _localizationService.GetLocalizedString("WiRouteNotFound"), 404);
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WiRoutes.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<WiRouteDto>(entity);
                 return ApiResponse<WiRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiRouteUpdatedSuccessfully"));
             }
@@ -122,13 +135,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var route = await _unitOfWork.WiRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (route == null || route.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WiRouteNotFound"), _localizationService.GetLocalizedString("WiRouteNotFound"), 404);
@@ -139,7 +153,7 @@ namespace WMS_WEBAPI.Services
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
                 var remainingRoutesCount = await _unitOfWork.WiRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
 
                 // Eğer başka route yoksa (count == 0), bu son route demektir, ImportLine'ı da silmeliyiz
                 var shouldDeleteImportLine = remainingRoutesCount == 0;
@@ -160,7 +174,7 @@ namespace WMS_WEBAPI.Services
                         }
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("WiRouteDeletedSuccessfully"));
                 }

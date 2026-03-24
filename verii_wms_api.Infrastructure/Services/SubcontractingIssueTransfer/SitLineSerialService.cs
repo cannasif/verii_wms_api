@@ -14,19 +14,28 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SitLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public SitLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<SitLineSerialDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<SitLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var items = await _unitOfWork.SitLineSerials.Query().ToListAsync();
+                var items = await _unitOfWork.SitLineSerials.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SitLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<SitLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitLineSerialRetrievedSuccessfully"));
             }
@@ -36,8 +45,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<SitLineSerialDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<SitLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -76,13 +86,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<SitLineSerialDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<SitLineSerialDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SitLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SitLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineSerialNotFound"), _localizationService.GetLocalizedString("SitLineSerialNotFound"), 404);
@@ -96,11 +107,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SitLineSerialDto>>> GetByLineIdAsync(long lineId)
+        public async Task<ApiResponse<IEnumerable<SitLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var items = await _unitOfWork.SitLineSerials.Query().Where(x => x.LineId == lineId).ToListAsync();
+                var items = await _unitOfWork.SitLineSerials.Query().Where(x => x.LineId == lineId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SitLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<SitLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitLineSerialRetrievedSuccessfully"));
             }
@@ -110,8 +122,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SitLineSerialDto>> CreateAsync(CreateSitLineSerialDto createDto)
+        public async Task<ApiResponse<SitLineSerialDto>> CreateAsync(CreateSitLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var lineExists = await _unitOfWork.SitLines.ExistsAsync(createDto.LineId);
@@ -123,7 +136,7 @@ namespace WMS_WEBAPI.Services
                 entity.CreatedDate = DateTime.Now;
                 entity.IsDeleted = false;
                 await _unitOfWork.SitLineSerials.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SitLineSerialDto>(entity);
                 return ApiResponse<SitLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitLineSerialCreatedSuccessfully"));
             }
@@ -133,13 +146,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SitLineSerialDto>> UpdateAsync(long id, UpdateSitLineSerialDto updateDto)
+        public async Task<ApiResponse<SitLineSerialDto>> UpdateAsync(long id, UpdateSitLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SitLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SitLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SitLineSerialNotFound"), _localizationService.GetLocalizedString("SitLineSerialNotFound"), 404);
@@ -155,7 +169,7 @@ namespace WMS_WEBAPI.Services
                 _mapper.Map(updateDto, entity);
                 entity.UpdatedDate = DateTime.Now;
                 _unitOfWork.SitLineSerials.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SitLineSerialDto>(entity);
                 return ApiResponse<SitLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitLineSerialUpdatedSuccessfully"));
             }
@@ -165,13 +179,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SitLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SitLineSerialNotFound"), _localizationService.GetLocalizedString("SitLineSerialNotFound"), 404);
@@ -195,7 +210,7 @@ namespace WMS_WEBAPI.Services
                                                (!string.IsNullOrWhiteSpace(s3) && (r.SerialNo3 ?? "").Trim() == s3) ||
                                                (!string.IsNullOrWhiteSpace(s4) && (r.SerialNo4 ?? "").Trim() == s4)
                                            ))
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                         if (serialExistsInRoutes)
                         {
                             var msg = _localizationService.GetLocalizedString("SitLineSerialRoutesExist");
@@ -221,12 +236,12 @@ namespace WMS_WEBAPI.Services
 
                 var currentSerialCount = await _unitOfWork.SitLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
                 var remainingSerialCount = currentSerialCount - 1;
 
                 var hasImportLines = await _unitOfWork.SitImportLines.Query()
                     .Where(il => !il.IsDeleted && il.LineId == entity.LineId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
 
                 var headerWillBeDeleted = false;
@@ -236,13 +251,13 @@ namespace WMS_WEBAPI.Services
                     var headerId = lineEntity.HeaderId;
                     var currentLinesUnderHeader = await _unitOfWork.SitLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
                     var remainingLinesUnderHeader = currentLinesUnderHeader - 1;
                     if (remainingLinesUnderHeader == 0)
                     {
                         var hasHeaderImportLines = await _unitOfWork.SitImportLines.Query()
                             .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                         if (!hasHeaderImportLines)
                         {
                             headerWillBeDeleted = true;
@@ -265,7 +280,7 @@ namespace WMS_WEBAPI.Services
                         }
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     var msgKey = lineWillBeDeleted ? "SitLineSerialDeletedAndLineDeleted" : "SitLineSerialDeletedSuccessfully";
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString(msgKey));

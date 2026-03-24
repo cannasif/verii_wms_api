@@ -14,16 +14,25 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GrLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public GrLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<PagedResponse<GrLineSerialDto>>> GetPagedAsync(int pageNumber, int pageSize, string? sortBy = null, string? sortDirection = "asc")
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<PagedResponse<GrLineSerialDto>>> GetPagedAsync(int pageNumber, int pageSize, string? sortBy = null, string? sortDirection = "asc", CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 if (pageNumber < 1) pageNumber = 1;
@@ -34,8 +43,8 @@ namespace WMS_WEBAPI.Services
                 bool desc = sortDirection?.Equals("desc", StringComparison.OrdinalIgnoreCase) == true;
                 query = query.ApplySorting(sortBy, desc);
 
-                var totalCount = await query.CountAsync();
-                var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
+                var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<GrLineSerialDto>>(items);
                 var result = new PagedResponse<GrLineSerialDto>(dtos, totalCount, pageNumber, pageSize);
@@ -47,8 +56,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<GrLineSerialDto>>> GetAllAsync()
+        public async Task<ApiResponse<IEnumerable<GrLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var serialLines = await _unitOfWork.GrLineSerials.GetAllAsync();
@@ -61,8 +71,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<GrLineSerialDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<GrLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -101,13 +112,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<GrLineSerialDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<GrLineSerialDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var serialLine = await _unitOfWork.GrLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (serialLine == null)
                 {
                     var nf = _localizationService.GetLocalizedString("GrImportSerialLineNotFound");
@@ -122,8 +134,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<GrLineSerialDto>>> GetByLineIdAsync(long lineId)
+        public async Task<ApiResponse<IEnumerable<GrLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var serialLines = await _unitOfWork.GrLineSerials.FindAsync(x => x.LineId == lineId);
@@ -136,8 +149,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrLineSerialDto>> CreateAsync(CreateGrLineSerialDto createDto)
+        public async Task<ApiResponse<GrLineSerialDto>> CreateAsync(CreateGrLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 if (createDto.LineId.HasValue)
@@ -151,7 +165,7 @@ namespace WMS_WEBAPI.Services
                 }
                 var serialLine = _mapper.Map<GrLineSerial>(createDto);
                 await _unitOfWork.GrLineSerials.AddAsync(serialLine);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var serialLineDto = _mapper.Map<GrLineSerialDto>(serialLine);
                 return ApiResponse<GrLineSerialDto>.SuccessResult(serialLineDto, _localizationService.GetLocalizedString("GrImportSerialLineCreatedSuccessfully"));
             }
@@ -161,13 +175,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrLineSerialDto>> UpdateAsync(long id, UpdateGrLineSerialDto updateDto)
+        public async Task<ApiResponse<GrLineSerialDto>> UpdateAsync(long id, UpdateGrLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var serialLine = await _unitOfWork.GrLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (serialLine == null)
                 {
                     var nf = _localizationService.GetLocalizedString("GrImportSerialLineNotFound");
@@ -185,7 +200,7 @@ namespace WMS_WEBAPI.Services
                 }
                 _mapper.Map(updateDto, serialLine);
                 _unitOfWork.GrLineSerials.Update(serialLine);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var serialLineDto = _mapper.Map<GrLineSerialDto>(serialLine);
                 return ApiResponse<GrLineSerialDto>.SuccessResult(serialLineDto, _localizationService.GetLocalizedString("GrImportSerialLineUpdatedSuccessfully"));
             }
@@ -195,13 +210,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var serialLine = await _unitOfWork.GrLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (serialLine == null)
                 {
                     var nf = _localizationService.GetLocalizedString("GrImportSerialLineNotFound");
@@ -211,7 +227,7 @@ namespace WMS_WEBAPI.Services
                 try
                 {
                     await _unitOfWork.GrLineSerials.SoftDelete(id);
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrImportSerialLineDeletedSuccessfully"));
                 }

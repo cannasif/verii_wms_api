@@ -13,19 +13,31 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         public GrImportDocumentService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            ILocalizationService localizationService)
+            ILocalizationService localizationService,
+            IRequestCancellationAccessor requestCancellationAccessor
+        )
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<PagedResponse<GrImportDocumentDto>>> GetPagedAsync(PagedRequest request)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<PagedResponse<GrImportDocumentDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var query = _unitOfWork.GrImportDocuments.Query();
@@ -33,8 +45,8 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
+                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<GrImportDocumentDto>>(items);
 
@@ -48,8 +60,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<GrImportDocumentDto>>> GetAllAsync()
+        public async Task<ApiResponse<IEnumerable<GrImportDocumentDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var documents = await _unitOfWork.GrImportDocuments.GetAllAsync();
@@ -63,13 +76,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrImportDocumentDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<GrImportDocumentDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var document = await _unitOfWork.GrImportDocuments.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (document == null)
                 {
                     return ApiResponse<GrImportDocumentDto>.ErrorResult(
@@ -88,8 +102,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<GrImportDocumentDto>>> GetByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<GrImportDocumentDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var documents = await _unitOfWork.GrImportDocuments.FindAsync(d => d.HeaderId == headerId);
@@ -103,8 +118,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrImportDocumentDto>> CreateAsync(CreateGrImportDocumentDto createDto)
+        public async Task<ApiResponse<GrImportDocumentDto>> CreateAsync(CreateGrImportDocumentDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 // HeaderId'nin geçerli olup olmadığını kontrol et
@@ -120,7 +136,7 @@ namespace WMS_WEBAPI.Services
 
                 var document = _mapper.Map<GrImportDocument>(createDto);
                 var createdDocument = await _unitOfWork.GrImportDocuments.AddAsync(document);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var documentDto = _mapper.Map<GrImportDocumentDto>(createdDocument);
                 return ApiResponse<GrImportDocumentDto>.SuccessResult(documentDto, _localizationService.GetLocalizedString("GrImportDocumentCreatedSuccessfully"));
@@ -131,13 +147,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrImportDocumentDto>> UpdateAsync(long id, UpdateGrImportDocumentDto updateDto)
+        public async Task<ApiResponse<GrImportDocumentDto>> UpdateAsync(long id, UpdateGrImportDocumentDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var document = await _unitOfWork.GrImportDocuments.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (document == null)
                 {
                     return ApiResponse<GrImportDocumentDto>.ErrorResult(
@@ -160,7 +177,7 @@ namespace WMS_WEBAPI.Services
 
                 _mapper.Map(updateDto, document);
                 _unitOfWork.GrImportDocuments.Update(document);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var documentDto = _mapper.Map<GrImportDocumentDto>(document);
                 return ApiResponse<GrImportDocumentDto>.SuccessResult(documentDto, _localizationService.GetLocalizedString("GrImportDocumentUpdatedSuccessfully"));
@@ -171,13 +188,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var document = await _unitOfWork.GrImportDocuments.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (document == null)
                 {
                     return ApiResponse<bool>.ErrorResult(
@@ -188,7 +206,7 @@ namespace WMS_WEBAPI.Services
                 }
 
                 await _unitOfWork.GrImportDocuments.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrImportDocumentDeletedSuccessfully"));
             }

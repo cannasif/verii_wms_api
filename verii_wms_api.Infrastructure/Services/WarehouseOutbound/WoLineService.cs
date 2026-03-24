@@ -13,20 +13,29 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IErpService _erpService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WoLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IErpService erpService)
+        public WoLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IErpService erpService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _erpService = erpService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<WoLineDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<WoLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.WoLines.Query().ToListAsync();
+                var entities = await _unitOfWork.WoLines.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<WoLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -41,8 +50,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<WoLineDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<WoLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var query = _unitOfWork.WoLines.Query();
@@ -50,8 +60,8 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
+                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<List<WoLineDto>>(items);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -68,13 +78,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WoLineDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<WoLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WoLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null) return ApiResponse<WoLineDto>.ErrorResult(_localizationService.GetLocalizedString("WoLineNotFound"), _localizationService.GetLocalizedString("WoLineNotFound"), 404);
                 var dto = _mapper.Map<WoLineDto>(entity);
                 var enriched = await _erpService.PopulateStockNamesAsync(new[] { dto });
@@ -91,11 +102,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<WoLineDto>>> GetByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<WoLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.WoLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
+                var entities = await _unitOfWork.WoLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<WoLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -114,13 +126,14 @@ namespace WMS_WEBAPI.Services
 
 
 
-        public async Task<ApiResponse<WoLineDto>> CreateAsync(CreateWoLineDto createDto)
+        public async Task<ApiResponse<WoLineDto>> CreateAsync(CreateWoLineDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<WoLine>(createDto);
                 var created = await _unitOfWork.WoLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<WoLineDto>(created);
                 return ApiResponse<WoLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoLineCreatedSuccessfully"));
             }
@@ -130,17 +143,18 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WoLineDto>> UpdateAsync(long id, UpdateWoLineDto updateDto)
+        public async Task<ApiResponse<WoLineDto>> UpdateAsync(long id, UpdateWoLineDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var existing = await _unitOfWork.WoLines.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (existing == null) return ApiResponse<WoLineDto>.ErrorResult(_localizationService.GetLocalizedString("WoLineNotFound"), _localizationService.GetLocalizedString("WoLineNotFound"), 404);
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.WoLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<WoLineDto>(entity);
                 return ApiResponse<WoLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoLineUpdatedSuccessfully"));
             }
@@ -150,13 +164,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WoLines.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WoLineNotFound"), _localizationService.GetLocalizedString("WoLineNotFound"), 404);
@@ -165,14 +180,14 @@ namespace WMS_WEBAPI.Services
                 var hasActiveLineSerials = await _unitOfWork.WoLineSerials
                     .Query()
                     .Where(ls => ls.LineId == id)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("WoLineLineSerialsExist");
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var importLines = await _unitOfWork.WoImportLines.Query().Where(x => x.LineId == id).ToListAsync();
+                var importLines = await _unitOfWork.WoImportLines.Query().Where(x => x.LineId == id).ToListAsync(requestCancellationToken);
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("WoLineImportLinesExist");
@@ -188,17 +203,17 @@ namespace WMS_WEBAPI.Services
                     var hasOtherLines = await _unitOfWork.WoLines
                         .Query()
                         .Where(l => l.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                     var hasOtherImportLines = await _unitOfWork.WoImportLines
                         .Query()
                         .Where(il => il.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.WoHeaders.SoftDelete(headerId);
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                 }
                 catch

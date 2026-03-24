@@ -13,20 +13,29 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IErpService _erpService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SrtLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IErpService erpService)
+        public SrtLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IErpService erpService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _erpService = erpService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtLines.Query().ToListAsync();
+                var entities = await _unitOfWork.SrtLines.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -41,8 +50,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<SrtLineDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<SrtLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 if (request.PageNumber < 1) request.PageNumber = 1;
@@ -53,8 +63,8 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
+                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<List<SrtLineDto>>(items);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -71,13 +81,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SrtLineDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<SrtLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("SrtLineNotFound");
@@ -98,11 +109,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
+                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -117,11 +129,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetByStockCodeAsync(string stockCode)
+        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetByStockCodeAsync(string stockCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.StockCode == stockCode).ToListAsync();
+                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.StockCode == stockCode).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -136,11 +149,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetByErpOrderNoAsync(string erpOrderNo)
+        public async Task<ApiResponse<IEnumerable<SrtLineDto>>> GetByErpOrderNoAsync(string erpOrderNo, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.ErpOrderNo == erpOrderNo).ToListAsync();
+                var entities = await _unitOfWork.SrtLines.Query().Where(x => x.ErpOrderNo == erpOrderNo).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtLineDto>>(entities);
                 var enriched = await _erpService.PopulateStockNamesAsync(dtos);
                 if (!enriched.Success)
@@ -157,13 +171,14 @@ namespace WMS_WEBAPI.Services
 
 
 
-        public async Task<ApiResponse<SrtLineDto>> CreateAsync(CreateSrtLineDto createDto)
+        public async Task<ApiResponse<SrtLineDto>> CreateAsync(CreateSrtLineDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<SrtLine>(createDto);
                 await _unitOfWork.SrtLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SrtLineDto>(entity);
                 return ApiResponse<SrtLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtLineCreatedSuccessfully"));
             }
@@ -173,20 +188,21 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SrtLineDto>> UpdateAsync(long id, UpdateSrtLineDto updateDto)
+        public async Task<ApiResponse<SrtLineDto>> UpdateAsync(long id, UpdateSrtLineDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtLines.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtLineDto>.ErrorResult(_localizationService.GetLocalizedString("SrtLineNotFound"), _localizationService.GetLocalizedString("SrtLineNotFound"), 404);
                 }
                 _mapper.Map(updateDto, entity);
                 _unitOfWork.SrtLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SrtLineDto>(entity);
                 return ApiResponse<SrtLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtLineUpdatedSuccessfully"));
             }
@@ -196,13 +212,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtLines.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SrtLineNotFound"), _localizationService.GetLocalizedString("SrtLineNotFound"), 404);
@@ -211,14 +228,14 @@ namespace WMS_WEBAPI.Services
                 var hasActiveLineSerials = await _unitOfWork.SrtLineSerials
                     .Query()
                     .Where(ls => ls.LineId == id)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("SrtLineLineSerialsExist");
                     return ApiResponse<bool>.ErrorResult(msg, msg, 400);
                 }
 
-                var importLines = await _unitOfWork.SrtImportLines.Query().Where(x => x.LineId == id).ToListAsync();
+                var importLines = await _unitOfWork.SrtImportLines.Query().Where(x => x.LineId == id).ToListAsync(requestCancellationToken);
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("SrtLineImportLinesExist");
@@ -233,16 +250,16 @@ namespace WMS_WEBAPI.Services
 
                     var hasOtherLines = await _unitOfWork.SrtLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                     var hasOtherImportLines = await _unitOfWork.SrtImportLines.Query()
                         .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.SrtHeaders.SoftDelete(headerId);
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                 }
                 catch

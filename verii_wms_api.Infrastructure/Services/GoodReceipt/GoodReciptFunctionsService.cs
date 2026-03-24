@@ -14,23 +14,33 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GoodReciptFunctionsService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
+        public GoodReciptFunctionsService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<List<GoodsOpenOrdersHeaderDto>>> GetGoodsReceiptHeaderAsync(string customerCode)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<List<GoodsOpenOrdersHeaderDto>>> GetGoodsReceiptHeaderAsync(string customerCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 
                 var headers = await _unitOfWork.SqlQuery<FN_GoodsOpenOrders_Header>("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_HEADER({0}, {1})", customerCode, branchCodeStr)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var headerDtos = _mapper.Map<List<GoodsOpenOrdersHeaderDto>>(headers);
 
@@ -42,14 +52,15 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<GoodsOpenOrdersLineDto>>> GetGoodsReceiptLineAsync(string siparisNoCsv, string customerCode)
+        public async Task<ApiResponse<List<GoodsOpenOrdersLineDto>>> GetGoodsReceiptLineAsync(string siparisNoCsv, string customerCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var ordersCsv = string.IsNullOrWhiteSpace(siparisNoCsv) ? "" : siparisNoCsv;
                 var lines = await _unitOfWork.SqlQuery<FN_GoodsOpenOrders_Line>("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_LINE({0}, {1}, {2})", ordersCsv, customerCode, branchCodeStr)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var lineDtos = _mapper.Map<List<GoodsOpenOrdersLineDto>>(lines);
 
@@ -61,12 +72,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<GoodsOpenOrdersLineDto>>> GetGoodsReceiptLineByCustomerCodeAndBranchCodeAsync(string branchCode, string customerCode)
+        public async Task<ApiResponse<List<GoodsOpenOrdersLineDto>>> GetGoodsReceiptLineByCustomerCodeAndBranchCodeAsync(string branchCode, string customerCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var lines = await _unitOfWork.SqlQuery<FN_GoodsOpenOrders_Line>("SELECT * FROM dbo.RII_FN_GR_OPENORDERS_LINE({0}, {1}, {2})", null!, customerCode, branchCode)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var lineDtos = _mapper.Map<List<GoodsOpenOrdersLineDto>>(lines);
 

@@ -14,19 +14,28 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SrtLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public SrtLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<SrtLineSerialDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<SrtLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var items = await _unitOfWork.SrtLineSerials.Query().ToListAsync();
+                var items = await _unitOfWork.SrtLineSerials.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
             }
@@ -36,8 +45,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<SrtLineSerialDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<SrtLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -76,13 +86,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<SrtLineSerialDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<SrtLineSerialDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SrtLineSerialNotFound"), _localizationService.GetLocalizedString("SrtLineSerialNotFound"), 404);
@@ -96,11 +107,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SrtLineSerialDto>>> GetByLineIdAsync(long lineId)
+        public async Task<ApiResponse<IEnumerable<SrtLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var items = await _unitOfWork.SrtLineSerials.Query().Where(x => x.LineId == lineId).ToListAsync();
+                var items = await _unitOfWork.SrtLineSerials.Query().Where(x => x.LineId == lineId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtLineSerialDto>>(items);
                 return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
             }
@@ -110,8 +122,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SrtLineSerialDto>> CreateAsync(CreateSrtLineSerialDto createDto)
+        public async Task<ApiResponse<SrtLineSerialDto>> CreateAsync(CreateSrtLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var lineExists = await _unitOfWork.SrtLines.ExistsAsync(createDto.LineId);
@@ -123,7 +136,7 @@ namespace WMS_WEBAPI.Services
                 entity.CreatedDate = DateTime.Now;
                 entity.IsDeleted = false;
                 await _unitOfWork.SrtLineSerials.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SrtLineSerialDto>(entity);
                 return ApiResponse<SrtLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtLineSerialCreatedSuccessfully"));
             }
@@ -133,13 +146,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SrtLineSerialDto>> UpdateAsync(long id, UpdateSrtLineSerialDto updateDto)
+        public async Task<ApiResponse<SrtLineSerialDto>> UpdateAsync(long id, UpdateSrtLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtLineSerialDto>.ErrorResult(_localizationService.GetLocalizedString("SrtLineSerialNotFound"), _localizationService.GetLocalizedString("SrtLineSerialNotFound"), 404);
@@ -155,7 +169,7 @@ namespace WMS_WEBAPI.Services
                 _mapper.Map(updateDto, entity);
                 entity.UpdatedDate = DateTime.Now;
                 _unitOfWork.SrtLineSerials.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SrtLineSerialDto>(entity);
                 return ApiResponse<SrtLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtLineSerialUpdatedSuccessfully"));
             }
@@ -165,13 +179,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("SrtLineSerialNotFound"), _localizationService.GetLocalizedString("SrtLineSerialNotFound"), 404);
@@ -195,7 +210,7 @@ namespace WMS_WEBAPI.Services
                                                (!string.IsNullOrWhiteSpace(s3) && (r.SerialNo3 ?? "").Trim() == s3) ||
                                                (!string.IsNullOrWhiteSpace(s4) && (r.SerialNo4 ?? "").Trim() == s4)
                                            ))
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                         if (serialExistsInRoutes)
                         {
                             var msg = _localizationService.GetLocalizedString("SrtLineSerialRoutesExist");
@@ -221,12 +236,12 @@ namespace WMS_WEBAPI.Services
 
                 var currentSerialCount = await _unitOfWork.SrtLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
                 var remainingSerialCount = currentSerialCount - 1;
 
                 var hasImportLines = await _unitOfWork.SrtImportLines.Query()
                     .Where(il => !il.IsDeleted && il.LineId == entity.LineId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
 
                 var headerWillBeDeleted = false;
@@ -236,13 +251,13 @@ namespace WMS_WEBAPI.Services
                     var headerId = lineEntity.HeaderId;
                     var currentLinesUnderHeader = await _unitOfWork.SrtLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
                     var remainingLinesUnderHeader = currentLinesUnderHeader - 1;
                     if (remainingLinesUnderHeader == 0)
                     {
                         var hasHeaderImportLines = await _unitOfWork.SrtImportLines.Query()
                             .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                         if (!hasHeaderImportLines)
                         {
                             headerWillBeDeleted = true;
@@ -265,7 +280,7 @@ namespace WMS_WEBAPI.Services
                         }
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     var msgKey = lineWillBeDeleted ? "SrtLineSerialDeletedAndLineDeleted" : "SrtLineSerialDeletedSuccessfully";
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString(msgKey));

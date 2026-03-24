@@ -12,16 +12,25 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public ShRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public ShRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.ShRoutes.GetAllAsync();
@@ -34,8 +43,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<ShRouteDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<ShRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -47,10 +57,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<ShRouteDto>>(entities);
                 var result = new PagedResponse<ShRouteDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -69,13 +79,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<ShRouteDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<ShRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.ShRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null) { var nf = _localizationService.GetLocalizedString("ShRouteNotFound"); return ApiResponse<ShRouteDto>.ErrorResult(nf, nf, 404); }
                 var dto = _mapper.Map<ShRouteDto>(entity);
                 return ApiResponse<ShRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
@@ -88,12 +99,13 @@ namespace WMS_WEBAPI.Services
 
         
 
-        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetByStockCodeAsync(string stockCode)
+        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetByStockCodeAsync(string stockCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var query = _unitOfWork.ShRoutes.Query().Where(r => ((r.ImportLine.StockCode ?? "").Trim() == (stockCode ?? "").Trim()) && !r.IsDeleted);
-                var entities = await query.ToListAsync();
+                var entities = await query.ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<ShRouteDto>>(entities);
                 return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
             }
@@ -103,8 +115,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetBySerialNoAsync(string serialNo)
+        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var sn = (serialNo ?? "").Trim();
@@ -118,11 +131,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetBySourceWarehouseAsync(int sourceWarehouse)
+        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetBySourceWarehouseAsync(int sourceWarehouse, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.ShRoutes.Query().Where(x => x.SourceWarehouse == sourceWarehouse).ToListAsync();
+                var entities = await _unitOfWork.ShRoutes.Query().Where(x => x.SourceWarehouse == sourceWarehouse).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<ShRouteDto>>(entities);
                 return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
             }
@@ -132,11 +146,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetByTargetWarehouseAsync(int targetWarehouse)
+        public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetByTargetWarehouseAsync(int targetWarehouse, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.ShRoutes.Query().Where(x => x.TargetWarehouse == targetWarehouse).ToListAsync();
+                var entities = await _unitOfWork.ShRoutes.Query().Where(x => x.TargetWarehouse == targetWarehouse).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<ShRouteDto>>(entities);
                 return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
             }
@@ -147,13 +162,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<ShRouteDto>> CreateAsync(CreateShRouteDto createDto)
+        public async Task<ApiResponse<ShRouteDto>> CreateAsync(CreateShRouteDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<ShRoute>(createDto);
                 var created = await _unitOfWork.ShRoutes.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<ShRouteDto>(created);
                 return ApiResponse<ShRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShRouteCreatedSuccessfully"));
             }
@@ -163,17 +179,18 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<ShRouteDto>> UpdateAsync(long id, UpdateShRouteDto updateDto)
+        public async Task<ApiResponse<ShRouteDto>> UpdateAsync(long id, UpdateShRouteDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var existing = await _unitOfWork.ShRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (existing == null) { var nf = _localizationService.GetLocalizedString("ShRouteNotFound"); return ApiResponse<ShRouteDto>.ErrorResult(nf, nf, 404); }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.ShRoutes.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<ShRouteDto>(entity);
                 return ApiResponse<ShRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShRouteUpdatedSuccessfully"));
             }
@@ -183,13 +200,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var route = await _unitOfWork.ShRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (route == null || route.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("ShRouteNotFound");
@@ -201,7 +219,7 @@ namespace WMS_WEBAPI.Services
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
                 var remainingRoutesCount = await _unitOfWork.ShRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
 
                 // Eğer başka route yoksa (count == 0), bu son route demektir, ImportLine'ı da silmeliyiz
                 var shouldDeleteImportLine = remainingRoutesCount == 0;
@@ -222,7 +240,7 @@ namespace WMS_WEBAPI.Services
                         }
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("ShRouteDeletedSuccessfully"));
                 }

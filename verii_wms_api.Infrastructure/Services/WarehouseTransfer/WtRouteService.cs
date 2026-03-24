@@ -14,19 +14,28 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WtRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public WtRouteService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<WtRouteDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<WtRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.WtRoutes.Query().ToListAsync();
+                var entities = await _unitOfWork.WtRoutes.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<WtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
             }
@@ -36,8 +45,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<WtRouteDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<WtRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -76,13 +86,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<WtRouteDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<WtRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WtRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -98,11 +109,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<WtRouteDto>>> GetBySerialNoAsync(string serialNo)
+        public async Task<ApiResponse<IEnumerable<WtRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.WtRoutes.Query().Where(x => x.SerialNo == serialNo).ToListAsync();
+                var entities = await _unitOfWork.WtRoutes.Query().Where(x => x.SerialNo == serialNo).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<WtRouteDto>>(entities);
                 return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
             }
@@ -112,8 +124,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtRouteDto>> CreateAsync(CreateWtRouteDto createDto)
+        public async Task<ApiResponse<WtRouteDto>> CreateAsync(CreateWtRouteDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<WtRoute>(createDto);
@@ -121,7 +134,7 @@ namespace WMS_WEBAPI.Services
                 entity.IsDeleted = false;
 
                 await _unitOfWork.WtRoutes.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<WtRouteDto>(entity);
                 return ApiResponse<WtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtRouteCreatedSuccessfully"));
@@ -132,13 +145,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtRouteDto>> UpdateAsync(long id, UpdateWtRouteDto updateDto)
+        public async Task<ApiResponse<WtRouteDto>> UpdateAsync(long id, UpdateWtRouteDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WtRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<WtRouteDto>.ErrorResult(_localizationService.GetLocalizedString("WtRouteNotFound"), _localizationService.GetLocalizedString("WtRouteNotFound"), 404);
@@ -148,7 +162,7 @@ namespace WMS_WEBAPI.Services
                 entity.UpdatedDate = DateTime.Now;
 
                 _unitOfWork.WtRoutes.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<WtRouteDto>(entity);
                 return ApiResponse<WtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtRouteUpdatedSuccessfully"));
@@ -159,13 +173,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var route = await _unitOfWork.WtRoutes.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (route == null || route.IsDeleted)
                 {
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("WtRouteNotFound"), _localizationService.GetLocalizedString("WtRouteNotFound"), 404);
@@ -177,12 +192,12 @@ namespace WMS_WEBAPI.Services
                 var headerId = await _unitOfWork.WtImportLines.Query()
                     .Where(il => il.Id == importLineId && !il.IsDeleted)
                     .Select(il => il.HeaderId)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 // Bu ImportLine'a bağlı, silinmemiş ve bu route dışında başka route var mı kontrol et
                 var remainingRoutesCount = await _unitOfWork.WtRoutes.Query()
                     .Where(r => !r.IsDeleted && r.ImportLineId == importLineId && r.Id != id)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
 
                     var packageInfoList = await (
                         from pl in _unitOfWork.PLines.Query()
@@ -199,7 +214,7 @@ namespace WMS_WEBAPI.Services
                         {
                             PackageLineId = pl.Id
                         }
-                    ).ToListAsync();
+                    ).ToListAsync(requestCancellationToken);
 
                 // Eğer başka route yoksa (count == 0), bu son route demektir, ImportLine'ı da silmeliyiz
                 var shouldDeleteImportLine = remainingRoutesCount == 0;
@@ -225,7 +240,7 @@ namespace WMS_WEBAPI.Services
                         }
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
 
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("WtRouteDeletedSuccessfully"));

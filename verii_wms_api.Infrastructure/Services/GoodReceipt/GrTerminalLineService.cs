@@ -13,19 +13,28 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GrTerminalLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public GrTerminalLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<GrTerminalLineDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<GrTerminalLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.GrTerminalLines.Query().ToListAsync();
+                var entities = await _unitOfWork.GrTerminalLines.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<GrTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<GrTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrTerminalLineRetrievedSuccessfully"));
             }
@@ -35,8 +44,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<GrTerminalLineDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<GrTerminalLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -75,13 +85,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<GrTerminalLineDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<GrTerminalLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.GrTerminalLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<GrTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrTerminalLineNotFound"), _localizationService.GetLocalizedString("GrTerminalLineNotFound"), 404);
@@ -95,11 +106,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<GrTerminalLineDto>>> GetByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<GrTerminalLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.GrTerminalLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
+                var entities = await _unitOfWork.GrTerminalLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<GrTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<GrTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrTerminalLineRetrievedSuccessfully"));
             }
@@ -109,11 +121,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<GrTerminalLineDto>>> GetByUserIdAsync(long userId)
+        public async Task<ApiResponse<IEnumerable<GrTerminalLineDto>>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.GrTerminalLines.Query().Where(x => x.TerminalUserId == userId).ToListAsync();
+                var entities = await _unitOfWork.GrTerminalLines.Query().Where(x => x.TerminalUserId == userId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<GrTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<GrTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrTerminalLineRetrievedSuccessfully"));
             }
@@ -123,15 +136,16 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrTerminalLineDto>> CreateAsync(CreateGrTerminalLineDto createDto)
+        public async Task<ApiResponse<GrTerminalLineDto>> CreateAsync(CreateGrTerminalLineDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<GrTerminalLine>(createDto);
                 entity.CreatedDate = DateTimeProvider.Now;
                 entity.IsDeleted = false;
                 await _unitOfWork.GrTerminalLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<GrTerminalLineDto>(entity);
                 return ApiResponse<GrTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrTerminalLineCreatedSuccessfully"));
             }
@@ -141,13 +155,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<GrTerminalLineDto>> UpdateAsync(long id, UpdateGrTerminalLineDto updateDto)
+        public async Task<ApiResponse<GrTerminalLineDto>> UpdateAsync(long id, UpdateGrTerminalLineDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.GrTerminalLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<GrTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("GrTerminalLineNotFound"), _localizationService.GetLocalizedString("GrTerminalLineNotFound"), 404);
@@ -155,7 +170,7 @@ namespace WMS_WEBAPI.Services
                 _mapper.Map(updateDto, entity);
                 entity.UpdatedDate = DateTimeProvider.Now;
                 _unitOfWork.GrTerminalLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<GrTerminalLineDto>(entity);
                 return ApiResponse<GrTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrTerminalLineUpdatedSuccessfully"));
             }
@@ -165,8 +180,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var exists = await _unitOfWork.GrTerminalLines.ExistsAsync(id);
@@ -175,7 +191,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("GrTerminalLineNotFound"), _localizationService.GetLocalizedString("GrTerminalLineNotFound"), 404);
                 }
                 await _unitOfWork.GrTerminalLines.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrTerminalLineDeletedSuccessfully"));
             }
             catch (Exception ex)

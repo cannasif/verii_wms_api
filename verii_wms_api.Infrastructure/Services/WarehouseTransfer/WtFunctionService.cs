@@ -14,22 +14,32 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WtFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
+        public WtFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<List<TransferOpenOrderHeaderDto>>> GetTransferOpenOrderHeaderAsync(string customerCode)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<List<TransferOpenOrderHeaderDto>>> GetTransferOpenOrderHeaderAsync(string customerCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var headers = await _unitOfWork.SqlQuery<FN_TransferOpenOrder_Header>("SELECT * FROM dbo.RII_FN_WT_HEADER({0}, {1})", customerCode, branchCodeStr)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var headerDtos = _mapper.Map<List<TransferOpenOrderHeaderDto>>(headers);
 
@@ -48,13 +58,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<TransferOpenOrderLineDto>>> GetTransferOpenOrderLineAsync(string siparisNoCsv)
+        public async Task<ApiResponse<List<TransferOpenOrderLineDto>>> GetTransferOpenOrderLineAsync(string siparisNoCsv, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var lines = await _unitOfWork.SqlQuery<FN_TransferOpenOrder_Line>("SELECT * FROM dbo.RII_FN_WT_LINE({0}, {1})", siparisNoCsv, branchCodeStr)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var lineDtos = _mapper.Map<List<TransferOpenOrderLineDto>>(lines);
 

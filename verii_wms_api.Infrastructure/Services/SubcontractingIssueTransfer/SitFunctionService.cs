@@ -14,22 +14,32 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SitFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor)
+        public SitFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _httpContextAccessor = httpContextAccessor;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<List<SitOpenOrderHeaderDto>>> GetSitOpenOrderHeaderAsync(string customerCode)
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<List<SitOpenOrderHeaderDto>>> GetSitOpenOrderHeaderAsync(string customerCode, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var rows = await _unitOfWork.SqlQuery<FN_SitOpenOrder_Header>("SELECT * FROM dbo.RII_FN_SIT_HEADER({0}, {1})", customerCode, branchCodeStr)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<List<SitOpenOrderHeaderDto>>(rows);
                 return ApiResponse<List<SitOpenOrderHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitFunctionOpenOrderHeaderRetrievedSuccessfully"));
             }
@@ -39,13 +49,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<List<SitOpenOrderLineDto>>> GetSitOpenOrderLineAsync(string siparisNoCsv)
+        public async Task<ApiResponse<List<SitOpenOrderLineDto>>> GetSitOpenOrderLineAsync(string siparisNoCsv, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCodeStr = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var rows = await _unitOfWork.SqlQuery<FN_SitOpenOrder_Line>("SELECT * FROM dbo.RII_FN_SIT_LINE({0}, {1})", siparisNoCsv, branchCodeStr)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<List<SitOpenOrderLineDto>>(rows);
                 return ApiResponse<List<SitOpenOrderLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitFunctionOpenOrderLineRetrievedSuccessfully"));
             }

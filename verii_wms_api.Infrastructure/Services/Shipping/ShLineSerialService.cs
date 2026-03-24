@@ -12,16 +12,25 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public ShLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public ShLineSerialService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<ShLineSerialDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<ShLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.ShLineSerials.GetAllAsync();
@@ -34,8 +43,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<ShLineSerialDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<ShLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -47,10 +57,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<ShLineSerialDto>>(entities);
                 var result = new PagedResponse<ShLineSerialDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -69,13 +79,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<ShLineSerialDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<ShLineSerialDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.ShLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null) { var nf = _localizationService.GetLocalizedString("ShLineSerialNotFound"); return ApiResponse<ShLineSerialDto>.ErrorResult(nf, nf, 404); }
                 var dto = _mapper.Map<ShLineSerialDto>(entity);
                 return ApiResponse<ShLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineSerialRetrievedSuccessfully"));
@@ -86,8 +97,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShLineSerialDto>>> GetByLineIdAsync(long lineId)
+        public async Task<ApiResponse<IEnumerable<ShLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.ShLineSerials.FindAsync(x => x.LineId == lineId);
@@ -100,13 +112,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<ShLineSerialDto>> CreateAsync(CreateShLineSerialDto createDto)
+        public async Task<ApiResponse<ShLineSerialDto>> CreateAsync(CreateShLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<ShLineSerial>(createDto);
                 var created = await _unitOfWork.ShLineSerials.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<ShLineSerialDto>(created);
                 return ApiResponse<ShLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineSerialCreatedSuccessfully"));
             }
@@ -116,17 +129,18 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<ShLineSerialDto>> UpdateAsync(long id, UpdateShLineSerialDto updateDto)
+        public async Task<ApiResponse<ShLineSerialDto>> UpdateAsync(long id, UpdateShLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var existing = await _unitOfWork.ShLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (existing == null) { var nf = _localizationService.GetLocalizedString("ShLineSerialNotFound"); return ApiResponse<ShLineSerialDto>.ErrorResult(nf, nf, 404); }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.ShLineSerials.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<ShLineSerialDto>(entity);
                 return ApiResponse<ShLineSerialDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShLineSerialUpdatedSuccessfully"));
             }
@@ -136,13 +150,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.ShLineSerials.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("ShLineSerialNotFound");
@@ -167,7 +182,7 @@ namespace WMS_WEBAPI.Services
                                                (!string.IsNullOrWhiteSpace(s3) && (r.SerialNo3 ?? "").Trim() == s3) ||
                                                (!string.IsNullOrWhiteSpace(s4) && (r.SerialNo4 ?? "").Trim() == s4)
                                            ))
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                         if (serialExistsInRoutes)
                         {
                             var msg = _localizationService.GetLocalizedString("ShLineSerialRoutesExist");
@@ -193,12 +208,12 @@ namespace WMS_WEBAPI.Services
 
                 var currentSerialCount = await _unitOfWork.ShLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
                 var remainingSerialCount = currentSerialCount - 1;
 
                 var hasImportLines = await _unitOfWork.ShImportLines.Query()
                     .Where(il => !il.IsDeleted && il.LineId == entity.LineId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                 var lineWillBeDeleted = remainingSerialCount == 0 && !hasImportLines;
 
                 var headerWillBeDeleted = false;
@@ -208,13 +223,13 @@ namespace WMS_WEBAPI.Services
                     var headerId = lineEntity.HeaderId;
                     var currentLinesUnderHeader = await _unitOfWork.ShLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .CountAsync();
+                            .CountAsync(requestCancellationToken);
                     var remainingLinesUnderHeader = currentLinesUnderHeader - 1;
                     if (remainingLinesUnderHeader == 0)
                     {
                         var hasHeaderImportLines = await _unitOfWork.ShImportLines.Query()
                             .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                         if (!hasHeaderImportLines)
                         {
                             headerWillBeDeleted = true;
@@ -237,7 +252,7 @@ namespace WMS_WEBAPI.Services
                         }
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     var msgKey = lineWillBeDeleted ? "ShLineSerialDeletedAndLineDeleted" : "ShLineSerialDeletedSuccessfully";
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString(msgKey));

@@ -13,17 +13,27 @@ namespace WMS_WEBAPI.Services
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
         private readonly IErpService _erpService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public ShImportLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IErpService erpService)
+        public ShImportLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IErpService erpService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
             _erpService = erpService;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
         }
 
-        public async Task<ApiResponse<IEnumerable<ShImportLineDto>>> GetAllAsync()
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<ShImportLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.ShImportLines.GetAllAsync();
@@ -43,8 +53,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<ShImportLineDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<ShImportLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -56,10 +67,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<ShImportLineDto>>(entities);
                 var result = new PagedResponse<ShImportLineDto>(dtos, totalCount, request.PageNumber, request.PageSize);
@@ -78,13 +89,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<ShImportLineDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<ShImportLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.ShImportLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null)
                 {
                     var nf = _localizationService.GetLocalizedString("ShImportLineNotFound");
@@ -105,8 +117,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShImportLineDto>>> GetByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<ShImportLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.ShImportLines.FindAsync(x => x.HeaderId == headerId);
@@ -126,8 +139,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShImportLineDto>>> GetByLineIdAsync(long lineId)
+        public async Task<ApiResponse<IEnumerable<ShImportLineDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entities = await _unitOfWork.ShImportLines.FindAsync(x => x.LineId == lineId);
@@ -148,13 +162,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<ShImportLineDto>> CreateAsync(CreateShImportLineDto createDto)
+        public async Task<ApiResponse<ShImportLineDto>> CreateAsync(CreateShImportLineDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<ShImportLine>(createDto);
                 var created = await _unitOfWork.ShImportLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<ShImportLineDto>(created);
                 return ApiResponse<ShImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShImportLineCreatedSuccessfully"));
             }
@@ -164,13 +179,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<ShImportLineDto>> UpdateAsync(long id, UpdateShImportLineDto updateDto)
+        public async Task<ApiResponse<ShImportLineDto>> UpdateAsync(long id, UpdateShImportLineDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var existing = await _unitOfWork.ShImportLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (existing == null)
                 {
                     var nf = _localizationService.GetLocalizedString("ShImportLineNotFound");
@@ -178,7 +194,7 @@ namespace WMS_WEBAPI.Services
                 }
                 var entity = _mapper.Map(updateDto, existing);
                 _unitOfWork.ShImportLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<ShImportLineDto>(entity);
                 return ApiResponse<ShImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShImportLineUpdatedSuccessfully"));
             }
@@ -188,20 +204,21 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.ShImportLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     var nf = _localizationService.GetLocalizedString("ShImportLineNotFound");
                     return ApiResponse<bool>.ErrorResult(nf, nf, 404);
                 }
 
-                var routes = await _unitOfWork.ShRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync();
+                var routes = await _unitOfWork.ShRoutes.Query().Where(x => x.ImportLineId == id).ToListAsync(requestCancellationToken);
                 if (routes.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("ShImportLineRoutesExist");
@@ -210,7 +227,7 @@ namespace WMS_WEBAPI.Services
 
                 var hasActiveLineSerials = await _unitOfWork.ShLineSerials.Query()
                     .Where(ls => !ls.IsDeleted && ls.LineId == entity.LineId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                 if (hasActiveLineSerials)
                 {
                     var msg = _localizationService.GetLocalizedString("ShImportLineLineSerialsExist");
@@ -225,16 +242,16 @@ namespace WMS_WEBAPI.Services
                     var headerId = entity.HeaderId;
                     var hasOtherLines = await _unitOfWork.ShLines.Query()
                         .Where(l => !l.IsDeleted && l.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                     var hasOtherImportLines = await _unitOfWork.ShImportLines.Query()
                         .Where(il => !il.IsDeleted && il.HeaderId == headerId)
-                            .AnyAsync();
+                            .AnyAsync(requestCancellationToken);
                     if (!hasOtherLines && !hasOtherImportLines)
                     {
                         await _unitOfWork.ShHeaders.SoftDelete(headerId);
                     }
 
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await tx.CommitAsync();
                     return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("ShImportLineDeletedSuccessfully"));
                 }
@@ -250,8 +267,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ShImportLineWithRoutesDto>>> GetCollectedBarcodesByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<ShImportLineWithRoutesDto>>> GetCollectedBarcodesByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var header = await _unitOfWork.ShHeaders.GetByIdAsync(headerId);
@@ -262,7 +280,7 @@ namespace WMS_WEBAPI.Services
 
                 var importLines = await _unitOfWork.ShImportLines.Query()
                     .Where(x => x.HeaderId == headerId && !x.IsDeleted)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 if (!importLines.Any())
                 {
@@ -275,7 +293,7 @@ namespace WMS_WEBAPI.Services
                 var importLineIds = importLines.Select(il => il.Id).ToList();
                 var routes = await _unitOfWork.ShRoutes.Query()
                     .Where(r => importLineIds.Contains(r.ImportLineId) && !r.IsDeleted)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 // 2. Routes'ları ImportLineId'ye göre Dictionary'de grupla - O(1) lookup için
                 var routesByImportLineId = routes
@@ -305,7 +323,7 @@ namespace WMS_WEBAPI.Services
                             PackageNo = p.PackageNo,
                             packageHeaderId = ph.Id
                         }
-                    ).ToListAsync();
+                    ).ToListAsync(requestCancellationToken);
 
                     packageInfoDict = packageInfoList
                         .GroupBy(x => x.RouteId)
@@ -363,8 +381,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<ShImportLineDto>> AddBarcodeBasedonAssignedOrderAsync(AddShImportBarcodeRequestDto request)
+        public async Task<ApiResponse<ShImportLineDto>> AddBarcodeBasedonAssignedOrderAsync(AddShImportBarcodeRequestDto request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 using (var tx = await _unitOfWork.BeginTransactionAsync())
@@ -407,7 +426,7 @@ namespace WMS_WEBAPI.Services
                                 && !l.IsDeleted
                                 && ((l.StockCode ?? "").Trim() == reqStock)
                                 && ((l.YapKod ?? "").Trim() == reqYap))
-                            .ToListAsync();
+                            .ToListAsync(requestCancellationToken);
                         
                         if (!matchingLines.Any())
                         {
@@ -428,7 +447,7 @@ namespace WMS_WEBAPI.Services
                         var lineIds = matchingLines.Select(l => l.Id).ToList();
                         var lineSerials = await _unitOfWork.ShLineSerials.Query()
                             .Where(ls => !ls.IsDeleted && lineIds.Contains(ls.LineId))
-                            .ToListAsync();
+                            .ToListAsync(requestCancellationToken);
 
                         // Eşleşen Line'ların LineSerial'larında SerialNo var mı kontrol et
                         var hasSerialInLineSerials = lineSerials.Any(ls =>
@@ -437,7 +456,7 @@ namespace WMS_WEBAPI.Services
                         // Get ShParameter for validation rules
                         var shParameter = await _unitOfWork.ShParameters.Query()
                             .Where(p => !p.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(requestCancellationToken);
 
                         {
                             // ============================================
@@ -598,7 +617,7 @@ namespace WMS_WEBAPI.Services
                                 && ((il.StockCode ?? "").Trim() == reqStock)
                                 && ((il.YapKod ?? "").Trim() == reqYap)
                                 && !il.IsDeleted)
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(requestCancellationToken);
 
                         if (importLine == null)
                         {
@@ -611,7 +630,7 @@ namespace WMS_WEBAPI.Services
                             };
                             importLine = _mapper.Map<ShImportLine>(createImportLineDto);
                             await _unitOfWork.ShImportLines.AddAsync(importLine);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                         }
 
                         // ============================================
@@ -632,7 +651,7 @@ namespace WMS_WEBAPI.Services
                         var route = _mapper.Map<ShRoute>(createRouteDto);
 
                         await _unitOfWork.ShRoutes.AddAsync(route);
-                        await _unitOfWork.SaveChangesAsync();
+                        await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                         // ============================================
                         // 7) SONUÇ: importLine DTO döndürülür ve işlem tamamlanır

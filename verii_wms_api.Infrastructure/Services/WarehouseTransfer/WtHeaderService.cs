@@ -19,8 +19,9 @@ namespace WMS_WEBAPI.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IErpService _erpService;
         private readonly INotificationService _notificationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public WtHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IErpService erpService, INotificationService notificationService)
+        public WtHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IHttpContextAccessor httpContextAccessor, IErpService erpService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -28,10 +29,18 @@ namespace WMS_WEBAPI.Services
             _httpContextAccessor = httpContextAccessor;
             _erpService = erpService;
             _notificationService = notificationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetPagedAsync(PagedRequest request)
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 if (request.PageNumber < 0) request.PageNumber = 0;
@@ -45,10 +54,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var items = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<WtHeaderDto>>(items);
 
@@ -76,13 +85,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAllAsync()
+        public async Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
                 var entities = await _unitOfWork.WtHeaders
-                    .Query().Where(x => x.BranchCode == branchCode).ToListAsync();
+                    .Query().Where(x => x.BranchCode == branchCode).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<WtHeaderDto>>(entities);
 
                 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -107,13 +117,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtHeaderDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<WtHeaderDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WtHeaders.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 if (entity == null || entity.IsDeleted)
                 {
@@ -144,8 +155,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtHeaderDto>> CreateAsync(CreateWtHeaderDto createDto)
+        public async Task<ApiResponse<WtHeaderDto>> CreateAsync(CreateWtHeaderDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 if (createDto == null)
@@ -169,7 +181,7 @@ namespace WMS_WEBAPI.Services
                 entity.IsDeleted = false;
 
                 await _unitOfWork.WtHeaders.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<WtHeaderDto>(entity);
                 return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderCreatedSuccessfully"));
@@ -180,13 +192,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtHeaderDto>> UpdateAsync(long id, UpdateWtHeaderDto updateDto)
+        public async Task<ApiResponse<WtHeaderDto>> UpdateAsync(long id, UpdateWtHeaderDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WtHeaders.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFound = _localizationService.GetLocalizedString("WtHeaderNotFound");
@@ -197,7 +210,7 @@ namespace WMS_WEBAPI.Services
                 entity.UpdatedDate = DateTimeProvider.Now;
 
                 _unitOfWork.WtHeaders.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<WtHeaderDto>(entity);
                 return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderUpdatedSuccessfully"));
@@ -208,8 +221,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var exists = await _unitOfWork.WtHeaders.ExistsAsync(id);
@@ -219,7 +233,7 @@ namespace WMS_WEBAPI.Services
                     return ApiResponse<bool>.ErrorResult(notFound, notFound, 404);
                 }
 
-                var importLines = await _unitOfWork.WtImportLines.Query().Where(x => x.HeaderId == id).ToListAsync();
+                var importLines = await _unitOfWork.WtImportLines.Query().Where(x => x.HeaderId == id).ToListAsync(requestCancellationToken);
                 if (importLines.Any())
                 {
                     var msg = _localizationService.GetLocalizedString("WtHeaderImportLinesExist");
@@ -227,7 +241,7 @@ namespace WMS_WEBAPI.Services
                 }
 
                 await _unitOfWork.WtHeaders.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("WtHeaderDeletedSuccessfully"));
             }
@@ -237,13 +251,14 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> CompleteAsync(long id)
+        public async Task<ApiResponse<bool>> CompleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.WtHeaders.Query(tracking: true)
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     var notFound = _localizationService.GetLocalizedString("WtHeaderNotFound");
@@ -255,7 +270,7 @@ namespace WMS_WEBAPI.Services
                 // ============================================
                 var wtParameter = await _unitOfWork.WtParameters
                     .Query()
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
 
                 // ============================================
                 // VALIDATE LINE SERIAL VS ROUTE QUANTITIES
@@ -273,7 +288,7 @@ namespace WMS_WEBAPI.Services
                     var lines = await _unitOfWork.WtLines
                         .Query()
                         .Where(l => l.HeaderId == id)
-                        .ToListAsync();
+                        .ToListAsync(requestCancellationToken);
 
                     foreach (var line in lines)
                     {
@@ -428,7 +443,7 @@ namespace WMS_WEBAPI.Services
                     }
 
                     // Single SaveChanges for both header update and notification
-                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                     await _unitOfWork.CommitTransactionAsync();
 
                     // Publish SignalR notification after transaction is committed
@@ -451,8 +466,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetAssignedTransferOrdersAsync(long userId, PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetAssignedTransferOrdersAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var branchCode = _httpContextAccessor.HttpContext?.Items["BranchCode"] as string ?? "0";
@@ -482,10 +498,10 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
                 var entities = await query
                     .ApplyPagination(request.PageNumber, request.PageSize)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
 
                 var dtos = _mapper.Map<List<WtHeaderDto>>(entities);
 
@@ -525,11 +541,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtAssignedTransferOrderLinesDto>> GetAssignedTransferOrderLinesAsync(long headerId)
+        public async Task<ApiResponse<WtAssignedTransferOrderLinesDto>> GetAssignedTransferOrderLinesAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var lines = await _unitOfWork.WtLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
+                var lines = await _unitOfWork.WtLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
                 var lineDtos = _mapper.Map<IEnumerable<WtLineDto>>(lines);
                 if (lineDtos.Any())
                 {
@@ -548,13 +565,13 @@ namespace WMS_WEBAPI.Services
                     lineSerials = await _unitOfWork.WtLineSerials
                         .Query()
                         .Where(x => lineIds.Contains(x.LineId))
-                        .ToListAsync();
+                        .ToListAsync(requestCancellationToken);
                 }
 
                 var importLines = await _unitOfWork.WtImportLines
                     .Query()
                     .Where(x => x.HeaderId == headerId)
-                    .ToListAsync();
+                    .ToListAsync(requestCancellationToken);
                 var importLineDtos = _mapper.Map<IEnumerable<WtImportLineDto>>(importLines);
                 if (importLineDtos.Any())
                 {
@@ -573,7 +590,7 @@ namespace WMS_WEBAPI.Services
                     routes = await _unitOfWork.WtRoutes
                         .Query()
                         .Where(x => importLineIds.Contains(x.ImportLineId))
-                        .ToListAsync();
+                        .ToListAsync(requestCancellationToken);
                 }
 
                 var dto = new WtAssignedTransferOrderLinesDto
@@ -592,8 +609,9 @@ namespace WMS_WEBAPI.Services
             }
         } 
 
-        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var query = _unitOfWork.WtHeaders.Query()
@@ -604,8 +622,8 @@ namespace WMS_WEBAPI.Services
                 bool desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
                 query = query.ApplySorting(request.SortBy ?? "Id", desc);
 
-                var totalCount = await query.CountAsync();
-                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync();
+                var totalCount = await query.CountAsync(requestCancellationToken);
+                var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<List<WtHeaderDto>>(items);
 
                 var enrichedCustomer = await _erpService.PopulateCustomerNamesAsync(dtos);
@@ -624,15 +642,16 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtHeaderDto>> SetApprovalAsync(long id, bool approved)
+        public async Task<ApiResponse<WtHeaderDto>> SetApprovalAsync(long id, bool approved, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 // Tracking ile yükle (navigation property'ler yüklenmeyecek)
                 var entity = await _unitOfWork.WtHeaders
                     .Query(tracking: true)
                     .Where(e => e.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                     
                 if (entity == null)
                 {
@@ -660,7 +679,7 @@ namespace WMS_WEBAPI.Services
                 entity.IsPendingApproval = false;
 
                 _unitOfWork.WtHeaders.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                 var dto = _mapper.Map<WtHeaderDto>(entity);
                 return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderApprovalUpdatedSuccessfully"));
@@ -671,8 +690,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<WtHeaderDto>> GenerateWarehouseTransferOrderAsync(GenerateWarehouseTransferOrderRequestDto request)
+        public async Task<ApiResponse<WtHeaderDto>> GenerateWarehouseTransferOrderAsync(GenerateWarehouseTransferOrderRequestDto request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 using (var tx = await _unitOfWork.BeginTransactionAsync())
@@ -681,7 +701,7 @@ namespace WMS_WEBAPI.Services
                     {
                         var header = _mapper.Map<WtHeader>(request.Header);
                         await _unitOfWork.WtHeaders.AddAsync(header);
-                        await _unitOfWork.SaveChangesAsync();
+                        await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                         var lineKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
                         var lineGuidToId = new Dictionary<Guid, long>();
@@ -696,7 +716,7 @@ namespace WMS_WEBAPI.Services
                                 lines.Add(line);
                             }
                             await _unitOfWork.WtLines.AddRangeAsync(lines);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                             for (int i = 0; i < request.Lines.Count; i++)
                             {
@@ -748,7 +768,7 @@ namespace WMS_WEBAPI.Services
                                 serials.Add(serial);
                             }
                             await _unitOfWork.WtLineSerials.AddRangeAsync(serials);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                         }
 
                         List<Notification> createdNotifications = new List<Notification>();
@@ -763,7 +783,7 @@ namespace WMS_WEBAPI.Services
                                 tlines.Add(tline);
                             }
                             await _unitOfWork.WtTerminalLines.AddRangeAsync(tlines);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                             // Create and add notifications for each terminal line
                             var orderNumber = header.Id.ToString();
@@ -779,7 +799,7 @@ namespace WMS_WEBAPI.Services
                             // Save notifications to database (they will be committed with transaction)
                             if (createdNotifications.Count > 0)
                             {
-                                await _unitOfWork.SaveChangesAsync();
+                                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                             }
                         }
 
@@ -807,8 +827,9 @@ namespace WMS_WEBAPI.Services
             }
         }
     
-        public async Task<ApiResponse<WtHeaderDto>> BulkWtGenerateAsync(BulkWtGenerateRequestDto request)
+        public async Task<ApiResponse<WtHeaderDto>> BulkWtGenerateAsync(BulkWtGenerateRequestDto request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 using (var tx = await _unitOfWork.BeginTransactionAsync())
@@ -832,7 +853,7 @@ namespace WMS_WEBAPI.Services
                         // ============================================
                         var wtParameter = await _unitOfWork.WtParameters
                             .Query()
-                            .FirstOrDefaultAsync();
+                            .FirstOrDefaultAsync(requestCancellationToken);
 
                         // ============================================
                         // 2. CREATE HEADER
@@ -843,7 +864,7 @@ namespace WMS_WEBAPI.Services
                         headerEntity.IsPendingApproval = wtParameter != null && wtParameter.RequireApprovalBeforeErp;
 
                         await _unitOfWork.WtHeaders.AddAsync(headerEntity);
-                        await _unitOfWork.SaveChangesAsync();
+                        await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                         if (headerEntity == null || headerEntity.Id <= 0)
                         {
@@ -890,7 +911,7 @@ namespace WMS_WEBAPI.Services
                             }
 
                             await _unitOfWork.WtLines.AddRangeAsync(lines);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                             // Build LineKey -> Id mapping
                             for (int i = 0; i < lines.Count; i++)
@@ -922,7 +943,7 @@ namespace WMS_WEBAPI.Services
                             }
 
                             await _unitOfWork.WtLineSerials.AddRangeAsync(serials);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                         }
 
                         // ============================================
@@ -967,7 +988,7 @@ namespace WMS_WEBAPI.Services
                             }
 
                             await _unitOfWork.WtImportLines.AddRangeAsync(importLines);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
 
                             // Build ImportLineKey -> Id mapping
                             for (int i = 0; i < importLines.Count; i++)
@@ -1003,7 +1024,7 @@ namespace WMS_WEBAPI.Services
                             }
 
                             await _unitOfWork.WtRoutes.AddRangeAsync(routes);
-                            await _unitOfWork.SaveChangesAsync();
+                            await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                         }
 
 

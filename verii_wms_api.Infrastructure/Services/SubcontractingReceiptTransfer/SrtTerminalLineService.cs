@@ -13,19 +13,28 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SrtTerminalLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+        public SrtTerminalLineService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
         }
-
-        public async Task<ApiResponse<IEnumerable<SrtTerminalLineDto>>> GetAllAsync()
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
         {
+            return _requestCancellationAccessor.Get(token);
+        }
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<IEnumerable<SrtTerminalLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtTerminalLines.Query().ToListAsync();
+                var entities = await _unitOfWork.SrtTerminalLines.Query().ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<SrtTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtTerminalLineRetrievedSuccessfully"));
             }
@@ -35,8 +44,9 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<PagedResponse<SrtTerminalLineDto>>> GetPagedAsync(PagedRequest request)
+        public async Task<ApiResponse<PagedResponse<SrtTerminalLineDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 request ??= new PagedRequest();
@@ -75,13 +85,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<SrtTerminalLineDto>> GetByIdAsync(long id)
+        public async Task<ApiResponse<SrtTerminalLineDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtTerminalLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("SrtTerminalLineNotFound"), _localizationService.GetLocalizedString("SrtTerminalLineNotFound"), 404);
@@ -95,11 +106,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SrtTerminalLineDto>>> GetByHeaderIdAsync(long headerId)
+        public async Task<ApiResponse<IEnumerable<SrtTerminalLineDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtTerminalLines.Query().Where(x => x.HeaderId == headerId).ToListAsync();
+                var entities = await _unitOfWork.SrtTerminalLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<SrtTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtTerminalLineRetrievedSuccessfully"));
             }
@@ -109,11 +121,12 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<SrtTerminalLineDto>>> GetByUserIdAsync(long userId)
+        public async Task<ApiResponse<IEnumerable<SrtTerminalLineDto>>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
-                var entities = await _unitOfWork.SrtTerminalLines.Query().Where(x => x.TerminalUserId == userId).ToListAsync();
+                var entities = await _unitOfWork.SrtTerminalLines.Query().Where(x => x.TerminalUserId == userId).ToListAsync(requestCancellationToken);
                 var dtos = _mapper.Map<IEnumerable<SrtTerminalLineDto>>(entities);
                 return ApiResponse<IEnumerable<SrtTerminalLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtTerminalLineRetrievedSuccessfully"));
             }
@@ -124,13 +137,14 @@ namespace WMS_WEBAPI.Services
         }
 
 
-        public async Task<ApiResponse<SrtTerminalLineDto>> CreateAsync(CreateSrtTerminalLineDto createDto)
+        public async Task<ApiResponse<SrtTerminalLineDto>> CreateAsync(CreateSrtTerminalLineDto createDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = _mapper.Map<SrtTerminalLine>(createDto);
                 await _unitOfWork.SrtTerminalLines.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SrtTerminalLineDto>(entity);
                 return ApiResponse<SrtTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtTerminalLineCreatedSuccessfully"));
             }
@@ -140,20 +154,21 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<SrtTerminalLineDto>> UpdateAsync(long id, UpdateSrtTerminalLineDto updateDto)
+        public async Task<ApiResponse<SrtTerminalLineDto>> UpdateAsync(long id, UpdateSrtTerminalLineDto updateDto, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 var entity = await _unitOfWork.SrtTerminalLines.Query()
                     .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(requestCancellationToken);
                 if (entity == null || entity.IsDeleted)
                 {
                     return ApiResponse<SrtTerminalLineDto>.ErrorResult(_localizationService.GetLocalizedString("SrtTerminalLineNotFound"), _localizationService.GetLocalizedString("SrtTerminalLineNotFound"), 404);
                 }
                 _mapper.Map(updateDto, entity);
                 _unitOfWork.SrtTerminalLines.Update(entity);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 var dto = _mapper.Map<SrtTerminalLineDto>(entity);
                 return ApiResponse<SrtTerminalLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtTerminalLineUpdatedSuccessfully"));
             }
@@ -163,12 +178,13 @@ namespace WMS_WEBAPI.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id)
+        public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            var requestCancellationToken = ResolveCancellationToken(cancellationToken);
             try
             {
                 await _unitOfWork.SrtTerminalLines.SoftDelete(id);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync(requestCancellationToken);
                 return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("SrtTerminalLineDeletedSuccessfully"));
             }
             catch (Exception ex)
