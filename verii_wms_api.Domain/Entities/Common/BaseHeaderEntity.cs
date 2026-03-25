@@ -56,5 +56,76 @@ namespace WMS_WEBAPI.Models
         public string? Description1 { get; set; }
 
         public string? Description2 { get; set; }
+
+        /// <summary>
+        /// Belgeyi tamamlanmış olarak işaretler.
+        /// </summary>
+        public void MarkAsCompleted()
+        {
+            IsCompleted = true;
+            CompletionDate = DateTimeProvider.Now;
+        }
+
+        /// <summary>
+        /// Tamamlanma bilgisini geri alır (belgeyi tekrar beklemede yapar).
+        /// </summary>
+        public void UndoCompletion()
+        {
+            IsCompleted = false;
+            CompletionDate = null;
+        }
+
+        /// <summary>
+        /// Onay bekleme durumunu ayarlar.
+        /// </summary>
+        /// <param name="pending">Onay bekliyor mu?</param>
+        public void SetPendingApproval(bool pending)
+        {
+            IsPendingApproval = pending;
+        }
+
+        /// <summary>
+        /// Belgeyi onaylanmış olarak işaretler.
+        /// </summary>
+        /// <param name="approvedByUserId">Onaylayan kullanıcı ID'si.</param>
+        public void Approve(long approvedByUserId)
+        {
+            ApprovalStatus = true;
+            ApprovedByUserId = approvedByUserId;
+            ApprovalDate = DateTimeProvider.Now;
+        }
+
+        /// <summary>
+        /// Belgeyi reddedilmiş olarak işaretler.
+        /// </summary>
+        /// <param name="rejectedByUserId">Reddeden kullanıcı ID'si.</param>
+        public void Reject(long rejectedByUserId)
+        {
+            ApprovalStatus = false;
+            ApprovedByUserId = rejectedByUserId;
+            ApprovalDate = DateTimeProvider.Now;
+        }
+
+        /// <summary>
+        /// ERP entegrasyonunun başarılı olduğunu kaydeder.
+        /// </summary>
+        /// <param name="referenceNumber">ERP referans numarası.</param>
+        public void MarkErpIntegrated(string referenceNumber)
+        {
+            IsERPIntegrated = true;
+            ERPReferenceNumber = referenceNumber;
+            ERPIntegrationDate = DateTimeProvider.Now;
+            ERPIntegrationStatus = "Success";
+        }
+
+        /// <summary>
+        /// ERP entegrasyonunun başarısız olduğunu ve hata bilgisini kaydeder.
+        /// </summary>
+        /// <param name="errorMessage">ERP hata mesajı.</param>
+        public void SetErpError(string errorMessage)
+        {
+            ERPIntegrationStatus = "Failed";
+            ERPErrorMessage = errorMessage;
+        }
     }
 }
