@@ -13,35 +13,10 @@ namespace WMS_WEBAPI.Controllers
     public class GrHeaderController : ControllerBase
     {
         private readonly IGrHeaderService _grHeaderService;
-        private readonly ICompleteGrHeaderUseCase _completeGrHeaderUseCase;
-        private readonly ICreateGrHeaderUseCase _createGrHeaderUseCase;
-        private readonly IUpdateGrHeaderUseCase _updateGrHeaderUseCase;
-        private readonly ISoftDeleteGrHeaderUseCase _softDeleteGrHeaderUseCase;
-        private readonly ISetApprovalGrHeaderUseCase _setApprovalGrHeaderUseCase;
-        private readonly IBulkCreateGrHeaderUseCase _bulkCreateGrHeaderUseCase;
-        private readonly IGenerateGoodReceiptOrderUseCase _generateGoodReceiptOrderUseCase;
-        private readonly ILocalizationService _localizationService;
 
-        public GrHeaderController(
-            IGrHeaderService grHeaderService,
-            ICompleteGrHeaderUseCase completeGrHeaderUseCase,
-            ICreateGrHeaderUseCase createGrHeaderUseCase,
-            IUpdateGrHeaderUseCase updateGrHeaderUseCase,
-            ISoftDeleteGrHeaderUseCase softDeleteGrHeaderUseCase,
-            ISetApprovalGrHeaderUseCase setApprovalGrHeaderUseCase,
-            IBulkCreateGrHeaderUseCase bulkCreateGrHeaderUseCase,
-            IGenerateGoodReceiptOrderUseCase generateGoodReceiptOrderUseCase,
-            ILocalizationService localizationService)
+        public GrHeaderController(IGrHeaderService grHeaderService)
         {
             _grHeaderService = grHeaderService;
-            _completeGrHeaderUseCase = completeGrHeaderUseCase;
-            _createGrHeaderUseCase = createGrHeaderUseCase;
-            _updateGrHeaderUseCase = updateGrHeaderUseCase;
-            _softDeleteGrHeaderUseCase = softDeleteGrHeaderUseCase;
-            _setApprovalGrHeaderUseCase = setApprovalGrHeaderUseCase;
-            _bulkCreateGrHeaderUseCase = bulkCreateGrHeaderUseCase;
-            _generateGoodReceiptOrderUseCase = generateGoodReceiptOrderUseCase;
-            _localizationService = localizationService;
         }
 
         [HttpGet]
@@ -63,7 +38,7 @@ namespace WMS_WEBAPI.Controllers
         {
             
 
-            var result = await _createGrHeaderUseCase.ExecuteAsync(createDto, cancellationToken);
+            var result = await _grHeaderService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -72,14 +47,14 @@ namespace WMS_WEBAPI.Controllers
         {
             
 
-            var result = await _updateGrHeaderUseCase.ExecuteAsync(id, updateDto, cancellationToken);
+            var result = await _grHeaderService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken cancellationToken = default)
         {
-            var result = await _softDeleteGrHeaderUseCase.ExecuteAsync(id, cancellationToken);
+            var result = await _grHeaderService.SoftDeleteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -88,7 +63,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("complete/{id}")]
         public async Task<ActionResult<ApiResponse<bool>>> Complete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _completeGrHeaderUseCase.ExecuteAsync((int)id, cancellationToken);
+            var result = await _grHeaderService.CompleteAsync((int)id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -117,7 +92,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("approval/{id}")]
         public async Task<ActionResult<ApiResponse<GrHeaderDto>>> SetApproval(long id, [FromQuery] bool approved, CancellationToken cancellationToken = default)
         {
-            var result = await _setApprovalGrHeaderUseCase.ExecuteAsync(id, approved, cancellationToken);
+            var result = await _grHeaderService.SetApprovalAsync(id, approved, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -142,7 +117,7 @@ namespace WMS_WEBAPI.Controllers
         public async Task<ActionResult<ApiResponse<long>>> BulkCreate([FromBody] BulkCreateGrRequestDto request, CancellationToken cancellationToken = default)
         {
 
-            var result = await _bulkCreateGrHeaderUseCase.ExecuteAsync(request, cancellationToken);
+            var result = await _grHeaderService.BulkCreateAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -150,7 +125,7 @@ namespace WMS_WEBAPI.Controllers
         public async Task<ActionResult<ApiResponse<GrHeaderDto>>> GenerateOrder([FromBody] GenerateGoodReceiptOrderRequestDto request, CancellationToken cancellationToken = default)
         {
 
-            var result = await _generateGoodReceiptOrderUseCase.ExecuteAsync(request, cancellationToken);
+            var result = await _grHeaderService.GenerateGoodReceiptOrderAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
         
