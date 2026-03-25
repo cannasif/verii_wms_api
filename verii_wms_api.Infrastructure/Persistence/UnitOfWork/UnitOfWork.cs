@@ -13,7 +13,7 @@ namespace WMS_WEBAPI.UnitOfWork
     public class UnitOfWork : IUnitOfWork
     {
         private readonly WmsDbContext _context;
-        private readonly IExecutionContextAccessor _executionContextAccessor;
+        private readonly ICurrentUserService _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private bool _disposed = false;
 
@@ -137,7 +137,7 @@ namespace WMS_WEBAPI.UnitOfWork
 
         public UnitOfWork(
             WmsDbContext context,
-            IExecutionContextAccessor executionContextAccessor,
+            ICurrentUserService executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor)
         {
             _context = context;

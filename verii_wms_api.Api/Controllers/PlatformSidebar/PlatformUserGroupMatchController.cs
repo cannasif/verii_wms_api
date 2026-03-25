@@ -48,10 +48,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<PlatformUserGroupMatchDto>> Create([FromBody] CreatePlatformUserGroupMatchDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _platformUserGroupMatchService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -66,10 +63,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<PlatformUserGroupMatchDto>> Update(long id, [FromBody] UpdatePlatformUserGroupMatchDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _platformUserGroupMatchService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

@@ -45,10 +45,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<WiParameterDto>>> Create([FromBody] CreateWiParameterDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<WiParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _wiParameterService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -57,10 +54,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id:long}")]
         public async Task<ActionResult<ApiResponse<WiParameterDto>>> Update(long id, [FromBody] UpdateWiParameterDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<WiParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _wiParameterService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);

@@ -13,10 +13,10 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IExecutionContextAccessor _executionContextAccessor;
+        private readonly ICurrentUserService _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public SitFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
+        public SitFunctionService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, ICurrentUserService executionContextAccessor, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;

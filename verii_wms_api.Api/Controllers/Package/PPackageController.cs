@@ -51,10 +51,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PPackageDto>>> Create([FromBody] CreatePPackageDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<PPackageDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pPackageService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -63,10 +60,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PPackageDto>>> Update(long id, [FromBody] UpdatePPackageDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<PPackageDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pPackageService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

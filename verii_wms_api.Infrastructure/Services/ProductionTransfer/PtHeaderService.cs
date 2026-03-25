@@ -15,11 +15,11 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IExecutionContextAccessor _executionContextAccessor;
+        private readonly ICurrentUserService _executionContextAccessor;
         private readonly IErpService _erpService;
         private readonly INotificationService _notificationService;
 
-        public PtHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IErpService erpService, INotificationService notificationService)
+        public PtHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, ICurrentUserService executionContextAccessor, IErpService erpService, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -434,13 +434,7 @@ if (!(entity.IsCompleted && entity.IsPendingApproval && entity.ApprovalStatus ==
     return ApiResponse<PtHeaderDto>.ErrorResult(msg, msg, 400);
 }
 
-var httpUser = null;
-long? approvedByUserId = null;
-var claimVal = httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-if (long.TryParse(claimVal, out var uid))
-{
-    approvedByUserId = uid;
-}
+var approvedByUserId = _executionContextAccessor.UserId;
 
 entity.ApprovalStatus = approved;
 entity.ApprovedByUserId = approvedByUserId;

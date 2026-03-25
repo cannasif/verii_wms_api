@@ -49,10 +49,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PrLineDto>>> Create([FromBody] CreatePrLineDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prLineService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -61,10 +58,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PrLineDto>>> Update(long id, [FromBody] UpdatePrLineDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prLineService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

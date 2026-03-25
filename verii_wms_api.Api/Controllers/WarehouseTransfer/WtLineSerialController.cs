@@ -53,10 +53,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> Create([FromBody] CreateWtLineSerialDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
             var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
@@ -64,10 +61,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<WtLineSerialDto>>> Update(long id, [FromBody] UpdateWtLineSerialDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
             var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }

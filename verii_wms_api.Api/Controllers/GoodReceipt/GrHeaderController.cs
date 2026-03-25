@@ -13,11 +13,34 @@ namespace WMS_WEBAPI.Controllers
     public class GrHeaderController : ControllerBase
     {
         private readonly IGrHeaderService _grHeaderService;
+        private readonly ICompleteGrHeaderUseCase _completeGrHeaderUseCase;
+        private readonly ICreateGrHeaderUseCase _createGrHeaderUseCase;
+        private readonly IUpdateGrHeaderUseCase _updateGrHeaderUseCase;
+        private readonly ISoftDeleteGrHeaderUseCase _softDeleteGrHeaderUseCase;
+        private readonly ISetApprovalGrHeaderUseCase _setApprovalGrHeaderUseCase;
+        private readonly IBulkCreateGrHeaderUseCase _bulkCreateGrHeaderUseCase;
+        private readonly IGenerateGoodReceiptOrderUseCase _generateGoodReceiptOrderUseCase;
         private readonly ILocalizationService _localizationService;
 
-        public GrHeaderController(IGrHeaderService grHeaderService, ILocalizationService localizationService)
+        public GrHeaderController(
+            IGrHeaderService grHeaderService,
+            ICompleteGrHeaderUseCase completeGrHeaderUseCase,
+            ICreateGrHeaderUseCase createGrHeaderUseCase,
+            IUpdateGrHeaderUseCase updateGrHeaderUseCase,
+            ISoftDeleteGrHeaderUseCase softDeleteGrHeaderUseCase,
+            ISetApprovalGrHeaderUseCase setApprovalGrHeaderUseCase,
+            IBulkCreateGrHeaderUseCase bulkCreateGrHeaderUseCase,
+            IGenerateGoodReceiptOrderUseCase generateGoodReceiptOrderUseCase,
+            ILocalizationService localizationService)
         {
             _grHeaderService = grHeaderService;
+            _completeGrHeaderUseCase = completeGrHeaderUseCase;
+            _createGrHeaderUseCase = createGrHeaderUseCase;
+            _updateGrHeaderUseCase = updateGrHeaderUseCase;
+            _softDeleteGrHeaderUseCase = softDeleteGrHeaderUseCase;
+            _setApprovalGrHeaderUseCase = setApprovalGrHeaderUseCase;
+            _bulkCreateGrHeaderUseCase = bulkCreateGrHeaderUseCase;
+            _generateGoodReceiptOrderUseCase = generateGoodReceiptOrderUseCase;
             _localizationService = localizationService;
         }
 
@@ -38,31 +61,25 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<GrHeaderDto>>> Create([FromBody] CreateGrHeaderDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
-            var result = await _grHeaderService.CreateAsync(createDto, cancellationToken);
+            var result = await _createGrHeaderUseCase.ExecuteAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<GrHeaderDto>>> Update(int id, [FromBody] UpdateGrHeaderDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
-            var result = await _grHeaderService.UpdateAsync(id, updateDto, cancellationToken);
+            var result = await _updateGrHeaderUseCase.ExecuteAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.SoftDeleteAsync(id, cancellationToken);
+            var result = await _softDeleteGrHeaderUseCase.ExecuteAsync(id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -71,7 +88,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("complete/{id}")]
         public async Task<ActionResult<ApiResponse<bool>>> Complete(long id, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.CompleteAsync((int)id, cancellationToken);
+            var result = await _completeGrHeaderUseCase.ExecuteAsync((int)id, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -100,7 +117,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("approval/{id}")]
         public async Task<ActionResult<ApiResponse<GrHeaderDto>>> SetApproval(long id, [FromQuery] bool approved, CancellationToken cancellationToken = default)
         {
-            var result = await _grHeaderService.SetApprovalAsync(id, approved, cancellationToken);
+            var result = await _setApprovalGrHeaderUseCase.ExecuteAsync(id, approved, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -124,24 +141,16 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("bulkCreate")]
         public async Task<ActionResult<ApiResponse<long>>> BulkCreate([FromBody] BulkCreateGrRequestDto request, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                var error = ApiResponse<long>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400);
-                return StatusCode(error.StatusCode, error);
-            }
-            var result = await _grHeaderService.BulkCreateAsync(request, cancellationToken);
+
+            var result = await _bulkCreateGrHeaderUseCase.ExecuteAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("generate")]
         public async Task<ActionResult<ApiResponse<GrHeaderDto>>> GenerateOrder([FromBody] GenerateGoodReceiptOrderRequestDto request, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
 
-            var result = await _grHeaderService.GenerateGoodReceiptOrderAsync(request, cancellationToken);
+            var result = await _generateGoodReceiptOrderUseCase.ExecuteAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
         

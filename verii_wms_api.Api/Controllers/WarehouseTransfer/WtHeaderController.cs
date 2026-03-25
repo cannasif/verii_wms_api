@@ -45,10 +45,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<WtHeaderDto>>> Create([FromBody] CreateWtHeaderDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _wtHeaderService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -57,10 +54,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<WtHeaderDto>>> Update(long id, [FromBody] UpdateWtHeaderDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _wtHeaderService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -104,10 +98,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("generate")]
         public async Task<ActionResult<ApiResponse<WtHeaderDto>>> GenerateWarehouseTransferOrder([FromBody] GenerateWarehouseTransferOrderRequestDto request, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _wtHeaderService.GenerateWarehouseTransferOrderAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -116,10 +107,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("bulk-generate")]
         public async Task<ActionResult<ApiResponse<WtHeaderDto>>> BulkWtGenerate([FromBody] BulkWtGenerateRequestDto request, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
             var result = await _wtHeaderService.BulkWtGenerateAsync(request, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }

@@ -45,10 +45,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PHeaderDto>>> Create([FromBody] CreatePHeaderDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<PHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pHeaderService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -57,10 +54,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PHeaderDto>>> Update(long id, [FromBody] UpdatePHeaderDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<PHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pHeaderService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);
@@ -83,10 +77,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("{pHeaderId}/match-plines")]
         public async Task<ActionResult<ApiResponse<bool>>> MatchPlinesWithMatchedStatus(long pHeaderId, [FromBody] MatchPlinesRequestDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<bool>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pHeaderService.MatchPlinesWithMatchedStatus(pHeaderId, request.IsMatched);
             return StatusCode(result.StatusCode, result);

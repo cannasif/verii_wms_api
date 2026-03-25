@@ -64,10 +64,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<GrLineDto>>> Create([FromBody] CreateGrLineDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrLineDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _grLineService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -82,10 +79,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<GrLineDto>>> Update(long id, [FromBody] UpdateGrLineDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrLineDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _grLineService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);

@@ -4,7 +4,7 @@ using WMS_WEBAPI.Models;
 
 namespace WMS_WEBAPI.Data.Configuration
 {
-    public class ShLineSerialConfiguration : BaseEntityConfiguration<ShLineSerial>
+    public class ShLineSerialConfiguration : BaseLineSerialEntityConfiguration<ShLineSerial>
     {
         protected override void ConfigureEntity(EntityTypeBuilder<ShLineSerial> builder)
         {

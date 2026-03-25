@@ -91,10 +91,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<WtRouteDto>>> Create([FromBody] CreateWtRouteDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _wtRouteService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -109,10 +106,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<WtRouteDto>>> Update(long id, [FromBody] UpdateWtRouteDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _wtRouteService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);

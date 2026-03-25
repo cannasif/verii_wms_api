@@ -14,12 +14,12 @@ namespace WMS_WEBAPI.Repositories
     {
         protected readonly WmsDbContext _context;
         protected readonly DbSet<T> _dbSet;
-        protected readonly IExecutionContextAccessor _executionContextAccessor;
+        protected readonly ICurrentUserService _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         public GenericRepository(
             WmsDbContext context,
-            IExecutionContextAccessor executionContextAccessor,
+            ICurrentUserService executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor)
         {
             _context = context;

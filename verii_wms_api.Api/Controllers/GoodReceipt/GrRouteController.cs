@@ -51,14 +51,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<GrRouteDto>>> Create([FromBody] CreateGrRouteDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrRouteDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("ValidationError"),
-                    ModelState?.ToString() ?? string.Empty,
-                    400
-                ));
-            }
+            
             var result = await _service.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }
@@ -66,14 +59,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<GrRouteDto>>> Update(long id, [FromBody] UpdateGrRouteDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<GrRouteDto>.ErrorResult(
-                    _localizationService.GetLocalizedString("ValidationError"),
-                    ModelState?.ToString() ?? string.Empty,
-                    400
-                ));
-            }
+            
             var result = await _service.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
         }

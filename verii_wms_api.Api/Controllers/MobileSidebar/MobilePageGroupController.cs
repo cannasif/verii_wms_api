@@ -59,10 +59,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<MobilePageGroupDto>>> Create([FromBody] CreateMobilePageGroupDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _mobilePageGroupService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -71,10 +68,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<MobilePageGroupDto>>> Update(long id, [FromBody] UpdateMobilePageGroupDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _mobilePageGroupService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

@@ -10,6 +10,8 @@ using WMS_WEBAPI.Services;
 using WMS_WEBAPI.Services.Jobs;
 using WMS_WEBAPI.UnitOfWork;
 using WMS_WEBAPI.Options;
+using WMS_WEBAPI.Api.Services;
+using WMS_WEBAPI.UseCases.GoodReceipt;
 
 namespace WMS_WEBAPI.Extensions;
 
@@ -21,6 +23,15 @@ public static class ServiceCollectionExtensions
             typeof(Program).Assembly,
             typeof(WMS_WEBAPI.Mappings.WmsAutoMapperProfile).Assembly,
             typeof(WMS_WEBAPI.Services.LocalizationService).Assembly);
+
+        // Use cases (application orchestration)
+        services.AddScoped<ICompleteGrHeaderUseCase, CompleteGrHeaderUseCase>();
+        services.AddScoped<ISetApprovalGrHeaderUseCase, SetApprovalGrHeaderUseCase>();
+        services.AddScoped<IBulkCreateGrHeaderUseCase, BulkCreateGrHeaderUseCase>();
+        services.AddScoped<IGenerateGoodReceiptOrderUseCase, GenerateGoodReceiptOrderUseCase>();
+        services.AddScoped<ICreateGrHeaderUseCase, CreateGrHeaderUseCase>();
+        services.AddScoped<IUpdateGrHeaderUseCase, UpdateGrHeaderUseCase>();
+        services.AddScoped<ISoftDeleteGrHeaderUseCase, SoftDeleteGrHeaderUseCase>();
 
         return services;
     }
@@ -85,7 +96,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, WMS_WEBAPI.UnitOfWork.UnitOfWork>();
         services.AddScoped<IErpUnitOfWork, WMS_WEBAPI.UnitOfWork.ErpUnitOfWork>();
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-        services.AddScoped<IExecutionContextAccessor, HttpExecutionContextAccessor>();
+        services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
         services.AddScoped<IRequestCancellationAccessor, HttpRequestCancellationAccessor>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IJwtService, JwtService>();
@@ -105,7 +116,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPlatformUserGroupMatchService, PlatformUserGroupMatchService>();
         services.AddScoped<IMobilePageGroupService, MobilePageGroupService>();
         services.AddScoped<IMobileUserGroupMatchService, MobileUserGroupMatchService>();
-        services.AddScoped<IGrHeaderService, GrHeaderService>();
         services.AddScoped<IGrHeaderService, GrHeaderService>();
         services.AddScoped<IGrLineService, GrLineService>();
         services.AddScoped<IGrImportDocumentService, GrImportDocumentService>();

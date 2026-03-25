@@ -58,10 +58,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PLineDto>>> Create([FromBody] CreatePLineDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<PLineDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pLineService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -70,10 +67,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PLineDto>>> Update(long id, [FromBody] UpdatePLineDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<PLineDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _pLineService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

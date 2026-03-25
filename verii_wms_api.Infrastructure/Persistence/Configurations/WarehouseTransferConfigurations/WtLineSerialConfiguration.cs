@@ -4,7 +4,7 @@ using WMS_WEBAPI.Models;
 
 namespace WMS_WEBAPI.Data.Configuration
 {
-    public class WtLineSerialConfiguration : BaseEntityConfiguration<WtLineSerial>
+    public class WtLineSerialConfiguration : BaseLineSerialEntityConfiguration<WtLineSerial>
     {
         protected override void ConfigureEntity(EntityTypeBuilder<WtLineSerial> builder)
         {

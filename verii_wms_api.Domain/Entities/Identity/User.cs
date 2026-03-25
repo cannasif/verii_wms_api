@@ -6,7 +6,6 @@ namespace WMS_WEBAPI.Models
     {
         public string Username { get; set; } = string.Empty;
 
-        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         public string PasswordHash { get; set; } = string.Empty;
@@ -30,7 +29,6 @@ namespace WMS_WEBAPI.Models
 
         public bool IsActive { get; set; } = true;
 
-        [NotMapped]
         public string FullName => $"{FirstName} {LastName}".Trim();
 
         public virtual UserDetail? UserDetail { get; set; }

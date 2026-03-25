@@ -28,6 +28,9 @@ using WMS_WEBAPI.Security;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.IO.Compression;
 using WMS_WEBAPI.Extensions;
+using WMS_WEBAPI.Validation;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,8 +84,20 @@ builder.Services.AddControllers(options =>
 });
 builder.Services.AddMemoryCache();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureLayer(builder.Configuration, builder.Environment);
+
+// Validation & model-state handling:
+// - Suppress default ApiController ModelState invalid behavior
+// - Use FluentValidation to validate inputs and rely on GlobalExceptionHandler for ApiResponse formatting
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddTransient(typeof(IValidator<>), typeof(DataAnnotationsBasedFluentValidator<>));
 
 // SignalR Configuration
 builder.Services.AddSignalR(options =>
@@ -278,138 +293,9 @@ using (var scope = app.Services.CreateScope())
     await PermissionCatalogBootstrapper.EnsureSeededAsync(dbContext);
 }
 
-GlobalJobFilters.Filters.Add(
-    new HangfireJobStateFilter(
-        app.Services.GetRequiredService<ILogger<HangfireJobStateFilter>>(),
-        app.Services.GetRequiredService<IBackgroundJobClient>(),
-        app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HangfireMonitoringOptions>>(),
-        app.Services.GetRequiredService<IServiceScopeFactory>()));
-
 // Migrations / seed are intentionally run out-of-band
 // (e.g., dotnet ef database update and explicit seed command).
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "WMS API V1");
-        c.RoutePrefix = "swagger";
-    });
-}
-
-// Early CORS middleware: ensures preflight and even error responses have CORS headers.
-var allowedCorsOrigins = new HashSet<string>(configuredCorsOrigins, StringComparer.OrdinalIgnoreCase);
-
-app.Use(async (ctx, next) =>
-{
-    var origin = ctx.Request.Headers["Origin"].ToString();
-    if (!string.IsNullOrEmpty(origin) && allowedCorsOrigins.Contains(origin))
-    {
-        ctx.Response.Headers.Append("Access-Control-Allow-Origin", origin);
-        ctx.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
-
-        if (HttpMethods.IsOptions(ctx.Request.Method))
-        {
-            var requestedHeaders = ctx.Request.Headers["Access-Control-Request-Headers"].ToString();
-            var allowHeaders = string.IsNullOrWhiteSpace(requestedHeaders)
-                ? "Content-Type, Authorization, X-Branch-Code, Branch-Code, X-Language, x-language, x-branch-code, x-requested-with, x-signalr-user-agent"
-                : requestedHeaders;
-
-            ctx.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-            ctx.Response.Headers.Append("Access-Control-Allow-Headers", allowHeaders);
-            ctx.Response.Headers.Append("Access-Control-Max-Age", "86400");
-            ctx.Response.StatusCode = 204;
-            return;
-        }
-    }
-
-    await next();
-});
-
-app.UseExceptionHandler();
-
-app.UseRouting();
-app.UseCors("DevCors");
-app.UseResponseCompression();
-
-// Static files for uploaded images - wwwroot folder (default)
-app.UseStaticFiles();
-
-// Static files for uploads folder (project root/uploads)
-// This serves files from project root/uploads folder at /uploads URL path
-var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
-if (Directory.Exists(uploadsPath))
-{
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
-        RequestPath = "/uploads"
-    });
-}
-
-// Hangfire Dashboard
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    Authorization = new[] { new WMS_WEBAPI.HangfireAuthorizationFilter() }
-});
-
-if (!app.Environment.IsDevelopment())
-{
-    RecurringJob.AddOrUpdate<IStockSyncJob>(
-        "erp-stock-sync-job",
-        job => job.ExecuteAsync(),
-        "*/30 * * * *");
-
-    RecurringJob.AddOrUpdate<ICustomerSyncJob>(
-        "erp-customer-sync-job",
-        job => job.ExecuteAsync(),
-        "*/30 * * * *");
-}
-else
-{
-    RecurringJob.RemoveIfExists("erp-stock-sync-job");
-    RecurringJob.RemoveIfExists("erp-customer-sync-job");
-    app.Logger.LogInformation("Skipping recurring ERP sync jobs in Development environment.");
-}
-
-// X-Language header'ını okuyacak custom middleware
-app.UseMiddleware<LanguageMiddleware>();
-
-// Login branch list must always be reachable (CRM parity for getBranches AllowAnonymous).
-// Bypass auth pipeline explicitly to prevent transient startup/session 403s on login screen.
-app.Use(async (ctx, next) =>
-{
-    if (HttpMethods.IsGet(ctx.Request.Method) &&
-        ctx.Request.Path.Equals("/api/Erp/getBranches", StringComparison.OrdinalIgnoreCase))
-    {
-        int? branchNo = null;
-        var branchNoRaw = ctx.Request.Query["branchNo"].ToString();
-        if (int.TryParse(branchNoRaw, out var parsedBranchNo))
-        {
-            branchNo = parsedBranchNo;
-        }
-
-        var erpService = ctx.RequestServices.GetRequiredService<IErpService>();
-        var result = await erpService.GetBranchesAsync(branchNo);
-
-        ctx.Response.StatusCode = result.StatusCode;
-        ctx.Response.ContentType = "application/json";
-        await ctx.Response.WriteAsJsonAsync(result);
-        return;
-    }
-
-    await next();
-});
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Endpoint mapping
-// SignalR hubs must be mapped before MapControllers() for proper routing
-app.MapHub<AuthHub>("/authHub");
-app.MapHub<NotificationHub>("/notificationHub");
-app.MapControllers();
-
+app.ConfigureHangfireJobStateFilter();
+app.ConfigureWmsHttpPipeline(configuredCorsOrigins);
 app.Run();

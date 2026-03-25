@@ -15,6 +15,7 @@ namespace WMS_WEBAPI.Data.Configuration
             builder.Property(x => x.SerialNo2).HasMaxLength(50);
             builder.Property(x => x.SerialNo3).HasMaxLength(50);
             builder.Property(x => x.SerialNo4).HasMaxLength(50);
+            builder.Property(x => x.Amount).HasColumnType("decimal(18,6)");
 
             builder.HasIndex(x => x.HeaderId).HasDatabaseName("IX_PrHeaderSerial_HeaderId");
             builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_PrHeaderSerial_IsDeleted");

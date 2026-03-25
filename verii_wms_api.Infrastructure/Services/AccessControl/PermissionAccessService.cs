@@ -10,13 +10,13 @@ namespace WMS_WEBAPI.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILocalizationService _localizationService;
-        private readonly IExecutionContextAccessor _executionContextAccessor;
+        private readonly ICurrentUserService _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
         public PermissionAccessService(
             IUnitOfWork unitOfWork,
             ILocalizationService localizationService,
-            IExecutionContextAccessor executionContextAccessor,
+            ICurrentUserService executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;

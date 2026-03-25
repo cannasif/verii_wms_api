@@ -55,10 +55,7 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PrTerminalLineDto>>> Create([FromBody] CreatePrTerminalLineDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prTerminalLineService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -67,10 +64,7 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PrTerminalLineDto>>> Update(long id, [FromBody] UpdatePrTerminalLineDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prTerminalLineService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

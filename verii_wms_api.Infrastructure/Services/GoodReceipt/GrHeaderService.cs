@@ -16,13 +16,13 @@ namespace WMS_WEBAPI.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IExecutionContextAccessor _executionContextAccessor;
+        private readonly ICurrentUserService _executionContextAccessor;
         private readonly IErpService _erpService;
         private readonly IGoodReciptFunctionsService _goodReceiptFunctionsService;
         private readonly INotificationService _notificationService;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
 
-        public GrHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IExecutionContextAccessor executionContextAccessor, IErpService erpService, IGoodReciptFunctionsService goodReceiptFunctionsService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
+        public GrHeaderService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, ICurrentUserService executionContextAccessor, IErpService erpService, IGoodReciptFunctionsService goodReceiptFunctionsService, INotificationService notificationService, IRequestCancellationAccessor requestCancellationAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -473,9 +473,7 @@ using (var tx = await _unitOfWork.BeginTransactionAsync())
         public async Task<ApiResponse<bool>> CompleteAsync(int id, CancellationToken cancellationToken = default)
         {
             var requestCancellationToken = ResolveCancellationToken(cancellationToken);
-var entity = await _unitOfWork.GrHeaders.Query(tracking: true)
-    .Where(x => x.Id == id)
-    .FirstOrDefaultAsync(requestCancellationToken);
+var entity = await GetGrHeaderForCompletionAsync(id, requestCancellationToken);
 if (entity == null)
 {
     var notFound = _localizationService.GetLocalizedString("GrHeaderNotFound");
@@ -485,197 +483,239 @@ if (entity == null)
 // ============================================
 // CHECK ERP APPROVAL REQUIREMENT
 // ============================================
-var grParameter = await _unitOfWork.GrParameters
-    .Query()
-    .FirstOrDefaultAsync(requestCancellationToken);
+var grParameter = await GetGrParameterForCompletionAsync(requestCancellationToken);
 
 // ============================================
 // VALIDATE LINE SERIAL VS ROUTE QUANTITIES
 // ============================================
-// Skip validation only if both AllowLessQuantityBasedOnOrder and AllowMoreQuantityBasedOnOrder are true
-// Normalize null values to false
-bool skipValidation = (grParameter?.AllowLessQuantityBasedOnOrder ?? false) 
-    && (grParameter?.AllowMoreQuantityBasedOnOrder ?? false);
-
-// Normalize RequireAllOrderItemsCollected
-bool requireAllOrderItemsCollected = grParameter?.RequireAllOrderItemsCollected ?? false;
-
-if (!skipValidation)
+var validationError = await ValidateLineSerialVsRouteQuantitiesAsync(id, grParameter, requestCancellationToken);
+if (validationError != null)
 {
-    var lines = await _unitOfWork.GrLines
-        .Query()
-        .Where(l => l.HeaderId == id)
-        .ToListAsync(requestCancellationToken);
-
-    foreach (var line in lines)
-    {
-        // Get total quantity of LineSerials for this Line
-        var totalLineSerialQuantity = await _unitOfWork.GrLineSerials
-            .Query()
-            .Where(ls => ls.LineId == line.Id)
-            .SumAsync(ls => ls.Quantity);
-
-        // Get total quantity of Routes for ImportLines linked to this Line
-        var totalRouteQuantity = await _unitOfWork.GrRoutes
-            .Query()
-            .Where(r => r.ImportLine.LineId == line.Id 
-                && !r.ImportLine.IsDeleted)
-            .SumAsync(r => r.Quantity);
-
-        // ============================================
-        // CHECK IF ALL ORDER ITEMS MUST BE COLLECTED
-        // ============================================
-        if (requireAllOrderItemsCollected)
-        {
-            // If RequireAllOrderItemsCollected is true, every line must have routes (totalRouteQuantity > 0)
-            if (totalRouteQuantity <= 0.000001m)
-            {
-                var msg = _localizationService.GetLocalizedString("GrHeaderAllOrderItemsMustBeCollected", 
-                    line.Id, 
-                    line.StockCode ?? string.Empty, 
-                    line.YapKod ?? string.Empty);
-                return ApiResponse<bool>.ErrorResult(msg, 
-                    $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): All order items must be collected. Route quantity is 0.", 
-                    400);
-            }
-        }
-        else
-        {
-            // If RequireAllOrderItemsCollected is false, skip validation for lines with no routes
-            if (totalRouteQuantity <= 0.000001m)
-            {
-                continue; // Skip this line, no routes means it's optional
-            }
-        }
-
-        // Determine validation logic based on parameters
-        // Normalize null values to false
-        bool allowLess = grParameter?.AllowLessQuantityBasedOnOrder ?? false;
-        bool allowMore = grParameter?.AllowMoreQuantityBasedOnOrder ?? false;
-        
-        bool quantityMismatch = false;
-        string localizedMessage = string.Empty;
-        string exceptionMessage = string.Empty;
-
-        if (!allowLess && !allowMore)
-        {
-            // Both false: Exact match required (==)
-            if (Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
-            {
-                quantityMismatch = true;
-                localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityExactMatchRequired", 
-                    line.Id, 
-                    line.StockCode ?? string.Empty, 
-                    line.YapKod ?? string.Empty, 
-                    totalLineSerialQuantity, 
-                    totalRouteQuantity);
-                exceptionMessage = $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): LineSerial total ({totalLineSerialQuantity}) must exactly match Route total ({totalRouteQuantity})";
-            }
-        }
-        else if (allowLess && !allowMore)
-        {
-            // AllowLessQuantityBasedOnOrder: true, AllowMoreQuantityBasedOnOrder: false
-            // Route <= LineSerial (Route can be less or equal to LineSerial)
-            // Error if Route > LineSerial
-            if (totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
-            {
-                quantityMismatch = true;
-                localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityCannotBeGreater", 
-                    line.Id, 
-                    line.StockCode ?? string.Empty, 
-                    line.YapKod ?? string.Empty, 
-                    totalLineSerialQuantity, 
-                    totalRouteQuantity);
-                exceptionMessage = $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): Route total ({totalRouteQuantity}) cannot be greater than LineSerial total ({totalLineSerialQuantity})";
-            }
-        }
-        else if (!allowLess && allowMore)
-        {
-            // AllowLessQuantityBasedOnOrder: false, AllowMoreQuantityBasedOnOrder: true
-            // Route >= LineSerial (Route can be more or equal to LineSerial)
-            // Error if Route < LineSerial
-            if (totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
-            {
-                quantityMismatch = true;
-                localizedMessage = _localizationService.GetLocalizedString("GrHeaderQuantityCannotBeLess", 
-                    line.Id, 
-                    line.StockCode ?? string.Empty, 
-                    line.YapKod ?? string.Empty, 
-                    totalLineSerialQuantity, 
-                    totalRouteQuantity);
-                exceptionMessage = $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): Route total ({totalRouteQuantity}) cannot be less than LineSerial total ({totalLineSerialQuantity})";
-            }
-        }
-
-        if (quantityMismatch)
-        {
-            return ApiResponse<bool>.ErrorResult(localizedMessage, exceptionMessage, 400);
-        }
-    }
+    return validationError;
 }
 
 // ============================================
 // TRANSACTION: Start transaction for write operations
 // ============================================
-using var tx = await _unitOfWork.BeginTransactionAsync();
-try
-{
-    entity.IsCompleted = true;
-    entity.CompletionDate = DateTimeProvider.Now;
-    
-    // Set IsPendingApproval based on parameter requirement
-    entity.IsPendingApproval = grParameter != null && grParameter.RequireApprovalBeforeErp;
-    _unitOfWork.GrHeaders.Update(entity);
+return await CompleteHeaderTransactionAsync(entity, grParameter, requestCancellationToken);
+        }
 
-    // Update package status to Shipped
-    var package = _unitOfWork.PHeaders.Query(tracking: true)
-        .Where(p => p.SourceHeaderId == entity.Id && p.SourceType == PHeaderSourceType.GR)
-        .FirstOrDefault();
-    if (package != null)
-    {
-        package.Status = PHeaderStatus.Shipped;
-        _unitOfWork.PHeaders.Update(package);
-    }
-
-    // Create notification for the user who created the order
-    Notification? notification = null;
-    if (entity.CreatedBy.HasValue)
-    {
-        var orderNumber = entity.Id.ToString();
-        notification = new Notification
+        private async Task<GrHeader?> GetGrHeaderForCompletionAsync(int id, CancellationToken cancellationToken)
         {
-            Title = _localizationService.GetLocalizedString("GrDoneNotificationTitle", orderNumber),
-            Message = _localizationService.GetLocalizedString("GrDoneNotificationMessage", orderNumber),
-            TitleKey = "GrDoneNotificationTitle",
-            MessageKey = "GrDoneNotificationMessage",
-            Channel = NotificationChannel.Web,
-            Severity = NotificationSeverity.Info,
-            RecipientUserId = entity.CreatedBy.Value,
-            RelatedEntityType = NotificationEntityType.GRDone,
-            RelatedEntityId = entity.Id,
-            DeliveredAt = DateTimeProvider.Now
-        };
+            return await _unitOfWork.GrHeaders.Query(tracking: true)
+                .Where(x => x.Id == id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
-        await _unitOfWork.Notifications.AddAsync(notification);
-    }
+        private async Task<GrParameter?> GetGrParameterForCompletionAsync(CancellationToken cancellationToken)
+        {
+            return await _unitOfWork.GrParameters
+                .Query()
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
-    // Single SaveChanges for both header update and notification
-    await _unitOfWork.SaveChangesAsync(requestCancellationToken);
-    await _unitOfWork.CommitTransactionAsync();
+        private async Task<ApiResponse<bool>?> ValidateLineSerialVsRouteQuantitiesAsync(
+            int headerId,
+            GrParameter? grParameter,
+            CancellationToken cancellationToken)
+        {
+            // Skip validation only if both AllowLessQuantityBasedOnOrder and AllowMoreQuantityBasedOnOrder are true
+            // Normalize null values to false
+            bool skipValidation = (grParameter?.AllowLessQuantityBasedOnOrder ?? false)
+                && (grParameter?.AllowMoreQuantityBasedOnOrder ?? false);
 
-    // Publish SignalR notification after transaction is committed
-    if (notification != null)
-    {
-        await _notificationService.PublishSignalRNotificationsAsync(new[] { notification });
-    }
+            // Normalize RequireAllOrderItemsCollected
+            bool requireAllOrderItemsCollected = grParameter?.RequireAllOrderItemsCollected ?? false;
 
-    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrHeaderCompletedSuccessfully"));
-}
-catch
-{
-    await _unitOfWork.RollbackTransactionAsync();
-    throw;
-}
+            if (skipValidation)
+            {
+                return null;
+            }
+
+            var lines = await _unitOfWork.GrLines
+                .Query()
+                .Where(l => l.HeaderId == headerId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var line in lines)
+            {
+                // Get total quantity of LineSerials for this Line
+                var totalLineSerialQuantity = await _unitOfWork.GrLineSerials
+                    .Query()
+                    .Where(ls => ls.LineId == line.Id)
+                    .SumAsync(ls => ls.Quantity);
+
+                // Get total quantity of Routes for ImportLines linked to this Line
+                var totalRouteQuantity = await _unitOfWork.GrRoutes
+                    .Query()
+                    .Where(r => r.ImportLine.LineId == line.Id
+                        && !r.ImportLine.IsDeleted)
+                    .SumAsync(r => r.Quantity);
+
+                // ============================================
+                // CHECK IF ALL ORDER ITEMS MUST BE COLLECTED
+                // ============================================
+                if (requireAllOrderItemsCollected)
+                {
+                    // If RequireAllOrderItemsCollected is true, every line must have routes (totalRouteQuantity > 0)
+                    if (totalRouteQuantity <= 0.000001m)
+                    {
+                        var msg = _localizationService.GetLocalizedString(
+                            "GrHeaderAllOrderItemsMustBeCollected",
+                            line.Id,
+                            line.StockCode ?? string.Empty,
+                            line.YapKod ?? string.Empty);
+
+                        return ApiResponse<bool>.ErrorResult(
+                            msg,
+                            $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): All order items must be collected. Route quantity is 0.",
+                            400);
+                    }
+                }
+                else
+                {
+                    // If RequireAllOrderItemsCollected is false, skip validation for lines with no routes
+                    if (totalRouteQuantity <= 0.000001m)
+                    {
+                        continue; // Skip this line, no routes means it's optional
+                    }
+                }
+
+                // Determine validation logic based on parameters
+                bool allowLess = grParameter?.AllowLessQuantityBasedOnOrder ?? false;
+                bool allowMore = grParameter?.AllowMoreQuantityBasedOnOrder ?? false;
+
+                bool quantityMismatch = false;
+                string localizedMessage = string.Empty;
+                string exceptionMessage = string.Empty;
+
+                if (!allowLess && !allowMore)
+                {
+                    // Both false: Exact match required (==)
+                    if (Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
+                    {
+                        quantityMismatch = true;
+                        localizedMessage = _localizationService.GetLocalizedString(
+                            "GrHeaderQuantityExactMatchRequired",
+                            line.Id,
+                            line.StockCode ?? string.Empty,
+                            line.YapKod ?? string.Empty,
+                            totalLineSerialQuantity,
+                            totalRouteQuantity);
+                        exceptionMessage =
+                            $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): LineSerial total ({totalLineSerialQuantity}) must exactly match Route total ({totalRouteQuantity})";
+                    }
+                }
+                else if (allowLess && !allowMore)
+                {
+                    // Route <= LineSerial (Route can be less or equal to LineSerial)
+                    // Error if Route > LineSerial
+                    if (totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
+                    {
+                        quantityMismatch = true;
+                        localizedMessage = _localizationService.GetLocalizedString(
+                            "GrHeaderQuantityCannotBeGreater",
+                            line.Id,
+                            line.StockCode ?? string.Empty,
+                            line.YapKod ?? string.Empty,
+                            totalLineSerialQuantity,
+                            totalRouteQuantity);
+                        exceptionMessage =
+                            $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): Route total ({totalRouteQuantity}) cannot be greater than LineSerial total ({totalLineSerialQuantity})";
+                    }
+                }
+                else if (!allowLess && allowMore)
+                {
+                    // Route >= LineSerial (Route can be more or equal to LineSerial)
+                    // Error if Route < LineSerial
+                    if (totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
+                    {
+                        quantityMismatch = true;
+                        localizedMessage = _localizationService.GetLocalizedString(
+                            "GrHeaderQuantityCannotBeLess",
+                            line.Id,
+                            line.StockCode ?? string.Empty,
+                            line.YapKod ?? string.Empty,
+                            totalLineSerialQuantity,
+                            totalRouteQuantity);
+                        exceptionMessage =
+                            $"Line {line.Id} (StockCode: {line.StockCode}, YapKod: {line.YapKod ?? "N/A"}): Route total ({totalRouteQuantity}) cannot be less than LineSerial total ({totalLineSerialQuantity})";
+                    }
+                }
+
+                if (quantityMismatch)
+                {
+                    return ApiResponse<bool>.ErrorResult(localizedMessage, exceptionMessage, 400);
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<ApiResponse<bool>> CompleteHeaderTransactionAsync(
+            GrHeader header,
+            GrParameter? grParameter,
+            CancellationToken cancellationToken)
+        {
+            using var tx = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                header.IsCompleted = true;
+                header.CompletionDate = DateTimeProvider.Now;
+
+                // Set IsPendingApproval based on parameter requirement
+                header.IsPendingApproval = grParameter != null && grParameter.RequireApprovalBeforeErp;
+                _unitOfWork.GrHeaders.Update(header);
+
+                // Update package status to Shipped
+                var package = _unitOfWork.PHeaders.Query(tracking: true)
+                    .Where(p => p.SourceHeaderId == header.Id && p.SourceType == PHeaderSourceType.GR)
+                    .FirstOrDefault();
+                if (package != null)
+                {
+                    package.Status = PHeaderStatus.Shipped;
+                    _unitOfWork.PHeaders.Update(package);
+                }
+
+                // Create notification for the user who created the order
+                Notification? notification = null;
+                if (header.CreatedBy.HasValue)
+                {
+                    var orderNumber = header.Id.ToString();
+                    notification = new Notification
+                    {
+                        Title = _localizationService.GetLocalizedString("GrDoneNotificationTitle", orderNumber),
+                        Message = _localizationService.GetLocalizedString("GrDoneNotificationMessage", orderNumber),
+                        TitleKey = "GrDoneNotificationTitle",
+                        MessageKey = "GrDoneNotificationMessage",
+                        Channel = NotificationChannel.Web,
+                        Severity = NotificationSeverity.Info,
+                        RecipientUserId = header.CreatedBy.Value,
+                        RelatedEntityType = NotificationEntityType.GRDone,
+                        RelatedEntityId = header.Id,
+                        DeliveredAt = DateTimeProvider.Now
+                    };
+
+                    await _unitOfWork.Notifications.AddAsync(notification);
+                }
+
+                // Single SaveChanges for both header update and notification
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.CommitTransactionAsync();
+
+                // Publish SignalR notification after transaction is committed
+                if (notification != null)
+                {
+                    await _notificationService.PublishSignalRNotificationsAsync(new[] { notification });
+                }
+
+                return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("GrHeaderCompletedSuccessfully"));
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
         }
 
         public async Task<ApiResponse<IEnumerable<GrHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default)
@@ -817,13 +857,7 @@ if (!(entity.IsCompleted && entity.IsPendingApproval && entity.ApprovalStatus ==
     return ApiResponse<GrHeaderDto>.ErrorResult(msg, msg, 400);
 }
 
-var httpUser = null;
-long? approvedByUserId = null;
-var claimVal = httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-if (long.TryParse(claimVal, out var uid))
-{
-    approvedByUserId = uid;
-}
+var approvedByUserId = _executionContextAccessor.UserId;
 
 entity.ApprovalStatus = approved;
 entity.ApprovedByUserId = approvedByUserId;

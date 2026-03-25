@@ -55,10 +55,7 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PrRouteDto>>> Create([FromBody] CreatePrRouteDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prRouteService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -67,10 +64,7 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PrRouteDto>>> Update(long id, [FromBody] UpdatePrRouteDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prRouteService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);

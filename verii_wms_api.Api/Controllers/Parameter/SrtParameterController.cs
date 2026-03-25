@@ -45,10 +45,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SrtParameterDto>>> Create([FromBody] CreateSrtParameterDto createDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<SrtParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _srtParameterService.CreateAsync(createDto, cancellationToken);
             return StatusCode(result.StatusCode, result);
@@ -57,10 +54,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id:long}")]
         public async Task<ActionResult<ApiResponse<SrtParameterDto>>> Update(long id, [FromBody] UpdateSrtParameterDto updateDto, CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ApiResponse<SrtParameterDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), ModelState?.ToString() ?? string.Empty, 400));
-            }
+            
 
             var result = await _srtParameterService.UpdateAsync(id, updateDto, cancellationToken);
             return StatusCode(result.StatusCode, result);

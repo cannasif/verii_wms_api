@@ -52,10 +52,7 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PrHeaderSerialDto>>> Create([FromBody] CreatePrHeaderSerialDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            
             var result = await _service.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
         }
@@ -63,10 +60,7 @@ namespace WMS_WEBAPI.Controllers.ProductionControllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PrHeaderSerialDto>>> Update(long id, [FromBody] UpdatePrHeaderSerialDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            
             var result = await _service.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);
         }

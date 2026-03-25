@@ -14,7 +14,7 @@ namespace WMS_WEBAPI.Services
         private readonly IErpUnitOfWork _erpUnitOfWork;
         private readonly IMapper _mapper;
         private readonly ILocalizationService _localizationService;
-        private readonly IExecutionContextAccessor _executionContextAccessor;
+        private readonly ICurrentUserService _executionContextAccessor;
         private readonly IRequestCancellationAccessor _requestCancellationAccessor;
         private readonly ILogger<ErpService> _logger;
 
@@ -22,7 +22,7 @@ namespace WMS_WEBAPI.Services
             IErpUnitOfWork erpUnitOfWork,
             IMapper mapper,
             ILocalizationService localizationService,
-            IExecutionContextAccessor executionContextAccessor,
+            ICurrentUserService executionContextAccessor,
             IRequestCancellationAccessor requestCancellationAccessor,
             ILogger<ErpService> logger)
         {

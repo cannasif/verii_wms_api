@@ -43,10 +43,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<PrHeaderDto>>> Create([FromBody] CreatePrHeaderDto createDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prHeaderService.CreateAsync(createDto);
             return StatusCode(result.StatusCode, result);
@@ -55,10 +52,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<PrHeaderDto>>> Update(long id, [FromBody] UpdatePrHeaderDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prHeaderService.UpdateAsync(id, updateDto);
             return StatusCode(result.StatusCode, result);
@@ -81,10 +75,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("generate")]
         public async Task<ActionResult<ApiResponse<PrHeaderDto>>> GenerateProductionOrder([FromBody] GenerateProductionOrderRequestDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prHeaderService.GenerateProductionOrderAsync(request);
             return StatusCode(result.StatusCode, result);
@@ -93,10 +84,7 @@ namespace WMS_WEBAPI.Controllers
         [HttpPost("bulk-generate")]
         public async Task<ActionResult<ApiResponse<PrHeaderDto>>> BulkPrGenerate([FromBody] BulkPrGenerateRequestDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return StatusCode(400, ModelState);
-            }
+            
 
             var result = await _prHeaderService.BulkPrGenerateAsync(request);
             return StatusCode(result.StatusCode, result);

@@ -241,7 +241,7 @@ namespace WMS_WEBAPI.Data
             modelBuilder.ApplyConfiguration(new ICHeaderConfiguration());
             modelBuilder.ApplyConfiguration(new IcImportLineConfiguration());
             modelBuilder.ApplyConfiguration(new IcRouteConfiguration());
-            modelBuilder.ApplyConfiguration(new ICTerminalLineConfiguration());
+            modelBuilder.ApplyConfiguration(new IcTerminalLineConfiguration());
             ApplySoftDeleteQueryFilters(modelBuilder);
         }
 
