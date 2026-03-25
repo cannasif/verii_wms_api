@@ -11,7 +11,6 @@ using WMS_WEBAPI.Services.Jobs;
 using WMS_WEBAPI.UnitOfWork;
 using WMS_WEBAPI.Options;
 using WMS_WEBAPI.Api.Services;
-using WMS_WEBAPI.UseCases.GoodReceipt;
 
 namespace WMS_WEBAPI.Extensions;
 
@@ -23,15 +22,6 @@ public static class ServiceCollectionExtensions
             typeof(Program).Assembly,
             typeof(WMS_WEBAPI.Mappings.WmsAutoMapperProfile).Assembly,
             typeof(WMS_WEBAPI.Services.LocalizationService).Assembly);
-
-        // Use cases (application orchestration)
-        services.AddScoped<ICompleteGrHeaderUseCase, CompleteGrHeaderUseCase>();
-        services.AddScoped<ISetApprovalGrHeaderUseCase, SetApprovalGrHeaderUseCase>();
-        services.AddScoped<IBulkCreateGrHeaderUseCase, BulkCreateGrHeaderUseCase>();
-        services.AddScoped<IGenerateGoodReceiptOrderUseCase, GenerateGoodReceiptOrderUseCase>();
-        services.AddScoped<ICreateGrHeaderUseCase, CreateGrHeaderUseCase>();
-        services.AddScoped<IUpdateGrHeaderUseCase, UpdateGrHeaderUseCase>();
-        services.AddScoped<ISoftDeleteGrHeaderUseCase, SoftDeleteGrHeaderUseCase>();
 
         return services;
     }
