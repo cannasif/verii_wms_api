@@ -1,0 +1,10 @@
+using Microsoft.AspNetCore.Http;
+
+namespace Wms.Application.Common;
+
+public interface IFileUploadService
+{
+    Task<ApiResponse<string>> UploadProfilePictureAsync(IFormFile file, long userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<bool>> DeleteProfilePictureAsync(string fileUrl, CancellationToken cancellationToken = default);
+    string GetProfilePictureUrl(string fileName, long userId);
+}

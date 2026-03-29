@@ -1,0 +1,16 @@
+namespace Wms.Application.Common;
+
+/// <summary>
+/// `_old/reference/verii_wms_api.Application/DTOs/Common/HangfireDeadLetterPayload.cs` job payload kontratını korur.
+/// </summary>
+public sealed class HangfireDeadLetterPayload
+{
+    public string JobId { get; set; } = string.Empty;
+    public string JobName { get; set; } = string.Empty;
+    public string? Queue { get; set; }
+    public int RetryCount { get; set; }
+    public string? Reason { get; set; }
+    public string? ExceptionType { get; set; }
+    public string? ExceptionMessage { get; set; }
+    public DateTime OccurredAtUtc { get; set; } = DateTime.UtcNow;
+}
