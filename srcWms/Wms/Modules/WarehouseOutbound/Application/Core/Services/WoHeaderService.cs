@@ -431,6 +431,15 @@ public sealed class WoHeaderService : IWoHeaderService
                 400);
         }
 
+        if (request.Lines?.Any(x => x.Quantity <= 0) == true ||
+            request.LineSerials?.Any(x => x.Quantity <= 0) == true ||
+            request.ImportLines?.Any(x => x.Quantity <= 0) == true ||
+            request.Routes?.Any(x => x.Quantity <= 0) == true)
+        {
+            var message = _localizationService.GetLocalizedString("InvalidModelState");
+            return ApiResponse<int>.ErrorResult(message, "Quantity must be greater than zero for bulk outbound lines.", 400);
+        }
+
         if (string.IsNullOrWhiteSpace(request.Header.BranchCode))
         {
             request.Header.BranchCode = _currentUserAccessor.BranchCode ?? "0";
@@ -519,6 +528,11 @@ public sealed class WoHeaderService : IWoHeaderService
                 var importLines = new List<WoImportLine>(request.ImportLines.Count);
                 foreach (var importDto in request.ImportLines)
                 {
+                    if (string.IsNullOrWhiteSpace(importDto.ClientKey))
+                    {
+                        return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "ImportLineClientKeyMissing", 400, cancellationToken);
+                    }
+
                     long? lineId = null;
                     if (importDto.LineGroupGuid.HasValue && lineGuidToId.TryGetValue(importDto.LineGroupGuid.Value, out var guidLineId))
                     {
@@ -603,6 +617,15 @@ public sealed class WoHeaderService : IWoHeaderService
 
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
             return ApiResponse<int>.SuccessResult(1, _localizationService.GetLocalizedString("WoHeaderBulkCreateCompletedSuccessfully"));
+        }
+        catch (DbUpdateException ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            var exceptionMessage = ex.InnerException?.Message ?? ex.Message;
+            return ApiResponse<int>.ErrorResult(
+                _localizationService.GetLocalizedString("WoHeaderCreationError"),
+                exceptionMessage,
+                400);
         }
         catch
         {
