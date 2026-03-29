@@ -17,11 +17,15 @@ var sharedConfigDirectory = Path.Combine(
     "Host",
     "WebApi",
     "Config");
+var sharedAppsettingsPath = Path.Combine(sharedConfigDirectory, "appsettings.json");
+var sharedEnvironmentAppsettingsPath = Path.Combine(sharedConfigDirectory, $"appsettings.{builder.Environment.EnvironmentName}.json");
+var rootAppsettingsPath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
+var rootEnvironmentAppsettingsPath = Path.Combine(builder.Environment.ContentRootPath, $"appsettings.{builder.Environment.EnvironmentName}.json");
 
 builder.Configuration
-    .AddJsonFile(Path.Combine(sharedConfigDirectory, "appsettings.json"), optional: false, reloadOnChange: true)
+    .AddJsonFile(File.Exists(sharedAppsettingsPath) ? sharedAppsettingsPath : rootAppsettingsPath, optional: false, reloadOnChange: true)
     .AddJsonFile(
-        Path.Combine(sharedConfigDirectory, $"appsettings.{builder.Environment.EnvironmentName}.json"),
+        File.Exists(sharedEnvironmentAppsettingsPath) ? sharedEnvironmentAppsettingsPath : rootEnvironmentAppsettingsPath,
         optional: true,
         reloadOnChange: true);
 
