@@ -65,6 +65,9 @@ builder.Services.AddPragmaticWebApi(builder.Configuration);
 
 var app = builder.Build();
 var swaggerEnabled = builder.Configuration.GetValue("Swagger:Enabled", true);
+var allowedCorsOrigins = new HashSet<string>(
+    builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>(),
+    StringComparer.OrdinalIgnoreCase);
 
 GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute
 {
@@ -85,6 +88,31 @@ if (swaggerEnabled)
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers["Origin"].ToString();
+    if (!string.IsNullOrWhiteSpace(origin) && allowedCorsOrigins.Contains(origin))
+    {
+        context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+        context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        context.Response.Headers["Vary"] = "Origin";
+
+        if (HttpMethods.IsOptions(context.Request.Method))
+        {
+            var requestedHeaders = context.Request.Headers["Access-Control-Request-Headers"].ToString();
+            context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+            context.Response.Headers["Access-Control-Allow-Headers"] = string.IsNullOrWhiteSpace(requestedHeaders)
+                ? "Content-Type, Authorization, X-Branch-Code, Branch-Code, X-Language, x-language, x-branch-code, x-requested-with, x-signalr-user-agent"
+                : requestedHeaders;
+            context.Response.Headers["Access-Control-Max-Age"] = "86400";
+            context.Response.StatusCode = StatusCodes.Status204NoContent;
+            return;
+        }
+    }
+
+    await next();
+});
 
 app.UseCors("PragmaticCors");
 
