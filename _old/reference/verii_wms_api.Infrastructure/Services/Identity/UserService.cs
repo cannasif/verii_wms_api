@@ -1,0 +1,380 @@
+using AutoMapper;
+using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using WMS_WEBAPI.DTOs;
+using WMS_WEBAPI.Interfaces;
+using WMS_WEBAPI.Models;
+using WMS_WEBAPI.Models.UserPermissions;
+using WMS_WEBAPI.UnitOfWork;
+
+namespace WMS_WEBAPI.Services
+{
+    public class UserService : IUserService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
+        private readonly ILocalizationService _localizationService;
+        private readonly IRequestCancellationAccessor _requestCancellationAccessor;
+
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService, IRequestCancellationAccessor requestCancellationAccessor)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _localizationService = localizationService;
+            _requestCancellationAccessor = requestCancellationAccessor;
+        }
+        private CancellationToken ResolveCancellationToken(CancellationToken token = default)
+        {
+            return _requestCancellationAccessor.Get(token);
+        }
+
+        private CancellationToken RequestCancellationToken => ResolveCancellationToken();
+
+
+        public async Task<ApiResponse<PagedResponse<UserDto>>> GetAllUsersAsync(PagedRequest request, CancellationToken cancellationToken = default)
+        {
+request ??= new PagedRequest();
+request.Filters ??= new List<Filter>();
+
+var query = _unitOfWork.Users
+    .Query()
+    .Include(u => u.RoleNavigation)
+    .ApplySearch(
+        request.Search,
+        nameof(User.Username),
+        nameof(User.Email),
+        nameof(User.FirstName),
+        nameof(User.LastName),
+        "RoleNavigation.Title")
+    .ApplyFilters(request.Filters, request.FilterLogic);
+
+var desc = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+query = query.ApplySorting(request.SortBy ?? nameof(User.Id), desc);
+
+var totalCount = await query.CountAsync(RequestCancellationToken);
+var users = await query
+    .ApplyPagination(request.PageNumber, request.PageSize)
+    .ToListAsync(RequestCancellationToken);
+
+var data = _mapper.Map<List<UserDto>>(users);
+var paged = new PagedResponse<UserDto>(data, totalCount, request.PageNumber, request.PageSize);
+
+return ApiResponse<PagedResponse<UserDto>>.SuccessResult(
+    paged,
+    _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
+        }
+
+        public async Task<ApiResponse<UserDto>> GetUserByIdAsync(long id, CancellationToken cancellationToken = default)
+        {
+var user = await _unitOfWork.Users
+    .Query()
+    .Include(u => u.RoleNavigation)
+    .Where(u => u.Id == id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+
+if (user == null)
+{
+    return ApiResponse<UserDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserNotFound"),
+        _localizationService.GetLocalizedString("UserNotFound"),
+        404);
+}
+
+return ApiResponse<UserDto>.SuccessResult(
+    _mapper.Map<UserDto>(user),
+    _localizationService.GetLocalizedString("DataRetrievedSuccessfully"));
+        }
+
+        public async Task<ApiResponse<UserDto>> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default)
+        {
+if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Email))
+{
+    return ApiResponse<UserDto>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        400);
+}
+
+var usernameExists = await _unitOfWork.Users.Query()
+    .Where(x => x.Username == dto.Username)
+            .AnyAsync(RequestCancellationToken);
+if (usernameExists)
+{
+    return ApiResponse<UserDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserAlreadyExists"),
+        _localizationService.GetLocalizedString("UserAlreadyExists"),
+        400);
+}
+
+var emailExists = await _unitOfWork.Users.Query()
+    .Where(x => x.Email == dto.Email)
+            .AnyAsync(RequestCancellationToken);
+if (emailExists)
+{
+    return ApiResponse<UserDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserAlreadyExists"),
+        _localizationService.GetLocalizedString("UserAlreadyExists"),
+        400);
+}
+
+var roleExists = await _unitOfWork.UserAuthorities.Query()
+    .Where(x => x.Id == dto.RoleId)
+            .AnyAsync(RequestCancellationToken);
+if (!roleExists)
+{
+    return ApiResponse<UserDto>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        400);
+}
+
+if (dto.PermissionGroupIds != null)
+{
+    var validateGroups = await ValidatePermissionGroupIdsAsync(dto.PermissionGroupIds);
+    if (!validateGroups.Success)
+    {
+        return ApiResponse<UserDto>.ErrorResult(validateGroups.Message, validateGroups.ExceptionMessage, validateGroups.StatusCode);
+    }
+
+    var validateSystemAdminAssignment = await ValidateSystemAdminGroupAssignmentAsync(dto.RoleId, dto.PermissionGroupIds);
+    if (!validateSystemAdminAssignment.Success)
+    {
+        return ApiResponse<UserDto>.ErrorResult(
+            validateSystemAdminAssignment.Message,
+            validateSystemAdminAssignment.ExceptionMessage,
+            validateSystemAdminAssignment.StatusCode);
+    }
+}
+
+var plainPassword = string.IsNullOrWhiteSpace(dto.Password) ? GenerateTemporaryPassword() : dto.Password;
+
+var entity = _mapper.Map<User>(dto);
+entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
+entity.IsEmailConfirmed = true;
+entity.IsActive = dto.IsActive ?? true;
+
+await _unitOfWork.Users.AddAsync(entity);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+
+if (dto.PermissionGroupIds != null)
+{
+    var syncResult = await SyncUserPermissionGroupsAsync(entity.Id, dto.PermissionGroupIds);
+    if (!syncResult.Success)
+    {
+        return ApiResponse<UserDto>.ErrorResult(syncResult.Message, syncResult.ExceptionMessage, syncResult.StatusCode);
+    }
+}
+
+var created = await _unitOfWork.Users.Query()
+    .Include(u => u.RoleNavigation)
+    .Where(u => u.Id == entity.Id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+
+BackgroundJob.Enqueue<IResetPasswordEmailJob>(job =>
+    job.SendUserCreatedEmailAsync(dto.Email, dto.Username, plainPassword, dto.FirstName, dto.LastName));
+
+return ApiResponse<UserDto>.SuccessResult(
+    _mapper.Map<UserDto>(created ?? entity),
+    _localizationService.GetLocalizedString("OperationSuccessful"));
+        }
+
+        public async Task<ApiResponse<UserDto>> UpdateUserAsync(long id, UpdateUserDto dto, CancellationToken cancellationToken = default)
+        {
+var entity = await _unitOfWork.Users.Query(tracking: true)
+    .Where(x => x.Id == id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+if (entity == null)
+{
+    return ApiResponse<UserDto>.ErrorResult(
+        _localizationService.GetLocalizedString("UserNotFound"),
+        _localizationService.GetLocalizedString("UserNotFound"),
+        404);
+}
+
+if (!string.IsNullOrWhiteSpace(dto.Email) && !dto.Email.Equals(entity.Email, StringComparison.OrdinalIgnoreCase))
+{
+    var emailExists = await _unitOfWork.Users.Query()
+        .Where(x => x.Id != id && x.Email == dto.Email)
+            .AnyAsync(RequestCancellationToken);
+    if (emailExists)
+    {
+        return ApiResponse<UserDto>.ErrorResult(
+            _localizationService.GetLocalizedString("UserAlreadyExists"),
+            _localizationService.GetLocalizedString("UserAlreadyExists"),
+            400);
+    }
+}
+
+if (dto.RoleId.HasValue)
+{
+    var roleExists = await _unitOfWork.UserAuthorities.Query()
+        .Where(x => x.Id == dto.RoleId.Value)
+            .AnyAsync(RequestCancellationToken);
+    if (!roleExists)
+    {
+        return ApiResponse<UserDto>.ErrorResult(
+            _localizationService.GetLocalizedString("ValidationError"),
+            _localizationService.GetLocalizedString("ValidationError"),
+            400);
+    }
+}
+
+if (dto.PermissionGroupIds != null)
+{
+    var validateGroups = await ValidatePermissionGroupIdsAsync(dto.PermissionGroupIds);
+    if (!validateGroups.Success)
+    {
+        return ApiResponse<UserDto>.ErrorResult(validateGroups.Message, validateGroups.ExceptionMessage, validateGroups.StatusCode);
+    }
+
+    var effectiveRoleId = dto.RoleId ?? entity.RoleId;
+    var validateSystemAdminAssignment = await ValidateSystemAdminGroupAssignmentAsync(effectiveRoleId, dto.PermissionGroupIds);
+    if (!validateSystemAdminAssignment.Success)
+    {
+        return ApiResponse<UserDto>.ErrorResult(
+            validateSystemAdminAssignment.Message,
+            validateSystemAdminAssignment.ExceptionMessage,
+            validateSystemAdminAssignment.StatusCode);
+    }
+}
+
+_mapper.Map(dto, entity);
+_unitOfWork.Users.Update(entity);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+
+if (dto.PermissionGroupIds != null)
+{
+    var syncResult = await SyncUserPermissionGroupsAsync(entity.Id, dto.PermissionGroupIds);
+    if (!syncResult.Success)
+    {
+        return ApiResponse<UserDto>.ErrorResult(syncResult.Message, syncResult.ExceptionMessage, syncResult.StatusCode);
+    }
+}
+
+var updated = await _unitOfWork.Users.Query()
+    .Include(u => u.RoleNavigation)
+    .Where(u => u.Id == entity.Id)
+    .FirstOrDefaultAsync(RequestCancellationToken);
+
+return ApiResponse<UserDto>.SuccessResult(
+    _mapper.Map<UserDto>(updated ?? entity),
+    _localizationService.GetLocalizedString("OperationSuccessful"));
+        }
+
+        public async Task<ApiResponse<object>> DeleteUserAsync(long id, CancellationToken cancellationToken = default)
+        {
+var exists = await _unitOfWork.Users.Query().Where(x => x.Id == id)
+            .AnyAsync(RequestCancellationToken);
+if (!exists)
+{
+    return ApiResponse<object>.ErrorResult(
+        _localizationService.GetLocalizedString("UserNotFound"),
+        _localizationService.GetLocalizedString("UserNotFound"),
+        404);
+}
+
+await _unitOfWork.Users.SoftDelete(id);
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+
+return ApiResponse<object>.SuccessResult(new { }, _localizationService.GetLocalizedString("OperationSuccessful"));
+        }
+
+        private string GenerateTemporaryPassword()
+        {
+            var seed = Guid.NewGuid().ToString("N")[..10];
+            return $"V3r!{seed}";
+        }
+
+        private async Task<ApiResponse<bool>> ValidatePermissionGroupIdsAsync(IEnumerable<long> permissionGroupIds)
+        {
+var distinctGroupIds = permissionGroupIds.Distinct().ToList();
+if (distinctGroupIds.Count == 0)
+{
+    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+}
+
+var validCount = await _unitOfWork.PermissionGroups.Query()
+    .Where(x => distinctGroupIds.Contains(x.Id))
+            .CountAsync(RequestCancellationToken);
+
+if (validCount != distinctGroupIds.Count)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        _localizationService.GetLocalizedString("ValidationError"),
+        400);
+}
+
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+        }
+
+        private async Task<ApiResponse<bool>> SyncUserPermissionGroupsAsync(long userId, IEnumerable<long> permissionGroupIds)
+        {
+var distinctGroupIds = permissionGroupIds.Distinct().ToList();
+
+var currentLinks = await _unitOfWork.UserPermissionGroups.Query()
+    .Where(x => x.UserId == userId)
+    .ToListAsync(RequestCancellationToken);
+
+foreach (var link in currentLinks.Where(x => !distinctGroupIds.Contains(x.PermissionGroupId)))
+{
+    await _unitOfWork.UserPermissionGroups.SoftDelete(link.Id);
+}
+
+var existingIds = currentLinks.Select(x => x.PermissionGroupId).ToHashSet();
+foreach (var groupId in distinctGroupIds.Where(id => !existingIds.Contains(id)))
+{
+    await _unitOfWork.UserPermissionGroups.AddAsync(new UserPermissionGroup
+    {
+        UserId = userId,
+        PermissionGroupId = groupId,
+        IsDeleted = false,
+        CreatedDate = DateTimeProvider.Now,
+    });
+}
+
+await _unitOfWork.SaveChangesAsync(RequestCancellationToken);
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+        }
+
+        private async Task<ApiResponse<bool>> ValidateSystemAdminGroupAssignmentAsync(long roleId, IEnumerable<long> permissionGroupIds)
+        {
+var distinctGroupIds = permissionGroupIds.Distinct().ToList();
+if (distinctGroupIds.Count == 0)
+{
+    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+}
+
+var hasSystemAdminGroup = await _unitOfWork.PermissionGroups.Query()
+    .Where(x => x.IsSystemAdmin && distinctGroupIds.Contains(x.Id))
+            .AnyAsync(RequestCancellationToken);
+
+if (!hasSystemAdminGroup)
+{
+    return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+}
+
+var isAdminRole = await IsAdminRoleAsync(roleId);
+if (!isAdminRole)
+{
+    return ApiResponse<bool>.ErrorResult(
+        _localizationService.GetLocalizedString("ValidationError"),
+        "System Admin permission group can only be assigned to users with Admin role.",
+        400);
+}
+
+return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("OperationSuccessful"));
+        }
+
+        private async Task<bool> IsAdminRoleAsync(long roleId)
+        {
+            var roleTitle = await _unitOfWork.UserAuthorities.Query()
+                .Where(x => x.Id == roleId)
+                .Select(x => x.Title)
+                .FirstOrDefaultAsync(RequestCancellationToken);
+
+            return !string.IsNullOrWhiteSpace(roleTitle) &&
+                   roleTitle.Contains("admin", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}
