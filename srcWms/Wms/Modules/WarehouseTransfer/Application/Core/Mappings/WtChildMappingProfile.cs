@@ -10,22 +10,27 @@ public sealed class WtChildMappingProfile : Profile
     {
         CreateMap<WtLine, WtLineDto>();
         CreateMap<CreateWtLineDto, WtLine>();
+        CreateMap<CreateWtLineWithKeyDto, WtLine>();
         CreateMap<UpdateWtLineDto, WtLine>();
 
         CreateMap<WtImportLine, WtImportLineDto>();
         CreateMap<CreateWtImportLineDto, WtImportLine>();
+        CreateMap<CreateWtImportLineWithKeysDto, WtImportLine>();
         CreateMap<UpdateWtImportLineDto, WtImportLine>();
 
         CreateMap<WtRoute, WtRouteDto>();
         CreateMap<CreateWtRouteDto, WtRoute>();
+        CreateMap<CreateWtRouteWithLineKeyDto, WtRoute>();
         CreateMap<UpdateWtRouteDto, WtRoute>();
 
         CreateMap<WtLineSerial, WtLineSerialDto>();
         CreateMap<CreateWtLineSerialDto, WtLineSerial>();
+        CreateMap<CreateWtLineSerialWithLineKeyDto, WtLineSerial>();
         CreateMap<UpdateWtLineSerialDto, WtLineSerial>();
 
         CreateMap<WtTerminalLine, WtTerminalLineDto>();
         CreateMap<CreateWtTerminalLineDto, WtTerminalLine>();
+        CreateMap<CreateWtTerminalLineWithUserDto, WtTerminalLine>();
         CreateMap<UpdateWtTerminalLineDto, WtTerminalLine>();
     }
 }

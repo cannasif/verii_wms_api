@@ -122,6 +122,44 @@ app.UseCors("PragmaticCors");
 
 app.Use(async (context, next) =>
 {
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var origin = context.Request.Headers["Origin"].ToString();
+        if (!string.IsNullOrWhiteSpace(origin) && allowedCorsOrigins.Contains(origin))
+        {
+            context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+            context.Response.Headers["Vary"] = "Origin";
+        }
+
+        if (!context.Response.HasStarted)
+        {
+            var localizationService = context.RequestServices.GetService<ILocalizationService>();
+            var message = localizationService?.GetLocalizedString("InternalServerError") ?? "InternalServerError";
+
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsJsonAsync(new ApiResponse<object?>
+            {
+                Success = false,
+                Message = message,
+                ExceptionMessage = ex.InnerException?.Message ?? ex.Message,
+                Errors = new List<string>(),
+                StatusCode = StatusCodes.Status500InternalServerError,
+                ClassName = "ApiResponse<Object>"
+            });
+        }
+    }
+});
+
+app.Use(async (context, next) =>
+{
     var branchCode = context.Request.Headers["X-Branch-Code"].FirstOrDefault();
     context.Items["BranchCode"] = BranchCodeDefaults.Normalize(branchCode);
     await next();

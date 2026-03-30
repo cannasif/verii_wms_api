@@ -298,7 +298,7 @@ public sealed class WoHeaderService : IWoHeaderService
             return ApiResponse<WoHeaderDto>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), message, 400);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Header.BranchCode))
+        if (string.IsNullOrWhiteSpace(request.Header.BranchCode) || request.Header.BranchCode == "0")
         {
             request.Header.BranchCode = _currentUserAccessor.BranchCode ?? "0";
         }

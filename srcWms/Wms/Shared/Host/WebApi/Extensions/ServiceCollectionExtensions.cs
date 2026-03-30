@@ -91,7 +91,7 @@ public static class ServiceCollectionExtensions
 
         services.AddDbContext<WmsDbContext>(options =>
         {
-            options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
+            options.UseSqlServer(connectionString);
         });
 
         services.AddHangfire(config => config
