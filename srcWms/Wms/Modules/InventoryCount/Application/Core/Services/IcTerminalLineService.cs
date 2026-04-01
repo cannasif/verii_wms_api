@@ -75,11 +75,13 @@ public sealed class IcTerminalLineService : IIcTerminalLineService
 
     public async Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default)
     {
-        if (!await _terminalLines.ExistsAsync(id, cancellationToken))
+        var exists = await _terminalLines.ExistsAsync(id, cancellationToken);
+        if (!exists)
         {
             var msg = _localizationService.GetLocalizedString("IcTerminalLineNotFound");
             return ApiResponse<bool>.ErrorResult(msg, msg, 404);
         }
+
         await _terminalLines.SoftDelete(id, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("IcTerminalLineDeletedSuccessfully"));
