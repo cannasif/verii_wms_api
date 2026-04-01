@@ -18,6 +18,11 @@ public abstract class BaseEntityConfiguration<TEntity> : IEntityTypeConfiguratio
         builder.Property(x => x.Id)
             .ValueGeneratedOnAdd();
 
+        builder.Property(x => x.BranchCode)
+            .HasMaxLength(10)
+            .IsRequired()
+            .HasDefaultValue("0");
+
         builder.Property(x => x.CreatedDate)
             .IsRequired(false);
 

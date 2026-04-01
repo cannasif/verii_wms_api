@@ -10,7 +10,6 @@ public abstract class BaseHeaderEntity : BaseEntity
     public string? DocumentNo { get; set; }
     public DateTime? DocumentDate { get; set; }
     public string YearCode { get; set; } = DateTime.Now.Year.ToString();
-    public string BranchCode { get; set; } = "0";
     public string? OrderId { get; set; }
     public string? ProjectCode { get; set; }
     public DateTime? PlannedDate { get; set; }

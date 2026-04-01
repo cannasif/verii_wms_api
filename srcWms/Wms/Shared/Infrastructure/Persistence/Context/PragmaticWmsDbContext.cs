@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Wms.Domain.Entities.AccessControl;
 using Wms.Domain.Entities.Communications;
 using Wms.Domain.Entities.Common;
@@ -115,5 +116,103 @@ public sealed class WmsDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(WmsDbContext).Assembly);
+    }
+
+    public override int SaveChanges()
+    {
+        ApplyBranchCodes();
+        return base.SaveChanges();
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyBranchCodes();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyBranchCodes();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ApplyBranchCodes();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ApplyBranchCodes()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(x => x.State is EntityState.Added or EntityState.Modified)
+            .Where(x => x.Entity is IBranchScopedEntity)
+            .ToList();
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is BaseHeaderEntity headerEntity)
+            {
+                headerEntity.BranchCode = NormalizeBranchCode(headerEntity.BranchCode);
+                continue;
+            }
+
+            var scopedEntity = (IBranchScopedEntity)entry.Entity;
+            var resolvedBranchCode = ResolveBranchCodeFromHeader(entry) ?? scopedEntity.BranchCode;
+            scopedEntity.BranchCode = NormalizeBranchCode(resolvedBranchCode);
+        }
+    }
+
+    private string? ResolveBranchCodeFromHeader(EntityEntry entry)
+    {
+        var headerNavigation = entry.Metadata.GetNavigations()
+            .FirstOrDefault(x => typeof(BaseHeaderEntity).IsAssignableFrom(x.TargetEntityType.ClrType));
+
+        if (headerNavigation != null)
+        {
+            var navigationEntry = entry.Navigation(headerNavigation.Name);
+            if (navigationEntry.CurrentValue is BaseHeaderEntity trackedHeader)
+            {
+                return trackedHeader.BranchCode;
+            }
+        }
+
+        var headerIdProperty = entry.Metadata.FindProperty("HeaderId");
+        if (headerIdProperty?.ClrType != typeof(long) && headerIdProperty?.ClrType != typeof(long?))
+        {
+            return null;
+        }
+
+        var headerIdValue = entry.Property("HeaderId").CurrentValue;
+        if (headerIdValue == null)
+        {
+            return null;
+        }
+
+        var headerEntityType = headerNavigation?.TargetEntityType.ClrType;
+        if (headerEntityType == null)
+        {
+            return null;
+        }
+
+        var trackedHeaderEntry = ChangeTracker.Entries()
+            .FirstOrDefault(x => x.Metadata.ClrType == headerEntityType && x.Property("Id").CurrentValue?.Equals(headerIdValue) == true);
+
+        if (trackedHeaderEntry?.Entity is BaseHeaderEntity trackedHeaderEntity)
+        {
+            return trackedHeaderEntity.BranchCode;
+        }
+
+        if (Find(headerEntityType, headerIdValue) is BaseHeaderEntity persistedHeaderEntity)
+        {
+            return persistedHeaderEntity.BranchCode;
+        }
+
+        return null;
+    }
+
+    private static string NormalizeBranchCode(string? branchCode)
+    {
+        return string.IsNullOrWhiteSpace(branchCode) ? "0" : branchCode.Trim();
     }
 }
