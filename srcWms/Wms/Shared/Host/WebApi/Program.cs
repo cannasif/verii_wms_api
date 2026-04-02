@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Wms.Infrastructure.Options;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,10 +125,14 @@ app.UseCors("PragmaticCors");
 
 if (Directory.Exists(androidVersionsDirectory))
 {
+    var contentTypeProvider = new FileExtensionContentTypeProvider();
+    contentTypeProvider.Mappings[".apk"] = "application/vnd.android.package-archive";
+
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new PhysicalFileProvider(androidVersionsDirectory),
-        RequestPath = "/android-versions"
+        RequestPath = "/android-versions",
+        ContentTypeProvider = contentTypeProvider
     });
 }
 
