@@ -41,7 +41,13 @@ public sealed class MobileVersionController : ControllerBase
         }
 
         await using var stream = global::System.IO.File.OpenRead(manifestPath);
-        var manifest = await JsonSerializer.DeserializeAsync<AndroidVersionsManifest>(stream, cancellationToken: cancellationToken);
+        var manifest = await JsonSerializer.DeserializeAsync<AndroidVersionsManifest>(
+            stream,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            },
+            cancellationToken);
 
         if (manifest?.Android is null)
         {
