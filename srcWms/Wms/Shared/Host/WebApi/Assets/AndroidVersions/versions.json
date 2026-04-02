@@ -1,0 +1,12 @@
+{
+  "android": {
+    "latestVersion": "1.0.0",
+    "latestVersionCode": 1,
+    "minimumSupportedVersion": "1.0.0",
+    "minimumSupportedVersionCode": 1,
+    "apkFileName": "",
+    "apkUrl": "",
+    "releaseNotes": "Ilk dagitim",
+    "publishedAtUtc": "2026-04-02T00:00:00Z"
+  }
+}

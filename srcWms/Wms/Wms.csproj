@@ -12,6 +12,9 @@
     <Content Update="Shared/Host/WebApi/Config/appsettings.json" Link="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="Shared/Host/WebApi/Assets/AndroidVersions\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.0.1" />

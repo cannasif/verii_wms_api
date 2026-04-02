@@ -8,6 +8,7 @@ using Wms.WebApi.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Wms.Infrastructure.Options;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +70,7 @@ builder.Services.AddPragmaticWebApi(builder.Configuration);
 
 var app = builder.Build();
 var swaggerEnabled = builder.Configuration.GetValue("Swagger:Enabled", true);
+var androidVersionsDirectory = Path.Combine(builder.Environment.ContentRootPath, "Shared", "Host", "WebApi", "Assets", "AndroidVersions");
 var allowedCorsOrigins = new HashSet<string>(
     builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>(),
     StringComparer.OrdinalIgnoreCase);
@@ -119,6 +121,15 @@ app.Use(async (context, next) =>
 });
 
 app.UseCors("PragmaticCors");
+
+if (Directory.Exists(androidVersionsDirectory))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(androidVersionsDirectory),
+        RequestPath = "/android-versions"
+    });
+}
 
 app.Use(async (context, next) =>
 {
