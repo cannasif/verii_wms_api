@@ -1,12 +1,12 @@
 {
   "android": {
-    "latestVersion": "1.0.0",
-    "latestVersionCode": 1,
+    "latestVersion": "1.0.1",
+    "latestVersionCode": 2,
     "minimumSupportedVersion": "1.0.0",
     "minimumSupportedVersionCode": 1,
-    "apkFileName": "",
+    "apkFileName": "verii-wms-1.0.1.apk",
     "apkUrl": "",
-    "releaseNotes": "Ilk dagitim",
-    "publishedAtUtc": "2026-04-02T00:00:00Z"
+    "releaseNotes": "Profil altinda versiyon gorunurlugu eklendi. APK guncelleme kontrolu ve surum notlari ekrani eklendi.",
+    "publishedAtUtc": "2026-04-02T15:58:00Z"
   }
 }
