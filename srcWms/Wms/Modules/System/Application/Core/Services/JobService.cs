@@ -34,7 +34,8 @@ public sealed class JobService : IJobService
                 jobName = x.JobName,
                 failedAt = x.FailedAt,
                 state = "Failed",
-                reason = x.ExceptionMessage ?? x.Reason,
+                reason = GetUserFriendlyReason(x.ExceptionMessage ?? x.Reason, x.JobName),
+                technicalReason = x.ExceptionMessage ?? x.Reason,
                 exceptionType = x.ExceptionType,
                 retryCount = x.RetryCount,
                 queue = x.Queue
@@ -65,7 +66,8 @@ public sealed class JobService : IJobService
                 jobName = x.JobName,
                 enqueuedAt = x.FailedAt,
                 state = "Enqueued",
-                reason = x.ExceptionMessage ?? x.Reason,
+                reason = GetUserFriendlyReason(x.ExceptionMessage ?? x.Reason, x.JobName),
+                technicalReason = x.ExceptionMessage ?? x.Reason,
                 retryCount = x.RetryCount,
                 queue = x.Queue
             })
@@ -74,4 +76,45 @@ public sealed class JobService : IJobService
         return ApiResponse<PagedResponse<object>>.SuccessResult(new PagedResponse<object>(items.Cast<object>().ToList(), total, pageNumber, pageSize), "Hangfire dead-letter jobs retrieved successfully.");
     }
     public async Task<ApiResponse<PagedResponse<JobFailureLog>>> GetFailureLogsAsync(int pageNumber = 0, int pageSize = 20, CancellationToken cancellationToken = default) { if (pageNumber < 0) pageNumber = 0; if (pageSize <= 0) pageSize = 20; var q = _jobFailureLogs.Query().OrderByDescending(x => x.FailedAt); var total = await q.CountAsync(cancellationToken); var items = await q.Skip(pageNumber * pageSize).Take(pageSize).ToListAsync(cancellationToken); return ApiResponse<PagedResponse<JobFailureLog>>.SuccessResult(new(items, total, pageNumber, pageSize), "Hangfire SQL failure logs retrieved successfully."); }
+
+    private static string GetUserFriendlyReason(string? technicalReason, string? jobName)
+    {
+        if (string.IsNullOrWhiteSpace(technicalReason))
+        {
+            return "İş başarısız oldu. Teknik detay kaydı bulunamadı.";
+        }
+
+        var message = technicalReason.Trim();
+
+        if (message.Contains("ErpConnection is not configured", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ERP bağlantı ayarı bulunamadı. Sistem ERP veritabanına bağlanamıyor.";
+        }
+
+        if (message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("could not find stored procedure", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ERP fonksiyonu veya tablo bulunamadı. İlgili nesne ERP veritabanında eksik olabilir.";
+        }
+
+        if (message.Contains("login failed", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("cannot open database", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ERP veritabanına giriş başarısız oldu. Kullanıcı adı, şifre veya veritabanı adı kontrol edilmeli.";
+        }
+
+        if (message.Contains("network-related", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("server was not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("connection", StringComparison.OrdinalIgnoreCase) && message.Contains("open", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ERP veritabanına bağlantı kurulamadı. Sunucu erişimi veya ağ bağlantısı kontrol edilmeli.";
+        }
+
+        if (jobName?.Contains("SyncJob", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return $"Senkron işlemi tamamlanamadı. {message}";
+        }
+
+        return message;
+    }
 }

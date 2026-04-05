@@ -15,8 +15,11 @@ public sealed class ShHeaderConfiguration : BaseHeaderEntityConfiguration<ShHead
         builder.Property(x => x.ProjectCode).HasMaxLength(20);
         builder.Property(x => x.DocumentType).HasMaxLength(10).IsRequired();
         builder.Property(x => x.CustomerCode).HasMaxLength(20);
+        builder.Property(x => x.CustomerId).IsRequired(false);
         builder.Property(x => x.SourceWarehouse).HasMaxLength(20);
+        builder.Property(x => x.SourceWarehouseId).IsRequired(false);
         builder.Property(x => x.TargetWarehouse).HasMaxLength(20);
+        builder.Property(x => x.TargetWarehouseId).IsRequired(false);
         builder.Property(x => x.YearCode).HasMaxLength(4).IsRequired();
         builder.Property(x => x.Description1).HasMaxLength(50);
         builder.Property(x => x.Description2).HasMaxLength(100);
@@ -25,6 +28,9 @@ public sealed class ShHeaderConfiguration : BaseHeaderEntityConfiguration<ShHead
         builder.HasIndex(x => x.BranchCode).HasDatabaseName("IX_ShHeader_BranchCode");
         builder.HasIndex(x => x.PlannedDate).HasDatabaseName("IX_ShHeader_PlannedDate");
         builder.HasIndex(x => x.CustomerCode).HasDatabaseName("IX_ShHeader_CustomerCode");
+        builder.HasIndex(x => x.CustomerId).HasDatabaseName("IX_ShHeader_CustomerId");
+        builder.HasIndex(x => x.SourceWarehouseId).HasDatabaseName("IX_ShHeader_SourceWarehouseId");
+        builder.HasIndex(x => x.TargetWarehouseId).HasDatabaseName("IX_ShHeader_TargetWarehouseId");
         builder.HasIndex(x => x.YearCode).HasDatabaseName("IX_ShHeader_YearCode");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_ShHeader_IsDeleted");
 

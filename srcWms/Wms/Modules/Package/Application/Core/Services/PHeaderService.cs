@@ -31,7 +31,6 @@ public sealed class PHeaderService : IPHeaderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILocalizationService _localizationService;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly IRepository<PLine> _packageLines;
     private readonly IRepository<GrHeader> _grHeaders;
     private readonly IPackageGoodsReceiptMatcher _goodsReceiptMatcher;
@@ -60,6 +59,7 @@ public sealed class PHeaderService : IPHeaderService
     private readonly IRepository<SrtHeader> _srtHeaders;
     private readonly IRepository<SrtRoute> _srtRoutes;
     private readonly IPackageSubcontractingReceiptMatcher _subcontractingReceiptMatcher;
+    private readonly IEntityReferenceResolver _entityReferenceResolver;
 
     public PHeaderService(
         IRepository<PHeader> headers,
@@ -68,7 +68,6 @@ public sealed class PHeaderService : IPHeaderService
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ILocalizationService localizationService,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         IPackageGoodsReceiptMatcher goodsReceiptMatcher,
         IRepository<GrRoute> grRoutes,
         IRepository<WtHeader> wtHeaders,
@@ -94,7 +93,8 @@ public sealed class PHeaderService : IPHeaderService
         IPackageSubcontractingIssueMatcher subcontractingIssueMatcher,
         IRepository<SrtHeader> srtHeaders,
         IRepository<SrtRoute> srtRoutes,
-        IPackageSubcontractingReceiptMatcher subcontractingReceiptMatcher)
+        IPackageSubcontractingReceiptMatcher subcontractingReceiptMatcher,
+        IEntityReferenceResolver entityReferenceResolver)
     {
         _headers = headers;
         _packageLines = packageLines;
@@ -102,7 +102,6 @@ public sealed class PHeaderService : IPHeaderService
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _localizationService = localizationService;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _goodsReceiptMatcher = goodsReceiptMatcher;
         _grRoutes = grRoutes;
         _wtHeaders = wtHeaders;
@@ -129,13 +128,13 @@ public sealed class PHeaderService : IPHeaderService
         _srtHeaders = srtHeaders;
         _srtRoutes = srtRoutes;
         _subcontractingReceiptMatcher = subcontractingReceiptMatcher;
+        _entityReferenceResolver = entityReferenceResolver;
     }
 
     public async Task<ApiResponse<IEnumerable<PHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _headers.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<PHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PHeaderRetrievedSuccessfully"));
     }
 
@@ -150,7 +149,6 @@ public sealed class PHeaderService : IPHeaderService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<PHeaderDto>>.SuccessResult(new PagedResponse<PHeaderDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("PHeaderRetrievedSuccessfully"));
     }
 
@@ -164,7 +162,6 @@ public sealed class PHeaderService : IPHeaderService
         }
 
         var dto = _mapper.Map<PHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PHeaderDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("PHeaderRetrievedSuccessfully"));
     }
 
@@ -181,6 +178,7 @@ public sealed class PHeaderService : IPHeaderService
         }
 
         var entity = _mapper.Map<PHeader>(createDto) ?? new PHeader();
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         if (string.IsNullOrWhiteSpace(entity.Status))
         {
             entity.Status = PHeaderStatus.Draft;
@@ -190,7 +188,6 @@ public sealed class PHeaderService : IPHeaderService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<PHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PHeaderCreatedSuccessfully"));
     }
 
@@ -204,11 +201,11 @@ public sealed class PHeaderService : IPHeaderService
         }
 
         _mapper.Map(updateDto, entity);
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         _headers.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<PHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PHeaderUpdatedSuccessfully"));
     }
 
@@ -335,7 +332,6 @@ public sealed class PHeaderService : IPHeaderService
                 .ToListAsync(cancellationToken);
 
             var dtos = _mapper.Map<List<GrHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
 
@@ -346,7 +342,6 @@ public sealed class PHeaderService : IPHeaderService
                 .ToListAsync(cancellationToken);
 
             var dtos = _mapper.Map<List<WtHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
 
@@ -357,7 +352,6 @@ public sealed class PHeaderService : IPHeaderService
                 .ToListAsync(cancellationToken);
 
             var dtos = _mapper.Map<List<WoHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
 
@@ -368,7 +362,6 @@ public sealed class PHeaderService : IPHeaderService
                 .ToListAsync(cancellationToken);
 
             var dtos = _mapper.Map<List<WiHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
 
@@ -379,36 +372,30 @@ public sealed class PHeaderService : IPHeaderService
                 .ToListAsync(cancellationToken);
 
             var dtos = _mapper.Map<List<ShHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
         if (normalizedSourceType == PHeaderSourceType.PR)
         {
             var headers = await _prHeaders.Query().Where(h => !mappedHeaderIds.Contains(h.Id)).ToListAsync(cancellationToken);
             var dtos = _mapper.Map<List<PrHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
-            dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
         if (normalizedSourceType == PHeaderSourceType.PT)
         {
             var headers = await _ptHeaders.Query().Where(h => !mappedHeaderIds.Contains(h.Id)).ToListAsync(cancellationToken);
             var dtos = _mapper.Map<List<PtHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
         if (normalizedSourceType == PHeaderSourceType.SIT)
         {
             var headers = await _sitHeaders.Query().Where(h => !mappedHeaderIds.Contains(h.Id)).ToListAsync(cancellationToken);
             var dtos = _mapper.Map<List<SitHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
         if (normalizedSourceType == PHeaderSourceType.SRT)
         {
             var headers = await _srtHeaders.Query().Where(h => !mappedHeaderIds.Contains(h.Id)).ToListAsync(cancellationToken);
             var dtos = _mapper.Map<List<SrtHeaderDto>>(headers);
-            dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
             return ApiResponse<IEnumerable<object>>.SuccessResult(dtos.Cast<object>(), _localizationService.GetLocalizedString("AvailableHeadersRetrievedSuccessfully"));
         }
 

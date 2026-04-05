@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Wms.Domain.Entities.AccessControl;
 using Wms.Domain.Entities.Communications;
 using Wms.Domain.Entities.Common;
+using Wms.Domain.Entities.Customer;
 using Wms.Domain.Entities.Definitions;
 using Wms.Domain.Entities.GoodsReceipt;
 using Wms.Domain.Entities.Identity;
@@ -10,11 +11,14 @@ using Wms.Domain.Entities.Package;
 using Wms.Domain.Entities.Production;
 using Wms.Domain.Entities.ProductionTransfer;
 using Wms.Domain.Entities.Shipping;
+using Wms.Domain.Entities.Stock;
 using Wms.Domain.Entities.SubcontractingIssueTransfer;
 using Wms.Domain.Entities.SubcontractingReceiptTransfer;
+using Wms.Domain.Entities.Warehouse;
 using Wms.Domain.Entities.WarehouseInbound;
 using Wms.Domain.Entities.WarehouseOutbound;
 using Wms.Domain.Entities.WarehouseTransfer;
+using Wms.Domain.Entities.YapKod;
 
 namespace Wms.Infrastructure.Persistence.Context;
 
@@ -51,6 +55,7 @@ public sealed class WmsDbContext : DbContext
     public DbSet<UserPermissionGroup> UserPermissionGroups => Set<UserPermissionGroup>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<SmtpSetting> SmtpSettings => Set<SmtpSetting>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<GrHeader> GrHeaders => Set<GrHeader>();
     public DbSet<GrLine> GrLines => Set<GrLine>();
     public DbSet<GrImportLine> GrImportLines => Set<GrImportLine>();
@@ -111,6 +116,9 @@ public sealed class WmsDbContext : DbContext
     public DbSet<SrtTerminalLine> SrtTerminalLines => Set<SrtTerminalLine>();
     public DbSet<JobFailureLog> JobFailureLogs => Set<JobFailureLog>();
     public DbSet<PrHeaderSerial> PrHeaderSerials => Set<PrHeaderSerial>();
+    public DbSet<Stock> Stocks => Set<Stock>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<YapKod> YapKodlar => Set<YapKod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

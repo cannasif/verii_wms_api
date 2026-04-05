@@ -101,6 +101,7 @@ public sealed class CreateWtImportLineWithKeysDto
     public Guid? LineGroupGuid { get; set; }
     public string? RouteClientKey { get; set; }
     public Guid? RouteGroupGuid { get; set; }
+    public long? StockId { get; set; }
     public string StockCode { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }

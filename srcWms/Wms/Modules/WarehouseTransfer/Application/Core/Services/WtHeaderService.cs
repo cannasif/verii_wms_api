@@ -28,8 +28,8 @@ public sealed class WtHeaderService : IWtHeaderService
     private readonly IMapper _mapper;
     private readonly ILocalizationService _localizationService;
     private readonly ICurrentUserAccessor _currentUserAccessor;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly INotificationService _notificationService;
+    private readonly IEntityReferenceResolver _entityReferenceResolver;
 
     public WtHeaderService(
         IRepository<WtHeader> headers,
@@ -45,8 +45,8 @@ public sealed class WtHeaderService : IWtHeaderService
         IMapper mapper,
         ILocalizationService localizationService,
         ICurrentUserAccessor currentUserAccessor,
-        IErpReadEnrichmentService erpReadEnrichmentService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IEntityReferenceResolver entityReferenceResolver)
     {
         _headers = headers;
         _lines = lines;
@@ -61,8 +61,8 @@ public sealed class WtHeaderService : IWtHeaderService
         _mapper = mapper;
         _localizationService = localizationService;
         _currentUserAccessor = currentUserAccessor;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _notificationService = notificationService;
+        _entityReferenceResolver = entityReferenceResolver;
     }
 
     public async Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -70,7 +70,6 @@ public sealed class WtHeaderService : IWtHeaderService
         var branchCode = _currentUserAccessor.BranchCode ?? "0";
         var entities = await _headers.Query().Where(x => x.BranchCode == branchCode).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtHeaderDto>>(entities);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WtHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtHeaderRetrievedSuccessfully"));
     }
 
@@ -89,7 +88,6 @@ public sealed class WtHeaderService : IWtHeaderService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<WtHeaderDto>>.SuccessResult(new PagedResponse<WtHeaderDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("WtHeaderRetrievedSuccessfully"));
     }
 
@@ -103,13 +101,13 @@ public sealed class WtHeaderService : IWtHeaderService
         }
 
         var dto = _mapper.Map<WtHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WtHeaderDto>> CreateAsync(CreateWtHeaderDto createDto, CancellationToken cancellationToken = default)
     {
         var entity = _mapper.Map<WtHeader>(createDto) ?? new WtHeader();
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         entity.BranchCode = string.IsNullOrWhiteSpace(createDto.BranchCode) ? (_currentUserAccessor.BranchCode ?? "0") : createDto.BranchCode;
         entity.CreatedDate = DateTimeProvider.Now;
         entity.IsDeleted = false;
@@ -118,7 +116,6 @@ public sealed class WtHeaderService : IWtHeaderService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<WtHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderCreatedSuccessfully"));
     }
 
@@ -132,12 +129,12 @@ public sealed class WtHeaderService : IWtHeaderService
         }
 
         _mapper.Map(updateDto, entity);
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         entity.UpdatedDate = DateTimeProvider.Now;
         _headers.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<WtHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderUpdatedSuccessfully"));
     }
 
@@ -244,7 +241,6 @@ public sealed class WtHeaderService : IWtHeaderService
             .ToListAsync(cancellationToken);
 
         var dtos = _mapper.Map<List<WtHeaderDto>>(entities);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WtHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievedSuccessfully"));
     }
 
@@ -271,12 +267,10 @@ public sealed class WtHeaderService : IWtHeaderService
         var lineDtos = _mapper.Map<List<WtLineDto>>(lines);
         if (lineDtos.Count > 0)
         {
-            lineDtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(lineDtos, cancellationToken)).Data?.ToList() ?? lineDtos;
         }
         var importLineDtos = _mapper.Map<List<WtImportLineDto>>(importLines);
         if (importLineDtos.Count > 0)
         {
-            importLineDtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(importLineDtos, cancellationToken)).Data?.ToList() ?? importLineDtos;
         }
 
         var dto = new WtAssignedOrderLinesDto
@@ -312,6 +306,7 @@ public sealed class WtHeaderService : IWtHeaderService
         try
         {
             var header = _mapper.Map<WtHeader>(request.Header) ?? new WtHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
             await _headers.AddAsync(header, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -324,6 +319,7 @@ public sealed class WtHeaderService : IWtHeaderService
                 foreach (var lineDto in request.Lines)
                 {
                     var line = _mapper.Map<WtLine>(lineDto) ?? new WtLine();
+                    await _entityReferenceResolver.ResolveAsync(line, cancellationToken);
                     line.HeaderId = header.Id;
                     lines.Add(line);
                 }
@@ -446,6 +442,7 @@ public sealed class WtHeaderService : IWtHeaderService
         {
             var parameter = await _parameters.Query().FirstOrDefaultAsync(cancellationToken);
             var header = _mapper.Map<WtHeader>(request.Header) ?? new WtHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
             header.IsPendingApproval = parameter?.RequireApprovalBeforeErp == true;
 
             await _headers.AddAsync(header, cancellationToken);
@@ -464,6 +461,7 @@ public sealed class WtHeaderService : IWtHeaderService
                 foreach (var lineDto in request.Lines)
                 {
                     var line = _mapper.Map<WtLine>(lineDto) ?? new WtLine();
+                    await _entityReferenceResolver.ResolveAsync(line, cancellationToken);
                     line.HeaderId = header.Id;
                     lines.Add(line);
                 }
@@ -539,10 +537,12 @@ public sealed class WtHeaderService : IWtHeaderService
                         HeaderId = header.Id,
                         LineId = lineId,
                         StockCode = importDto.StockCode,
+                        StockId = importDto.StockId,
                         Description = importDto.ErpOrderNo ?? importDto.ErpOrderNumber,
                         Description1 = importDto.ScannedBarkod,
                         Description2 = importDto.ErpOrderLineNumber
                     };
+                    await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLines.Add(importLine);
                 }
 
@@ -633,7 +633,6 @@ public sealed class WtHeaderService : IWtHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
 
         var result = new PagedResponse<WtHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<WtHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("WtHeaderCompletedAwaitingErpApprovalRetrievedSuccessfully"));

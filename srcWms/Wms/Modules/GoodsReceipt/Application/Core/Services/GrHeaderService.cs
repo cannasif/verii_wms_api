@@ -26,9 +26,9 @@ public sealed class GrHeaderService : IGrHeaderService
     private readonly IRepository<Notification> _notifications;
     private readonly IRepository<PHeader> _packageHeaders;
     private readonly ICurrentUserAccessor _currentUserAccessor;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly ILocalizationService _localizationService;
     private readonly INotificationService _notificationService;
+    private readonly IEntityReferenceResolver _entityReferenceResolver;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
@@ -44,9 +44,9 @@ public sealed class GrHeaderService : IGrHeaderService
         IRepository<Notification> notifications,
         IRepository<PHeader> packageHeaders,
         ICurrentUserAccessor currentUserAccessor,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         ILocalizationService localizationService,
         INotificationService notificationService,
+        IEntityReferenceResolver entityReferenceResolver,
         IUnitOfWork unitOfWork,
         IMapper mapper)
     {
@@ -61,9 +61,9 @@ public sealed class GrHeaderService : IGrHeaderService
         _notifications = notifications;
         _packageHeaders = packageHeaders;
         _currentUserAccessor = currentUserAccessor;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _localizationService = localizationService;
         _notificationService = notificationService;
+        _entityReferenceResolver = entityReferenceResolver;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
@@ -80,7 +80,6 @@ public sealed class GrHeaderService : IGrHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
 
         var result = new PagedResponse<GrHeaderDto>(dtos, request.PageNumber < 1 ? totalCount : totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<GrHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
@@ -91,7 +90,6 @@ public sealed class GrHeaderService : IGrHeaderService
         var branchCode = _currentUserAccessor.BranchCode ?? "0";
         var items = await _headers.Query().Where(x => x.BranchCode == branchCode).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
     }
 
@@ -105,7 +103,6 @@ public sealed class GrHeaderService : IGrHeaderService
         }
 
         var dto = _mapper.Map<GrHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
     }
 
@@ -133,6 +130,7 @@ public sealed class GrHeaderService : IGrHeaderService
         }
 
         var entity = _mapper.Map<GrHeader>(createDto) ?? new GrHeader();
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         entity.CreatedDate = DateTimeProvider.Now;
         entity.IsDeleted = false;
 
@@ -140,7 +138,6 @@ public sealed class GrHeaderService : IGrHeaderService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<GrHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrHeaderCreatedSuccessfully"));
     }
 
@@ -167,6 +164,7 @@ public sealed class GrHeaderService : IGrHeaderService
         try
         {
             var header = _mapper.Map<GrHeader>(request.Header) ?? new GrHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
             var parameter = await _parameters.Query().FirstOrDefaultAsync(cancellationToken);
             header.IsPendingApproval = parameter?.RequireApprovalBeforeErp == true;
 
@@ -206,6 +204,7 @@ public sealed class GrHeaderService : IGrHeaderService
                     }
 
                     var line = _mapper.Map<GrLine>(lineDto) ?? new GrLine();
+                    await _entityReferenceResolver.ResolveAsync(line, cancellationToken);
                     line.HeaderId = header.Id;
                     lines.Add(line);
                 }
@@ -259,6 +258,7 @@ public sealed class GrHeaderService : IGrHeaderService
                     }
 
                     var importLine = _mapper.Map<GrImportLine>(importDto) ?? new GrImportLine();
+                    await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLine.HeaderId = header.Id;
                     importLine.LineId = lineId;
                     importLines.Add(importLine);
@@ -382,7 +382,6 @@ public sealed class GrHeaderService : IGrHeaderService
         var branchCode = _currentUserAccessor.BranchCode ?? "0";
         var items = await _headers.Query().Where(x => x.CustomerCode == customerCode && x.BranchCode == branchCode).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
     }
 
@@ -403,6 +402,7 @@ public sealed class GrHeaderService : IGrHeaderService
         try
         {
             var header = _mapper.Map<GrHeader>(request.Header) ?? new GrHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
             await _headers.AddAsync(header, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -413,6 +413,7 @@ public sealed class GrHeaderService : IGrHeaderService
                 foreach (var lineDto in request.Lines)
                 {
                     var line = _mapper.Map<GrLine>(lineDto) ?? new GrLine();
+                    await _entityReferenceResolver.ResolveAsync(line, cancellationToken);
                     line.HeaderId = header.Id;
                     lines.Add(line);
                 }
@@ -518,7 +519,6 @@ public sealed class GrHeaderService : IGrHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
 
         var result = new PagedResponse<GrHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<GrHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("GrHeaderAssignedOrdersRetrievedSuccessfully"));
@@ -547,12 +547,10 @@ public sealed class GrHeaderService : IGrHeaderService
         var lineDtos = _mapper.Map<List<GrLineDto>>(lines);
         if (lineDtos.Count > 0)
         {
-            lineDtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(lineDtos, cancellationToken)).Data?.ToList() ?? lineDtos;
         }
         var importLineDtos = _mapper.Map<List<GrImportLineDto>>(importLines);
         if (importLineDtos.Count > 0)
         {
-            importLineDtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(importLineDtos, cancellationToken)).Data?.ToList() ?? importLineDtos;
         }
 
         var dto = new GrAssignedOrderLinesDto
@@ -577,7 +575,6 @@ public sealed class GrHeaderService : IGrHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
 
         var result = new PagedResponse<GrHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<GrHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("GrHeaderCompletedAwaitingErpApprovalRetrievedSuccessfully"));
@@ -613,7 +610,6 @@ public sealed class GrHeaderService : IGrHeaderService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<GrHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrHeaderApprovalUpdatedSuccessfully"));
     }
 
@@ -651,12 +647,12 @@ public sealed class GrHeaderService : IGrHeaderService
         }
 
         _mapper.Map(updateDto, entity);
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         entity.UpdatedDate = DateTimeProvider.Now;
         _headers.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<GrHeaderDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateCustomerNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrHeaderUpdatedSuccessfully"));
     }
 

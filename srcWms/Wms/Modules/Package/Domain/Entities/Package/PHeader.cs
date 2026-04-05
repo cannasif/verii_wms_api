@@ -6,11 +6,13 @@ namespace Wms.Domain.Entities.Package;
 public sealed class PHeader : BaseEntity
 {
     public string? WarehouseCode { get; set; }
+    public long? WarehouseId { get; set; }
     public string PackingNo { get; set; } = null!;
     public DateTime? PackingDate { get; set; }
     public string? SourceType { get; set; }
     public long? SourceHeaderId { get; set; }
     public string? CustomerCode { get; set; }
+    public long? CustomerId { get; set; }
     public string? CustomerAddress { get; set; }
     public string Status { get; set; } = PHeaderStatus.Draft;
     public decimal? TotalPackageCount { get; set; }

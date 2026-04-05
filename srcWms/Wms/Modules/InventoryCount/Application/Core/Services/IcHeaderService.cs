@@ -14,14 +14,22 @@ public sealed class IcHeaderService : IIcHeaderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILocalizationService _localizationService;
+    private readonly IEntityReferenceResolver _entityReferenceResolver;
 
-    public IcHeaderService(IRepository<IcHeader> headers, IRepository<IcImportLine> importLines, IUnitOfWork unitOfWork, IMapper mapper, ILocalizationService localizationService)
+    public IcHeaderService(
+        IRepository<IcHeader> headers,
+        IRepository<IcImportLine> importLines,
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        ILocalizationService localizationService,
+        IEntityReferenceResolver entityReferenceResolver)
     {
         _headers = headers;
         _importLines = importLines;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _localizationService = localizationService;
+        _entityReferenceResolver = entityReferenceResolver;
     }
 
     public async Task<ApiResponse<IEnumerable<IcHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -50,6 +58,7 @@ public sealed class IcHeaderService : IIcHeaderService
     public async Task<ApiResponse<IcHeaderDto>> CreateAsync(CreateIcHeaderDto createDto, CancellationToken cancellationToken = default)
     {
         var entity = _mapper.Map<IcHeader>(createDto) ?? new IcHeader();
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         entity.CreatedDate = DateTimeProvider.Now;
         entity.IsDeleted = false;
         await _headers.AddAsync(entity, cancellationToken);
@@ -66,6 +75,7 @@ public sealed class IcHeaderService : IIcHeaderService
             return ApiResponse<IcHeaderDto>.ErrorResult(msg, msg, 404);
         }
         _mapper.Map(updateDto, entity);
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         entity.UpdatedDate = DateTimeProvider.Now;
         _headers.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -17,6 +17,7 @@ public sealed class ShImportLineConfiguration : BaseImportLineEntityConfiguratio
         builder.HasIndex(x => x.HeaderId).HasDatabaseName("IX_ShImportLine_HeaderId");
         builder.HasIndex(x => x.LineId).HasDatabaseName("IX_ShImportLine_LineId");
         builder.HasIndex(x => x.StockCode).HasDatabaseName("IX_ShImportLine_StockCode");
+        builder.HasIndex(x => x.StockId).HasDatabaseName("IX_ShImportLine_StockId");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_ShImportLine_IsDeleted");
 
         builder.HasOne(x => x.Header)

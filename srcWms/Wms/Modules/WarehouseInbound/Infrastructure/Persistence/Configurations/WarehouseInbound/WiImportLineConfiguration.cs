@@ -17,6 +17,7 @@ public sealed class WiImportLineConfiguration : BaseImportLineEntityConfiguratio
         builder.HasIndex(x => x.HeaderId).HasDatabaseName("IX_WiImportLine_HeaderId");
         builder.HasIndex(x => x.LineId).HasDatabaseName("IX_WiImportLine_LineId");
         builder.HasIndex(x => x.StockCode).HasDatabaseName("IX_WiImportLine_StockCode");
+        builder.HasIndex(x => x.StockId).HasDatabaseName("IX_WiImportLine_StockId");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_WiImportLine_IsDeleted");
 
         builder.HasOne(x => x.Header)

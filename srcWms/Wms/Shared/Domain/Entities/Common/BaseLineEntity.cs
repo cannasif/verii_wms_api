@@ -6,7 +6,9 @@ namespace Wms.Domain.Entities.Common;
 public abstract class BaseLineEntity : BaseEntity
 {
     public string StockCode { get; set; } = null!;
+    public long? StockId { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
     public string? ErpOrderNo { get; set; }

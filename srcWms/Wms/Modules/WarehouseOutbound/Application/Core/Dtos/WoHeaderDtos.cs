@@ -92,6 +92,9 @@ public sealed class CreateWoRouteWithLineKeyDto
     public decimal Quantity { get; set; }
     public string? SerialNo { get; set; }
     public string? SerialNo2 { get; set; }
+    public string? SerialNo3 { get; set; }
+    public string? SerialNo4 { get; set; }
+    public string? ScannedBarcode { get; set; }
     public long? SourceWarehouse { get; set; }
     public long? TargetWarehouse { get; set; }
     public string? SourceCellCode { get; set; }
@@ -107,7 +110,9 @@ public sealed class CreateWoImportLineWithKeysDto
     public Guid? LineGroupGuid { get; set; }
     public string? RouteClientKey { get; set; }
     public Guid? RouteGroupGuid { get; set; }
+    public long? StockId { get; set; }
     public string StockCode { get; set; } = string.Empty;
+    public string? YapKod { get; set; }
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
     public string? SerialNo { get; set; }

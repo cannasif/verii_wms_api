@@ -8,6 +8,7 @@ public sealed class PrHeaderDto : BaseHeaderEntityDto
     public string? CustomerCode { get; set; }
     public string? CustomerName { get; set; }
     public string? StockCode { get; set; }
+    public long? StockId { get; set; }
     public string? StockName { get; set; }
     public string? YapKod { get; set; }
     public string? YapAcik { get; set; }

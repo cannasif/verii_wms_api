@@ -6,6 +6,9 @@ public class BaseHeaderEntityDto : BaseEntityDto
 {
     public string YearCode { get; set; } = string.Empty;
     public string? ProjectCode { get; set; }
+    public long? CustomerId { get; set; }
+    public long? SourceWarehouseId { get; set; }
+    public long? TargetWarehouseId { get; set; }
     public string? OrderId { get; set; }
     public DateTime PlannedDate { get; set; }
     public bool IsPlanned { get; set; }
@@ -30,6 +33,9 @@ public class BaseHeaderCreateDto
 {
     public string BranchCode { get; set; } = string.Empty;
     public string? ProjectCode { get; set; }
+    public long? CustomerId { get; set; }
+    public long? SourceWarehouseId { get; set; }
+    public long? TargetWarehouseId { get; set; }
     public string? OrderId { get; set; }
     public string DocumentType { get; set; } = string.Empty;
     public string YearCode { get; set; } = string.Empty;
@@ -48,6 +54,9 @@ public class BaseHeaderUpdateDto
 {
     public string? BranchCode { get; set; }
     public string? ProjectCode { get; set; }
+    public long? CustomerId { get; set; }
+    public long? SourceWarehouseId { get; set; }
+    public long? TargetWarehouseId { get; set; }
     public string? OrderId { get; set; }
     public string? DocumentType { get; set; }
     public string? YearCode { get; set; }
@@ -63,8 +72,10 @@ public class BaseHeaderUpdateDto
 public class BaseLineEntityDto : BaseEntityDto
 {
     public string StockCode { get; set; } = string.Empty;
+    public long? StockId { get; set; }
     public string? StockName { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public string? YapAcik { get; set; }
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
@@ -76,7 +87,9 @@ public class BaseLineEntityDto : BaseEntityDto
 public class BaseLineCreateDto
 {
     public string StockCode { get; set; } = string.Empty;
+    public long? StockId { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
     public string? ErpOrderNo { get; set; }
@@ -87,7 +100,9 @@ public class BaseLineCreateDto
 public class BaseLineUpdateDto
 {
     public string? StockCode { get; set; }
+    public long? StockId { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public decimal? Quantity { get; set; }
     public string? Unit { get; set; }
     public string? ErpOrderNo { get; set; }
@@ -98,8 +113,10 @@ public class BaseLineUpdateDto
 public class BaseImportLineEntityDto : BaseEntityDto
 {
     public string StockCode { get; set; } = string.Empty;
+    public long? StockId { get; set; }
     public string? StockName { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public string? YapAcik { get; set; }
     public string? Description1 { get; set; }
     public string? Description2 { get; set; }
@@ -109,7 +126,9 @@ public class BaseImportLineEntityDto : BaseEntityDto
 public class BaseImportLineCreateDto
 {
     public string StockCode { get; set; } = string.Empty;
+    public long? StockId { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public string? Description1 { get; set; }
     public string? Description2 { get; set; }
     public string? Description { get; set; }
@@ -118,8 +137,10 @@ public class BaseImportLineCreateDto
 public class BaseImportLineUpdateDto
 {
     public string? StockCode { get; set; }
+    public long? StockId { get; set; }
     public string? StockName { get; set; }
     public string? YapKod { get; set; }
+    public long? YapKodId { get; set; }
     public string? YapAcik { get; set; }
     public string? Description1 { get; set; }
     public string? Description2 { get; set; }

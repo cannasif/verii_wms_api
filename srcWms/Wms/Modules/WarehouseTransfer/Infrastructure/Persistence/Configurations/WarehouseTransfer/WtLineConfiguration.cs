@@ -15,6 +15,7 @@ public sealed class WtLineConfiguration : BaseLineEntityConfiguration<WtLine>
 
         builder.HasIndex(x => x.HeaderId).HasDatabaseName("IX_WtLine_HeaderId");
         builder.HasIndex(x => x.StockCode).HasDatabaseName("IX_WtLine_StockCode");
+        builder.HasIndex(x => x.StockId).HasDatabaseName("IX_WtLine_StockId");
         builder.HasIndex(x => x.ErpOrderNo).HasDatabaseName("IX_WtLine_ErpOrderNo");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_WtLine_IsDeleted");
 

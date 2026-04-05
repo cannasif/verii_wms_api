@@ -11,20 +11,17 @@ public sealed class GrLineService : IGrLineService
 {
     private readonly IRepository<GrLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly ILocalizationService _localizationService;
     private readonly IMapper _mapper;
 
     public GrLineService(
         IRepository<GrLine> lines,
         IUnitOfWork unitOfWork,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         ILocalizationService localizationService,
         IMapper mapper)
     {
         _lines = lines;
         _unitOfWork = unitOfWork;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _localizationService = localizationService;
         _mapper = mapper;
     }
@@ -33,7 +30,6 @@ public sealed class GrLineService : IGrLineService
     {
         var items = await _lines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrLineRetrievedSuccessfully"));
     }
 
@@ -46,7 +42,6 @@ public sealed class GrLineService : IGrLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<GrLineDto>>.SuccessResult(new PagedResponse<GrLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("GrLineRetrievedSuccessfully"));
     }
 
@@ -60,7 +55,6 @@ public sealed class GrLineService : IGrLineService
         }
 
         var dto = _mapper.Map<GrLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrLineRetrievedSuccessfully"));
     }
 
@@ -68,7 +62,6 @@ public sealed class GrLineService : IGrLineService
     {
         var items = await _lines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrLineRetrievedSuccessfully"));
     }
 
@@ -79,7 +72,6 @@ public sealed class GrLineService : IGrLineService
         await _lines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<GrLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrLineCreatedSuccessfully"));
     }
 
@@ -97,7 +89,6 @@ public sealed class GrLineService : IGrLineService
         _lines.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<GrLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrLineUpdatedSuccessfully"));
     }
 

@@ -10,6 +10,9 @@ public abstract class BaseLineEntityConfiguration<T> : BaseEntityConfiguration<T
     {
         base.Configure(builder);
         builder.Property(x => x.StockCode).HasMaxLength(35).IsRequired();
+        builder.Property(x => x.StockId).IsRequired(false);
+        builder.Property(x => x.YapKodId).IsRequired(false);
+        builder.Property(x => x.YapKod).HasMaxLength(50);
         builder.Property(x => x.Quantity).HasColumnType("decimal(18,6)").IsRequired();
         builder.Property(x => x.Unit).HasMaxLength(10);
         builder.Property(x => x.ErpOrderNo).HasMaxLength(50);

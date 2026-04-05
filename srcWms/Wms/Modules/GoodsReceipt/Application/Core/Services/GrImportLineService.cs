@@ -22,7 +22,6 @@ public sealed class GrImportLineService : IGrImportLineService
     private readonly IRepository<PPackage> _packages;
     private readonly IRepository<PHeader> _packageHeaders;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly ILocalizationService _localizationService;
     private readonly IMapper _mapper;
 
@@ -37,7 +36,6 @@ public sealed class GrImportLineService : IGrImportLineService
         IRepository<PPackage> packages,
         IRepository<PHeader> packageHeaders,
         IUnitOfWork unitOfWork,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         ILocalizationService localizationService,
         IMapper mapper)
     {
@@ -51,7 +49,6 @@ public sealed class GrImportLineService : IGrImportLineService
         _packages = packages;
         _packageHeaders = packageHeaders;
         _unitOfWork = unitOfWork;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _localizationService = localizationService;
         _mapper = mapper;
     }
@@ -60,7 +57,6 @@ public sealed class GrImportLineService : IGrImportLineService
     {
         var items = await _importLines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -73,7 +69,6 @@ public sealed class GrImportLineService : IGrImportLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<GrImportLineDto>>.SuccessResult(new PagedResponse<GrImportLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -87,7 +82,6 @@ public sealed class GrImportLineService : IGrImportLineService
         }
 
         var dto = _mapper.Map<GrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrImportLineDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -95,7 +89,6 @@ public sealed class GrImportLineService : IGrImportLineService
     {
         var items = await _importLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -108,7 +101,6 @@ public sealed class GrImportLineService : IGrImportLineService
     {
         var items = await _importLines.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -119,7 +111,6 @@ public sealed class GrImportLineService : IGrImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<GrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
     }
 
@@ -137,7 +128,6 @@ public sealed class GrImportLineService : IGrImportLineService
         _importLines.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<GrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<GrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineUpdatedSuccessfully"));
     }
 
@@ -343,7 +333,6 @@ public sealed class GrImportLineService : IGrImportLineService
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
             var dto = _mapper.Map<GrImportLineDto>(importLine);
-            dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
             return ApiResponse<GrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
         }
         catch
@@ -437,14 +426,6 @@ public sealed class GrImportLineService : IGrImportLineService
                 Routes = routeDtos
             };
         }).ToList();
-
-        var importLineDtos = items.Select(i => i.ImportLine).ToList();
-        var enriched = await _erpReadEnrichmentService.PopulateStockNamesAsync(importLineDtos, cancellationToken);
-        var enrichedList = enriched.Data?.ToList() ?? importLineDtos;
-        for (var i = 0; i < items.Count && i < enrichedList.Count; i++)
-        {
-            items[i].ImportLine = enrichedList[i];
-        }
 
         return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(items, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }

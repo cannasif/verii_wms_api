@@ -15,6 +15,7 @@ public sealed class WoLineConfiguration : BaseLineEntityConfiguration<WoLine>
 
         builder.HasIndex(x => x.HeaderId).HasDatabaseName("IX_WoLine_HeaderId");
         builder.HasIndex(x => x.StockCode).HasDatabaseName("IX_WoLine_StockCode");
+        builder.HasIndex(x => x.StockId).HasDatabaseName("IX_WoLine_StockId");
         builder.HasIndex(x => x.ErpOrderNo).HasDatabaseName("IX_WoLine_ErpOrderNo");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_WoLine_IsDeleted");
 

@@ -14,7 +14,6 @@ public sealed class WoImportLineService : IWoImportLineService
     private readonly IRepository<WoLine> _lines;
     private readonly IRepository<WoRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly ILocalizationService _localizationService;
     private readonly IMapper _mapper;
 
@@ -24,7 +23,6 @@ public sealed class WoImportLineService : IWoImportLineService
         IRepository<WoLine> lines,
         IRepository<WoRoute> routes,
         IUnitOfWork unitOfWork,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         ILocalizationService localizationService,
         IMapper mapper)
     {
@@ -33,7 +31,6 @@ public sealed class WoImportLineService : IWoImportLineService
         _lines = lines;
         _routes = routes;
         _unitOfWork = unitOfWork;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _localizationService = localizationService;
         _mapper = mapper;
     }
@@ -42,7 +39,6 @@ public sealed class WoImportLineService : IWoImportLineService
     {
         var items = await _importLines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WoImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -55,7 +51,6 @@ public sealed class WoImportLineService : IWoImportLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<WoImportLineDto>>.SuccessResult(new PagedResponse<WoImportLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -69,7 +64,6 @@ public sealed class WoImportLineService : IWoImportLineService
         }
 
         var dto = _mapper.Map<WoImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WoImportLineDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -77,7 +71,6 @@ public sealed class WoImportLineService : IWoImportLineService
     {
         var items = await _importLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WoImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -85,7 +78,6 @@ public sealed class WoImportLineService : IWoImportLineService
     {
         var items = await _importLines.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WoImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -96,7 +88,6 @@ public sealed class WoImportLineService : IWoImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<WoImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WoImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineCreatedSuccessfully"));
     }
 
@@ -114,7 +105,6 @@ public sealed class WoImportLineService : IWoImportLineService
         _importLines.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<WoImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WoImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineUpdatedSuccessfully"));
     }
 
@@ -179,7 +169,6 @@ public sealed class WoImportLineService : IWoImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<WoImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WoImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineCreatedSuccessfully"));
     }
 
@@ -190,7 +179,6 @@ public sealed class WoImportLineService : IWoImportLineService
         var routes = await _routes.Query().Where(x => importLineIds.Contains(x.ImportLineId)).ToListAsync(cancellationToken);
 
         var lineDtos = _mapper.Map<List<WoImportLineDto>>(importLines);
-        lineDtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(lineDtos, cancellationToken)).Data?.ToList() ?? lineDtos;
         var routeDtos = _mapper.Map<List<WoRouteDto>>(routes);
 
         var result = lineDtos.Select(importLine => new WoImportLineWithRoutesDto

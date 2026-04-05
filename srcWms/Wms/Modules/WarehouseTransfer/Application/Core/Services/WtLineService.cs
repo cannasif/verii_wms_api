@@ -11,20 +11,17 @@ public sealed class WtLineService : IWtLineService
 {
     private readonly IRepository<WtLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly ILocalizationService _localizationService;
     private readonly IMapper _mapper;
 
     public WtLineService(
         IRepository<WtLine> lines,
         IUnitOfWork unitOfWork,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         ILocalizationService localizationService,
         IMapper mapper)
     {
         _lines = lines;
         _unitOfWork = unitOfWork;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _localizationService = localizationService;
         _mapper = mapper;
     }
@@ -33,7 +30,6 @@ public sealed class WtLineService : IWtLineService
     {
         var items = await _lines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WtLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtLineRetrievedSuccessfully"));
     }
 
@@ -46,7 +42,6 @@ public sealed class WtLineService : IWtLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<WtLineDto>>.SuccessResult(new PagedResponse<WtLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WtLineRetrievedSuccessfully"));
     }
 
@@ -60,7 +55,6 @@ public sealed class WtLineService : IWtLineService
         }
 
         var dto = _mapper.Map<WtLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WtLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtLineRetrievedSuccessfully"));
     }
 
@@ -68,7 +62,6 @@ public sealed class WtLineService : IWtLineService
     {
         var items = await _lines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<WtLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtLineRetrievedSuccessfully"));
     }
 
@@ -79,7 +72,6 @@ public sealed class WtLineService : IWtLineService
         await _lines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<WtLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WtLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtLineCreatedSuccessfully"));
     }
 
@@ -97,7 +89,6 @@ public sealed class WtLineService : IWtLineService
         _lines.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<WtLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<WtLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtLineUpdatedSuccessfully"));
     }
 

@@ -9,6 +9,9 @@ public abstract class BaseImportLineEntityConfiguration<T> : BaseEntityConfigura
     {
         base.Configure(builder);
         builder.Property(x => x.StockCode).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.StockId).IsRequired(false);
+        builder.Property(x => x.YapKodId).IsRequired(false);
+        builder.Property(x => x.YapKod).HasMaxLength(50);
         builder.Property(x => x.Description1).HasMaxLength(100);
         builder.Property(x => x.Description2).HasMaxLength(100);
         builder.Property(x => x.Description).HasMaxLength(255);

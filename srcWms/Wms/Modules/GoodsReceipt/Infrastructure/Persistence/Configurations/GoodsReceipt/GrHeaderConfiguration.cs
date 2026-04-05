@@ -11,6 +11,7 @@ public sealed class GrHeaderConfiguration : BaseHeaderEntityConfiguration<GrHead
     {
         builder.ToTable("RII_GR_HEADER");
         builder.Property(x => x.CustomerCode).IsRequired().HasMaxLength(30).HasColumnName("CustomerCode");
+        builder.Property(x => x.CustomerId).IsRequired(false).HasColumnName("CustomerId");
         builder.Property(x => x.ReturnCode).HasDefaultValue(false).HasColumnName("ReturnCode");
         builder.Property(x => x.OCRSource).HasDefaultValue(false).HasColumnName("OCRSource");
         builder.Property(x => x.IsPlanned).HasDefaultValue(false).HasColumnName("IsPlanned");
@@ -21,6 +22,7 @@ public sealed class GrHeaderConfiguration : BaseHeaderEntityConfiguration<GrHead
         builder.Property(x => x.Description5).HasMaxLength(100).HasColumnName("Description5");
         builder.HasIndex(x => x.BranchCode).HasDatabaseName("IX_GrHeader_BranchCode");
         builder.HasIndex(x => x.CustomerCode).HasDatabaseName("IX_GrHeader_CustomerCode");
+        builder.HasIndex(x => x.CustomerId).HasDatabaseName("IX_GrHeader_CustomerId");
         builder.HasIndex(x => x.PlannedDate).HasDatabaseName("IX_GrHeader_PlannedDate");
     }
 }

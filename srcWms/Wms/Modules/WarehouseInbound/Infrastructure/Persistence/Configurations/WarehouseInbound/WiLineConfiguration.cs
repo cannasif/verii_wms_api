@@ -15,6 +15,7 @@ public sealed class WiLineConfiguration : BaseLineEntityConfiguration<WiLine>
 
         builder.HasIndex(x => x.HeaderId).HasDatabaseName("IX_WiLine_HeaderId");
         builder.HasIndex(x => x.StockCode).HasDatabaseName("IX_WiLine_StockCode");
+        builder.HasIndex(x => x.StockId).HasDatabaseName("IX_WiLine_StockId");
         builder.HasIndex(x => x.ErpOrderNo).HasDatabaseName("IX_WiLine_ErpOrderNo");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_WiLine_IsDeleted");
 

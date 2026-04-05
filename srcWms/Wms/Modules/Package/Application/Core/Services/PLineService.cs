@@ -4,6 +4,7 @@ using Wms.Application.Common;
 using Wms.Application.Package.Dtos;
 using Wms.Domain.Entities.Package;
 using Wms.Domain.Entities.Package.Enums;
+using YapKodEntity = Wms.Domain.Entities.YapKod.YapKod;
 
 namespace Wms.Application.Package.Services;
 
@@ -15,7 +16,6 @@ public sealed class PLineService : IPLineService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILocalizationService _localizationService;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly IPackageGoodsReceiptMatcher _goodsReceiptMatcher;
     private readonly IPackageWarehouseTransferMatcher _warehouseTransferMatcher;
     private readonly IPackageWarehouseOutboundMatcher _warehouseOutboundMatcher;
@@ -25,6 +25,8 @@ public sealed class PLineService : IPLineService
     private readonly IPackageProductionTransferMatcher _productionTransferMatcher;
     private readonly IPackageSubcontractingIssueMatcher _subcontractingIssueMatcher;
     private readonly IPackageSubcontractingReceiptMatcher _subcontractingReceiptMatcher;
+    private readonly IEntityReferenceResolver _entityReferenceResolver;
+    private readonly IRepository<YapKodEntity> _yapKodlar;
 
     public PLineService(
         IRepository<PLine> lines,
@@ -33,7 +35,6 @@ public sealed class PLineService : IPLineService
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ILocalizationService localizationService,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         IPackageGoodsReceiptMatcher goodsReceiptMatcher,
         IPackageWarehouseTransferMatcher warehouseTransferMatcher,
         IPackageWarehouseOutboundMatcher warehouseOutboundMatcher,
@@ -42,7 +43,9 @@ public sealed class PLineService : IPLineService
         IPackageProductionMatcher productionMatcher,
         IPackageProductionTransferMatcher productionTransferMatcher,
         IPackageSubcontractingIssueMatcher subcontractingIssueMatcher,
-        IPackageSubcontractingReceiptMatcher subcontractingReceiptMatcher)
+        IPackageSubcontractingReceiptMatcher subcontractingReceiptMatcher,
+        IEntityReferenceResolver entityReferenceResolver,
+        IRepository<YapKodEntity> yapKodlar)
     {
         _lines = lines;
         _headers = headers;
@@ -50,7 +53,6 @@ public sealed class PLineService : IPLineService
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _localizationService = localizationService;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _goodsReceiptMatcher = goodsReceiptMatcher;
         _warehouseTransferMatcher = warehouseTransferMatcher;
         _warehouseOutboundMatcher = warehouseOutboundMatcher;
@@ -60,13 +62,15 @@ public sealed class PLineService : IPLineService
         _productionTransferMatcher = productionTransferMatcher;
         _subcontractingIssueMatcher = subcontractingIssueMatcher;
         _subcontractingReceiptMatcher = subcontractingReceiptMatcher;
+        _entityReferenceResolver = entityReferenceResolver;
+        _yapKodlar = yapKodlar;
     }
 
     public async Task<ApiResponse<IEnumerable<PLineDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _lines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
+        await EnrichDtosAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<PLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PLineRetrievedSuccessfully"));
     }
 
@@ -81,7 +85,7 @@ public sealed class PLineService : IPLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
+        await EnrichDtosAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<PLineDto>>.SuccessResult(new PagedResponse<PLineDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("PLineRetrievedSuccessfully"));
     }
 
@@ -95,7 +99,7 @@ public sealed class PLineService : IPLineService
         }
 
         var dto = _mapper.Map<PLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
+        await EnrichDtoAsync(dto, cancellationToken);
         return ApiResponse<PLineDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("PLineRetrievedSuccessfully"));
     }
 
@@ -103,7 +107,7 @@ public sealed class PLineService : IPLineService
     {
         var items = await _lines.Query().Where(x => x.PackageId == packageId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
+        await EnrichDtosAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<PLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PLineRetrievedSuccessfully"));
     }
 
@@ -111,7 +115,7 @@ public sealed class PLineService : IPLineService
     {
         var items = await _lines.Query().Where(x => x.PackingHeaderId == packingHeaderId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
+        await EnrichDtosAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<PLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PLineRetrievedSuccessfully"));
     }
 
@@ -138,6 +142,7 @@ public sealed class PLineService : IPLineService
         }
 
         var entity = _mapper.Map<PLine>(createDto) ?? new PLine();
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         await _lines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -155,7 +160,7 @@ public sealed class PLineService : IPLineService
         }
 
         var dto = _mapper.Map<PLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
+        await EnrichDtoAsync(dto, cancellationToken);
         return ApiResponse<PLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PLineCreatedSuccessfully"));
     }
 
@@ -190,11 +195,12 @@ public sealed class PLineService : IPLineService
         }
 
         _mapper.Map(updateDto, entity);
+        await _entityReferenceResolver.ResolveAsync(entity, cancellationToken);
         _lines.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = _mapper.Map<PLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
+        await EnrichDtoAsync(dto, cancellationToken);
         return ApiResponse<PLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PLineUpdatedSuccessfully"));
     }
 
@@ -210,5 +216,68 @@ public sealed class PLineService : IPLineService
         await _lines.SoftDelete(id, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.SuccessResult(true, _localizationService.GetLocalizedString("PLineDeletedSuccessfully"));
+    }
+
+    private async Task EnrichDtoAsync(PLineDto dto, CancellationToken cancellationToken)
+    {
+        await EnrichDtosAsync(new List<PLineDto> { dto }, cancellationToken);
+    }
+
+    private async Task EnrichDtosAsync(IList<PLineDto> dtos, CancellationToken cancellationToken)
+    {
+        if (dtos.Count == 0)
+        {
+            return;
+        }
+
+        var ids = dtos
+            .Where(x => x.YapKodId.HasValue)
+            .Select(x => x.YapKodId!.Value)
+            .Distinct()
+            .ToList();
+
+        var codes = dtos
+            .Where(x => !x.YapKodId.HasValue && !string.IsNullOrWhiteSpace(x.YapKod))
+            .Select(x => x.YapKod!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (ids.Count == 0 && codes.Count == 0)
+        {
+            return;
+        }
+
+        var yapKodlar = await _yapKodlar.Query()
+            .Where(x => (ids.Count > 0 && ids.Contains(x.Id)) || (codes.Count > 0 && codes.Contains(x.YapKodCode)))
+            .ToListAsync(cancellationToken);
+
+        var byId = yapKodlar.ToDictionary(x => x.Id);
+        var byCode = yapKodlar
+            .GroupBy(x => x.YapKodCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dto in dtos)
+        {
+            YapKodEntity? matched = null;
+
+            if (dto.YapKodId.HasValue)
+            {
+                byId.TryGetValue(dto.YapKodId.Value, out matched);
+            }
+
+            if (matched == null && !string.IsNullOrWhiteSpace(dto.YapKod))
+            {
+                byCode.TryGetValue(dto.YapKod, out matched);
+            }
+
+            if (matched == null)
+            {
+                continue;
+            }
+
+            dto.YapKodId ??= matched.Id;
+            dto.YapKod = matched.YapKodCode;
+            dto.YapAcik = matched.YapAcik;
+        }
     }
 }

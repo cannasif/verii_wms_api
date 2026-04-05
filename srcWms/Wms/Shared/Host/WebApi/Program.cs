@@ -10,6 +10,10 @@ using Microsoft.Extensions.Options;
 using Wms.Infrastructure.Options;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
+using Wms.Application.Customer.Services;
+using Wms.Application.Stock.Services;
+using Wms.Application.Warehouse.Services;
+using Wms.Application.YapKod.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -187,6 +191,31 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() }
 });
+
+RecurringJob.AddOrUpdate<ICustomerSyncJob>(
+    "erp-customer-sync-job",
+    job => job.RunAsync(CancellationToken.None),
+    Cron.Hourly);
+
+RecurringJob.AddOrUpdate<IStockSyncJob>(
+    "erp-stock-sync-job",
+    job => job.RunAsync(CancellationToken.None),
+    Cron.Hourly);
+
+RecurringJob.AddOrUpdate<IWarehouseSyncJob>(
+    "erp-warehouse-sync-job",
+    job => job.RunAsync(CancellationToken.None),
+    Cron.Hourly);
+
+RecurringJob.AddOrUpdate<IYapKodSyncJob>(
+    "erp-yapkod-sync-job",
+    job => job.RunAsync(CancellationToken.None),
+    Cron.Hourly);
+
+BackgroundJob.Enqueue<ICustomerSyncJob>(job => job.RunAsync(CancellationToken.None));
+BackgroundJob.Enqueue<IStockSyncJob>(job => job.RunAsync(CancellationToken.None));
+BackgroundJob.Enqueue<IWarehouseSyncJob>(job => job.RunAsync(CancellationToken.None));
+BackgroundJob.Enqueue<IYapKodSyncJob>(job => job.RunAsync(CancellationToken.None));
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");

@@ -16,7 +16,9 @@ public sealed class PLineConfiguration : BaseEntityConfiguration<PLine>
         builder.HasOne(x => x.Package).WithMany(x => x.Lines).HasForeignKey(x => x.PackageId).OnDelete(DeleteBehavior.Restrict).HasConstraintName("FK_PLine_PPackage");
         builder.Property(x => x.Barcode).HasMaxLength(50);
         builder.Property(x => x.StockCode).IsRequired().HasMaxLength(50);
+        builder.Property(x => x.StockId).IsRequired(false);
         builder.Property(x => x.YapKod).HasMaxLength(50);
+        builder.Property(x => x.YapKodId).IsRequired(false);
         builder.Property(x => x.Quantity).IsRequired().HasColumnType("decimal(18,6)");
         builder.Property(x => x.SerialNo).HasMaxLength(50);
         builder.Property(x => x.SerialNo2).HasMaxLength(50);
@@ -25,6 +27,8 @@ public sealed class PLineConfiguration : BaseEntityConfiguration<PLine>
         builder.HasIndex(x => x.PackingHeaderId).HasDatabaseName("IX_PLine_PackingHeaderId");
         builder.HasIndex(x => x.PackageId).HasDatabaseName("IX_PLine_PackageId");
         builder.HasIndex(x => x.StockCode).HasDatabaseName("IX_PLine_StockCode");
+        builder.HasIndex(x => x.StockId).HasDatabaseName("IX_PLine_StockId");
+        builder.HasIndex(x => x.YapKodId).HasDatabaseName("IX_PLine_YapKodId");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_PLine_IsDeleted");
     }
 }

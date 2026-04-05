@@ -17,8 +17,11 @@ public sealed class WiHeaderConfiguration : BaseHeaderEntityConfiguration<WiHead
         builder.Property(x => x.InboundType).HasMaxLength(10).IsRequired();
         builder.Property(x => x.AccountCode).HasMaxLength(20);
         builder.Property(x => x.CustomerCode).HasMaxLength(20);
+        builder.Property(x => x.CustomerId).IsRequired(false);
         builder.Property(x => x.SourceWarehouse).HasMaxLength(20);
+        builder.Property(x => x.SourceWarehouseId).IsRequired(false);
         builder.Property(x => x.TargetWarehouse).HasMaxLength(20);
+        builder.Property(x => x.TargetWarehouseId).IsRequired(false);
         builder.Property(x => x.YearCode).HasMaxLength(4).IsRequired();
         builder.Property(x => x.Description1).HasMaxLength(50);
         builder.Property(x => x.Description2).HasMaxLength(100);
@@ -27,6 +30,9 @@ public sealed class WiHeaderConfiguration : BaseHeaderEntityConfiguration<WiHead
         builder.HasIndex(x => x.PlannedDate).HasDatabaseName("IX_WiHeader_PlannedDate");
         builder.HasIndex(x => x.AccountCode).HasDatabaseName("IX_WiHeader_AccountCode");
         builder.HasIndex(x => x.CustomerCode).HasDatabaseName("IX_WiHeader_CustomerCode");
+        builder.HasIndex(x => x.CustomerId).HasDatabaseName("IX_WiHeader_CustomerId");
+        builder.HasIndex(x => x.SourceWarehouseId).HasDatabaseName("IX_WiHeader_SourceWarehouseId");
+        builder.HasIndex(x => x.TargetWarehouseId).HasDatabaseName("IX_WiHeader_TargetWarehouseId");
         builder.HasIndex(x => x.YearCode).HasDatabaseName("IX_WiHeader_YearCode");
         builder.HasIndex(x => x.IsDeleted).HasDatabaseName("IX_WiHeader_IsDeleted");
 

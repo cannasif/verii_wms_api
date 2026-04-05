@@ -14,7 +14,6 @@ public sealed class PrImportLineService : IPrImportLineService
     private readonly IRepository<PrLine> _lines;
     private readonly IRepository<PrRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IErpReadEnrichmentService _erpReadEnrichmentService;
     private readonly ILocalizationService _localizationService;
     private readonly IMapper _mapper;
 
@@ -24,7 +23,6 @@ public sealed class PrImportLineService : IPrImportLineService
         IRepository<PrLine> lines,
         IRepository<PrRoute> routes,
         IUnitOfWork unitOfPrrk,
-        IErpReadEnrichmentService erpReadEnrichmentService,
         ILocalizationService localizationService,
         IMapper mapper)
     {
@@ -33,7 +31,6 @@ public sealed class PrImportLineService : IPrImportLineService
         _lines = lines;
         _routes = routes;
         _unitOfWork = unitOfPrrk;
-        _erpReadEnrichmentService = erpReadEnrichmentService;
         _localizationService = localizationService;
         _mapper = mapper;
     }
@@ -42,7 +39,6 @@ public sealed class PrImportLineService : IPrImportLineService
     {
         var items = await _importLines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<PrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PrImportLineRetrievedSuccessfully"));
     }
 
@@ -55,7 +51,6 @@ public sealed class PrImportLineService : IPrImportLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<PagedResponse<PrImportLineDto>>.SuccessResult(new PagedResponse<PrImportLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("PrImportLineRetrievedSuccessfully"));
     }
 
@@ -69,7 +64,6 @@ public sealed class PrImportLineService : IPrImportLineService
         }
 
         var dto = _mapper.Map<PrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PrImportLineDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("PrImportLineRetrievedSuccessfully"));
     }
 
@@ -77,7 +71,6 @@ public sealed class PrImportLineService : IPrImportLineService
     {
         var items = await _importLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<PrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PrImportLineRetrievedSuccessfully"));
     }
 
@@ -85,7 +78,6 @@ public sealed class PrImportLineService : IPrImportLineService
     {
         var items = await _importLines.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<PrImportLineDto>>(items);
-        dtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(dtos, cancellationToken)).Data?.ToList() ?? dtos;
         return ApiResponse<IEnumerable<PrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("PrImportLineRetrievedSuccessfully"));
     }
 
@@ -96,7 +88,6 @@ public sealed class PrImportLineService : IPrImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<PrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PrImportLineCreatedSuccessfully"));
     }
 
@@ -114,7 +105,6 @@ public sealed class PrImportLineService : IPrImportLineService
         _importLines.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<PrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PrImportLineUpdatedSuccessfully"));
     }
 
@@ -179,7 +169,6 @@ public sealed class PrImportLineService : IPrImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<PrImportLineDto>(entity);
-        dto = (await _erpReadEnrichmentService.PopulateStockNamesAsync(new[] { dto }, cancellationToken)).Data?.FirstOrDefault() ?? dto;
         return ApiResponse<PrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("PrImportLineCreatedSuccessfully"));
     }
 
@@ -190,7 +179,6 @@ public sealed class PrImportLineService : IPrImportLineService
         var routes = await _routes.Query().Where(x => importLineIds.Contains(x.ImportLineId)).ToListAsync(cancellationToken);
 
         var lineDtos = _mapper.Map<List<PrImportLineDto>>(importLines);
-        lineDtos = (await _erpReadEnrichmentService.PopulateStockNamesAsync(lineDtos, cancellationToken)).Data?.ToList() ?? lineDtos;
         var routeDtos = _mapper.Map<List<PrRouteDto>>(routes);
 
         var result = lineDtos.Select(importLine => new PrImportLineWithRoutesDto
