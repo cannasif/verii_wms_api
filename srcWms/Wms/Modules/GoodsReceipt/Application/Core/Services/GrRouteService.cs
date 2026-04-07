@@ -12,24 +12,29 @@ public sealed class GrRouteService : IGrRouteService
     private readonly IRepository<GrRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public GrRouteService(
         IRepository<GrRoute> routes,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _routes = routes;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<GrRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(_mapper.Map<List<GrRouteDto>>(items), _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<GrRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<GrRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +45,9 @@ public sealed class GrRouteService : IGrRouteService
             .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
-        return ApiResponse<PagedResponse<GrRouteDto>>.SuccessResult(new PagedResponse<GrRouteDto>(_mapper.Map<List<GrRouteDto>>(items), total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<GrRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<PagedResponse<GrRouteDto>>.SuccessResult(new PagedResponse<GrRouteDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<GrRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -52,19 +59,25 @@ public sealed class GrRouteService : IGrRouteService
             return ApiResponse<GrRouteDto>.ErrorResult(msg, msg, 404);
         }
 
-        return ApiResponse<GrRouteDto>.SuccessResult(_mapper.Map<GrRouteDto>(entity), _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
+        var dto = _mapper.Map<GrRouteDto>(entity);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(new List<GrRouteDto> { dto }, cancellationToken);
+        return ApiResponse<GrRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<GrRouteDto>>> GetByImportLineIdAsync(long importLineId, CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().Where(x => x.ImportLineId == importLineId).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(_mapper.Map<List<GrRouteDto>>(items), _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<GrRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<GrRouteDto>>> GetByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().Where(x => x.ImportLine.HeaderId == headerId).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(_mapper.Map<List<GrRouteDto>>(items), _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<GrRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<GrRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<GrRouteDto>> CreateAsync(CreateGrRouteDto createDto, CancellationToken cancellationToken = default)

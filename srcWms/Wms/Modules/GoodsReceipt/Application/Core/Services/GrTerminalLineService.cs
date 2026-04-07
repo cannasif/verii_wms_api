@@ -12,17 +12,20 @@ public sealed class GrTerminalLineService : IGrTerminalLineService
     private readonly IRepository<GrTerminalLine> _terminalLines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public GrTerminalLineService(
         IRepository<GrTerminalLine> terminalLines,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _terminalLines = terminalLines;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 

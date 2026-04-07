@@ -30,6 +30,7 @@ public sealed class WtHeaderService : IWtHeaderService
     private readonly ICurrentUserAccessor _currentUserAccessor;
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
 
     public WtHeaderService(
         IRepository<WtHeader> headers,
@@ -46,7 +47,8 @@ public sealed class WtHeaderService : IWtHeaderService
         ILocalizationService localizationService,
         ICurrentUserAccessor currentUserAccessor,
         INotificationService notificationService,
-        IEntityReferenceResolver entityReferenceResolver)
+        IEntityReferenceResolver entityReferenceResolver,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher)
     {
         _headers = headers;
         _lines = lines;
@@ -63,6 +65,7 @@ public sealed class WtHeaderService : IWtHeaderService
         _currentUserAccessor = currentUserAccessor;
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
     }
 
     public async Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -101,6 +104,7 @@ public sealed class WtHeaderService : IWtHeaderService
         }
 
         var dto = _mapper.Map<WtHeaderDto>(entity);
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<WtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtHeaderRetrievedSuccessfully"));
     }
 
@@ -242,6 +246,27 @@ public sealed class WtHeaderService : IWtHeaderService
 
         var dtos = _mapper.Map<List<WtHeaderDto>>(entities);
         return ApiResponse<IEnumerable<WtHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievedSuccessfully"));
+    }
+
+    public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetAssignedOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        request ??= new PagedRequest();
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
+        var branchCode = _currentUserAccessor.BranchCode ?? "0";
+        var terminalLineHeaderIds = _terminalLines.Query(false, false)
+            .Where(t => t.TerminalUserId == userId)
+            .Select(t => t.HeaderId);
+
+        var query = _headers.Query()
+            .Where(h => !h.IsCompleted && h.BranchCode == branchCode && terminalLineHeaderIds.Contains(h.Id))
+            .ApplyFilters(request.Filters, request.FilterLogic)
+            .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
+        var dtos = _mapper.Map<List<WtHeaderDto>>(items);
+        return ApiResponse<PagedResponse<WtHeaderDto>>.SuccessResult(new PagedResponse<WtHeaderDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("WtHeaderAssignedOrdersRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WtAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default)
@@ -538,9 +563,8 @@ public sealed class WtHeaderService : IWtHeaderService
                         LineId = lineId,
                         StockCode = importDto.StockCode,
                         StockId = importDto.StockId,
-                        Description = importDto.ErpOrderNo ?? importDto.ErpOrderNumber,
-                        Description1 = importDto.ScannedBarkod,
-                        Description2 = importDto.ErpOrderLineNumber
+                        YapKod = importDto.YapKod,
+                        YapKodId = importDto.YapKodId
                     };
                     await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLines.Add(importLine);
@@ -593,11 +617,13 @@ public sealed class WtHeaderService : IWtHeaderService
                         Quantity = routeDto.Quantity,
                         SerialNo = routeDto.SerialNo,
                         SerialNo2 = routeDto.SerialNo2,
+                        SerialNo3 = routeDto.SerialNo3,
+                        SerialNo4 = routeDto.SerialNo4,
+                        ScannedBarcode = routeDto.ScannedBarcode ?? string.Empty,
                         SourceWarehouse = routeDto.SourceWarehouse.HasValue ? (int?)routeDto.SourceWarehouse.Value : null,
                         TargetWarehouse = routeDto.TargetWarehouse.HasValue ? (int?)routeDto.TargetWarehouse.Value : null,
                         SourceCellCode = routeDto.SourceCellCode,
-                        TargetCellCode = routeDto.TargetCellCode,
-                        Description = routeDto.Description
+                        TargetCellCode = routeDto.TargetCellCode
                     };
                     routes.Add(route);
                 }
@@ -622,6 +648,122 @@ public sealed class WtHeaderService : IWtHeaderService
         return BulkCreateWarehouseTransferAsync(request, cancellationToken);
     }
 
+    public async Task<ApiResponse<int>> ProcessWarehouseTransferAsync(ProcessWtRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request?.Header == null)
+        {
+            return ApiResponse<int>.ErrorResult(
+                _localizationService.GetLocalizedString("InvalidModelState"),
+                _localizationService.GetLocalizedString("RequestOrHeaderMissing"),
+                400);
+        }
+
+        if (request.Routes?.Any(x => x.Quantity <= 0) == true)
+        {
+            var message = _localizationService.GetLocalizedString("InvalidModelState");
+            return ApiResponse<int>.ErrorResult(message, "Quantity must be greater than zero for transfer process routes.", 400);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Header.BranchCode))
+        {
+            request.Header.BranchCode = _currentUserAccessor.BranchCode ?? "0";
+        }
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var parameter = await _parameters.Query().FirstOrDefaultAsync(cancellationToken);
+            var header = _mapper.Map<WtHeader>(request.Header) ?? new WtHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
+            header.IsPendingApproval = parameter?.RequireApprovalBeforeErp == true;
+
+            await _headers.AddAsync(header, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            if (header.Id <= 0)
+            {
+                return await RollbackWithErrorAsync<int>("WtHeaderCreationError", "HeaderInsertFailed", 500, cancellationToken);
+            }
+
+            var importLineGroupingKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+            if (request.Routes?.Count > 0)
+            {
+                var groupedImportLines = WtProcessGroupingHelper.BuildImportLineSeeds(request.Routes);
+
+                var importLines = new List<WtImportLine>(groupedImportLines.Count);
+                foreach (var grouped in groupedImportLines)
+                {
+                    var importLine = new WtImportLine
+                    {
+                        HeaderId = header.Id,
+                        LineId = null,
+                        StockCode = grouped.StockCode,
+                        StockId = grouped.StockId,
+                        YapKod = grouped.YapKod,
+                        YapKodId = grouped.YapKodId
+                    };
+                    await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
+                    importLines.Add(importLine);
+                }
+
+                await _importLines.AddRangeAsync(importLines, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                var groupedKeys = groupedImportLines.Select(x => x.GroupingKey).ToArray();
+                for (var i = 0; i < groupedKeys.Length; i++)
+                {
+                    importLineGroupingKeyToId[groupedKeys[i]] = importLines[i].Id;
+                }
+
+                var routes = new List<WtRoute>(request.Routes.Count);
+                foreach (var routeDto in request.Routes)
+                {
+                    var groupingKey = WtProcessGroupingHelper.BuildGroupingKey(routeDto.StockId, routeDto.StockCode, routeDto.YapKodId, routeDto.YapKod);
+                    if (!importLineGroupingKeyToId.TryGetValue(groupingKey, out var importLineId))
+                    {
+                        return await RollbackWithErrorAsync<int>("WtHeaderCreationError", "ImportLineReferenceMissing", 400, cancellationToken);
+                    }
+
+                    routes.Add(new WtRoute
+                    {
+                        ImportLineId = importLineId,
+                        Quantity = routeDto.Quantity,
+                        ScannedBarcode = routeDto.ScannedBarcode ?? string.Empty,
+                        SerialNo = routeDto.SerialNo,
+                        SerialNo2 = routeDto.SerialNo2,
+                        SerialNo3 = routeDto.SerialNo3,
+                        SerialNo4 = routeDto.SerialNo4,
+                        SourceWarehouse = routeDto.SourceWarehouse.HasValue ? (int?)routeDto.SourceWarehouse.Value : null,
+                        TargetWarehouse = routeDto.TargetWarehouse.HasValue ? (int?)routeDto.TargetWarehouse.Value : null,
+                        SourceCellCode = routeDto.SourceCellCode,
+                        TargetCellCode = routeDto.TargetCellCode
+                    });
+                }
+
+                await _routes.AddRangeAsync(routes, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            return ApiResponse<int>.SuccessResult(1, _localizationService.GetLocalizedString("WtHeaderBulkWtGenerateCompletedSuccessfully"));
+        }
+        catch (DbUpdateException ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            var exceptionMessage = ex.InnerException?.Message ?? ex.Message;
+            return ApiResponse<int>.ErrorResult(
+                _localizationService.GetLocalizedString("WtHeaderCreationError"),
+                exceptionMessage,
+                400);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public async Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
     {
         request ??= new PagedRequest();
@@ -633,6 +775,8 @@ public sealed class WtHeaderService : IWtHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WtHeaderDto>>(items);
+
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(dtos, cancellationToken);
 
         var result = new PagedResponse<WtHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<WtHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("WtHeaderCompletedAwaitingErpApprovalRetrievedSuccessfully"));
@@ -686,13 +830,15 @@ public sealed class WtHeaderService : IWtHeaderService
         var lines = await _lines.Query().Where(l => l.HeaderId == headerId).ToListAsync(cancellationToken);
         foreach (var line in lines)
         {
-            var totalLineSerialQuantity = await _lineSerials.Query()
+            var lineSerials = await _lineSerials.Query()
                 .Where(ls => ls.LineId == line.Id)
-                .SumAsync(ls => ls.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
 
-            var totalRouteQuantity = await _routes.Query()
+            var routes = await _routes.Query()
                 .Where(r => r.ImportLine.LineId == line.Id && !r.ImportLine.IsDeleted)
-                .SumAsync(r => r.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var totalRouteQuantity = routes.Sum(r => r.Quantity);
 
             if (requireAllOrderItemsCollected)
             {
@@ -709,24 +855,22 @@ public sealed class WtHeaderService : IWtHeaderService
 
             var allowLess = parameter?.AllowLessQuantityBasedOnOrder ?? false;
             var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
-
-            if (!allowLess && !allowMore && Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
+            var validationResult = LineSerialRouteValidationHelper.Validate(lineSerials, routes, allowLess, allowMore);
+            if (!validationResult.HasMismatch)
             {
-                var msg = _localizationService.GetLocalizedString("WtHeaderQuantityExactMatchRequired", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+                continue;
             }
 
-            if (allowLess && !allowMore && totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
+            var messageKey = validationResult.MismatchType switch
             {
-                var msg = _localizationService.GetLocalizedString("WtHeaderQuantityCannotBeGreater", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+                LineSerialRouteValidationMismatch.ExactMatchRequired => "WtHeaderQuantityExactMatchRequired",
+                LineSerialRouteValidationMismatch.CannotBeGreater => "WtHeaderQuantityCannotBeGreater",
+                LineSerialRouteValidationMismatch.CannotBeLess => "WtHeaderQuantityCannotBeLess",
+                _ => "WtHeaderQuantityExactMatchRequired"
+            };
 
-            if (!allowLess && allowMore && totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
-            {
-                var msg = _localizationService.GetLocalizedString("WtHeaderQuantityCannotBeLess", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+            var validationMessage = _localizationService.GetLocalizedString(messageKey, line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, validationResult.ExpectedQuantity, validationResult.ActualQuantity);
+            return ApiResponse<bool>.ErrorResult(validationMessage, validationMessage, 400);
         }
 
         return null;

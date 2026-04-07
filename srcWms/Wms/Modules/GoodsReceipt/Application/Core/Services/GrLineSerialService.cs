@@ -12,6 +12,7 @@ public sealed class GrLineSerialService : IGrLineSerialService
     private readonly IRepository<GrLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public GrLineSerialService(
@@ -19,19 +20,23 @@ public sealed class GrLineSerialService : IGrLineSerialService
         IRepository<GrLine> lines,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _serials = serials;
         _lines = lines;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<GrLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<GrLineSerialDto>>.SuccessResult(_mapper.Map<List<GrLineSerialDto>>(items), _localizationService.GetLocalizedString("GrImportSerialLineRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<GrLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<GrLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportSerialLineRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<GrLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -50,6 +55,7 @@ public sealed class GrLineSerialService : IGrLineSerialService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<GrLineSerialDto>>.SuccessResult(new PagedResponse<GrLineSerialDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("GrImportSerialLineRetrievedSuccessfully"));
     }
 
@@ -68,7 +74,9 @@ public sealed class GrLineSerialService : IGrLineSerialService
     public async Task<ApiResponse<IEnumerable<GrLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<GrLineSerialDto>>.SuccessResult(_mapper.Map<List<GrLineSerialDto>>(items), _localizationService.GetLocalizedString("GrImportSerialLineRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<GrLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<GrLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportSerialLineRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<GrLineSerialDto>> CreateAsync(CreateGrLineSerialDto createDto, CancellationToken cancellationToken = default)

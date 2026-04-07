@@ -70,15 +70,8 @@ public sealed class PtHeaderController : ControllerBase
     [HttpPost("assigned/{userId:long}/paged")]
     public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAssignedProductionTransferOrdersAsync(userId, cancellationToken);
-        var items = result.Data?.ToList() ?? new List<PtHeaderDto>();
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
-        var pagedData = items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        var pagedResult = result.Success
-            ? ApiResponse<PagedResponse<PtHeaderDto>>.SuccessResult(new PagedResponse<PtHeaderDto>(pagedData, items.Count, pageNumber, pageSize), result.Message)
-            : ApiResponse<PagedResponse<PtHeaderDto>>.ErrorResult(result.Message, result.ExceptionMessage, result.StatusCode);
-        return StatusCode(pagedResult.StatusCode, pagedResult);
+        var result = await _service.GetAssignedProductionTransferOrdersPagedAsync(userId, request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet("assigned-lines/{headerId:long}")]
@@ -86,6 +79,34 @@ public sealed class PtHeaderController : ControllerBase
     public async Task<ActionResult<ApiResponse<PtAssignedProductionTransferOrderLinesDto>>> GetAssignedOrderLines(long headerId, CancellationToken cancellationToken = default)
     {
         var result = await _service.GetAssignedProductionTransferOrderLinesAsync(headerId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("production-transfer-suggestions")]
+    public async Task<ActionResult<ApiResponse<List<ProductionTransferSuggestedLineDto>>>> GetProductionTransferSuggestions([FromBody] ProductionTransferSuggestionRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetProductionTransferSuggestionsAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("production-transfer/{id:long}")]
+    public async Task<ActionResult<ApiResponse<ProductionTransferDetailDto>>> GetProductionTransferDetail(long id, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetProductionTransferDetailAsync(id, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("production-transfer")]
+    public async Task<ActionResult<ApiResponse<PtHeaderDto>>> CreateProductionTransfer([FromBody] CreateProductionTransferRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.CreateProductionTransferAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("production-transfer/{id:long}")]
+    public async Task<ActionResult<ApiResponse<PtHeaderDto>>> UpdateProductionTransfer(long id, [FromBody] CreateProductionTransferRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.UpdateProductionTransferAsync(id, request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 

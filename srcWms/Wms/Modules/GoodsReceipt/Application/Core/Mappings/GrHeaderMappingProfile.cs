@@ -21,7 +21,6 @@ public sealed class GrHeaderMappingProfile : Profile
         CreateMap<CreateGrRouteWithImportLineKeyDto, GrRoute>();
         CreateMap<GrLineSerial, GrLineSerialDto>();
         CreateMap<CreateGrLineSerialDto, GrLineSerial>();
-        CreateMap<CreateGrImportSerialLineWithImportLineKeyDto, GrLineSerial>();
         CreateMap<CreateGrLineSerialWithLineKeyDto, GrLineSerial>();
         CreateMap<CreateGrImportDocumentSimpleDto, GrImportDocument>();
         CreateMap<CreateGrTerminalLineWithUserDto, GrTerminalLine>();

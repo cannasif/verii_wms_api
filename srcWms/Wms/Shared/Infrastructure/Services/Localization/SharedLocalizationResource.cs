@@ -85,7 +85,24 @@ public sealed class SharedLocalizationResource : ILocalizationResource
             ["PLineStockCodeAndYapKodNotMatch"] = "Package line stock code and structure code do not match any source line",
             ["PLineSerialNotMatch"] = "Package line serial does not match any source line serial",
             ["PLineQuantityCannotBeGreater"] = "Package line quantity cannot be greater than source line serial quantity",
-            ["PLineNoMatchingLine"] = "No matching source line could be selected"
+            ["PLineNoMatchingLine"] = "No matching source line could be selected",
+            ["BarcodeDefinitionsRetrievedSuccessfully"] = "Barcode definitions retrieved successfully",
+            ["BarcodeDefinitionNotFound"] = "Active barcode definition could not be found",
+            ["BarcodeResolvedSuccessfully"] = "Barcode resolved successfully",
+            ["BarcodeResolvedByMirrorLookup"] = "Barcode resolved by WMS mirror lookup",
+            ["BarcodeCouldNotBeResolved"] = "Barcode could not be resolved",
+            ["BarcodeInvalidFormat"] = "Scanned barcode format is not valid for this screen",
+            ["BarcodeMissingRequiredSegment"] = "Scanned barcode is missing required product segments",
+            ["BarcodeNoMatch"] = "Scanned barcode could not be matched to any product",
+            ["BarcodeAmbiguousMatch"] = "Scanned barcode matched more than one candidate. Please narrow it down",
+            ["BarcodeAlreadyScanned"] = "This barcode scan was already recorded for this order",
+            ["BarcodeDefinitionCreatedSuccessfully"] = "Barcode definition created successfully",
+            ["BarcodeDefinitionUpdatedSuccessfully"] = "Barcode definition updated successfully",
+            ["BarcodeDefinitionDeletedSuccessfully"] = "Barcode definition deleted successfully",
+            ["BarcodeDefinitionAlreadyExists"] = "A barcode definition already exists for this module in the current branch",
+            ["BarcodeDefinitionRecordNotFound"] = "Barcode definition record not found",
+            ["BarcodeDefinitionFieldsRequired"] = "Module key and display name are required",
+            ["BarcodeDefinitionPatternRequired"] = "Segment pattern is required for pattern-based barcode definitions"
         },
         ["tr"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -166,7 +183,24 @@ public sealed class SharedLocalizationResource : ILocalizationResource
             ["PLineStockCodeAndYapKodNotMatch"] = "Paket satiri stok kodu ve yapi kodu hicbir kaynak satir ile eslesmedi",
             ["PLineSerialNotMatch"] = "Paket satiri seri bilgisi hicbir kaynak satir serisi ile eslesmedi",
             ["PLineQuantityCannotBeGreater"] = "Paket satiri miktari kaynak seri satiri miktarindan buyuk olamaz",
-            ["PLineNoMatchingLine"] = "Eslesecek kaynak satiri secilemedi"
+            ["PLineNoMatchingLine"] = "Eslesecek kaynak satiri secilemedi",
+            ["BarcodeDefinitionsRetrievedSuccessfully"] = "Barkod tanimlari basariyla getirildi",
+            ["BarcodeDefinitionNotFound"] = "Aktif barkod tanimi bulunamadi",
+            ["BarcodeResolvedSuccessfully"] = "Barkod basariyla cozuldu",
+            ["BarcodeResolvedByMirrorLookup"] = "Barkod WMS mirror lookup ile cozuldu",
+            ["BarcodeCouldNotBeResolved"] = "Barkod cozulmedi",
+            ["BarcodeInvalidFormat"] = "Okutulan barkod bu ekran icin beklenen formata uymuyor",
+            ["BarcodeMissingRequiredSegment"] = "Okutulan barkod gerekli urun bilgilerini icermiyor",
+            ["BarcodeNoMatch"] = "Okutulan barkod herhangi bir urun ile eslesmedi",
+            ["BarcodeAmbiguousMatch"] = "Okutulan barkod birden fazla kayitla eslesti. Lutfen daha net barkod okutun",
+            ["BarcodeAlreadyScanned"] = "Bu barkod okutmasi bu emir icin zaten kaydedildi",
+            ["BarcodeDefinitionCreatedSuccessfully"] = "Barkod tanimi basariyla olusturuldu",
+            ["BarcodeDefinitionUpdatedSuccessfully"] = "Barkod tanimi basariyla guncellendi",
+            ["BarcodeDefinitionDeletedSuccessfully"] = "Barkod tanimi basariyla silindi",
+            ["BarcodeDefinitionAlreadyExists"] = "Mevcut sube icin bu modulde bir barkod tanimi zaten var",
+            ["BarcodeDefinitionRecordNotFound"] = "Barkod tanim kaydi bulunamadi",
+            ["BarcodeDefinitionFieldsRequired"] = "Modul anahtari ve gorunen ad zorunludur",
+            ["BarcodeDefinitionPatternRequired"] = "Pattern tabanli barkod tanimlari icin segment pattern zorunludur"
         },
         ["fr"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -247,7 +281,12 @@ public sealed class SharedLocalizationResource : ILocalizationResource
             ["PLineStockCodeAndYapKodNotMatch"] = "Package line stock code and structure code do not match any source line",
             ["PLineSerialNotMatch"] = "Package line serial does not match any source line serial",
             ["PLineQuantityCannotBeGreater"] = "Package line quantity cannot be greater than source line serial quantity",
-            ["PLineNoMatchingLine"] = "No matching source line could be selected"
+            ["PLineNoMatchingLine"] = "No matching source line could be selected",
+            ["BarcodeDefinitionsRetrievedSuccessfully"] = "Barcode definitions retrieved successfully",
+            ["BarcodeDefinitionNotFound"] = "Active barcode definition could not be found",
+            ["BarcodeResolvedSuccessfully"] = "Barcode resolved successfully",
+            ["BarcodeResolvedByMirrorLookup"] = "Barcode resolved by WMS mirror lookup",
+            ["BarcodeCouldNotBeResolved"] = "Barcode could not be resolved"
         }
     };
 }

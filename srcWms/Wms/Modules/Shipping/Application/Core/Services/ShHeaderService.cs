@@ -30,6 +30,7 @@ public sealed class ShHeaderService : IShHeaderService
     private readonly ICurrentUserAccessor _currentUserAccessor;
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
 
     public ShHeaderService(
         IRepository<ShHeader> headers,
@@ -46,7 +47,8 @@ public sealed class ShHeaderService : IShHeaderService
         ILocalizationService localizationService,
         ICurrentUserAccessor currentUserAccessor,
         INotificationService notificationService,
-        IEntityReferenceResolver entityReferenceResolver)
+        IEntityReferenceResolver entityReferenceResolver,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher)
     {
         _headers = headers;
         _lines = lines;
@@ -63,6 +65,7 @@ public sealed class ShHeaderService : IShHeaderService
         _currentUserAccessor = currentUserAccessor;
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
     }
 
     public async Task<ApiResponse<IEnumerable<ShHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -101,6 +104,7 @@ public sealed class ShHeaderService : IShHeaderService
         }
 
         var dto = _mapper.Map<ShHeaderDto>(entity);
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<ShHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShHeaderRetrievedSuccessfully"));
     }
 
@@ -242,6 +246,27 @@ public sealed class ShHeaderService : IShHeaderService
 
         var dtos = _mapper.Map<List<ShHeaderDto>>(entities);
         return ApiResponse<IEnumerable<ShHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShHeaderAssignedOrdersRetrievedSuccessfully"));
+    }
+
+    public async Task<ApiResponse<PagedResponse<ShHeaderDto>>> GetAssignedOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        request ??= new PagedRequest();
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
+        var branchCode = _currentUserAccessor.BranchCode ?? "0";
+        var terminalLineHeaderIds = _terminalLines.Query(false, false)
+            .Where(t => t.TerminalUserId == userId)
+            .Select(t => t.HeaderId);
+
+        var query = _headers.Query()
+            .Where(h => !h.IsCompleted && h.BranchCode == branchCode && terminalLineHeaderIds.Contains(h.Id))
+            .ApplyFilters(request.Filters, request.FilterLogic)
+            .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
+        var dtos = _mapper.Map<List<ShHeaderDto>>(items);
+        return ApiResponse<PagedResponse<ShHeaderDto>>.SuccessResult(new PagedResponse<ShHeaderDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("ShHeaderAssignedOrdersRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<ShAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default)
@@ -417,6 +442,11 @@ public sealed class ShHeaderService : IShHeaderService
         }
     }
 
+    public Task<ApiResponse<int>> ProcessShipmentAsync(BulkCreateShRequestDto request, CancellationToken cancellationToken = default)
+    {
+        return BulkCreateShipmentAsync(request, cancellationToken);
+    }
+
     public async Task<ApiResponse<int>> BulkCreateShipmentAsync(BulkCreateShRequestDto request, CancellationToken cancellationToken = default)
     {
         if (request?.Header == null)
@@ -533,9 +563,8 @@ public sealed class ShHeaderService : IShHeaderService
                         LineId = lineId,
                         StockCode = importDto.StockCode,
                         StockId = importDto.StockId,
-                        Description = importDto.ErpOrderNo ?? importDto.ErpOrderNumber,
-                        Description1 = importDto.ScannedBarkod,
-                        Description2 = importDto.ErpOrderLineNumber
+                        YapKod = importDto.YapKod,
+                        YapKodId = importDto.YapKodId
                     };
                     await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLines.Add(importLine);
@@ -588,11 +617,13 @@ public sealed class ShHeaderService : IShHeaderService
                         Quantity = routeDto.Quantity,
                         SerialNo = routeDto.SerialNo,
                         SerialNo2 = routeDto.SerialNo2,
+                        SerialNo3 = routeDto.SerialNo3,
+                        SerialNo4 = routeDto.SerialNo4,
+                        ScannedBarcode = routeDto.ScannedBarcode ?? string.Empty,
                         SourceWarehouse = routeDto.SourceWarehouse,
                         TargetWarehouse = routeDto.TargetWarehouse,
                         SourceCellCode = routeDto.SourceCellCode,
-                        TargetCellCode = routeDto.TargetCellCode,
-                        Description = routeDto.Description
+                        TargetCellCode = routeDto.TargetCellCode
                     };
                     routes.Add(route);
                 }
@@ -622,6 +653,8 @@ public sealed class ShHeaderService : IShHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<ShHeaderDto>>(items);
+
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(dtos, cancellationToken);
 
         var result = new PagedResponse<ShHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<ShHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("ShHeaderCompletedAwaitingErpApprovalRetrievedSuccessfully"));
@@ -675,13 +708,15 @@ public sealed class ShHeaderService : IShHeaderService
         var lines = await _lines.Query().Where(l => l.HeaderId == headerId).ToListAsync(cancellationToken);
         foreach (var line in lines)
         {
-            var totalLineSerialQuantity = await _lineSerials.Query()
+            var lineSerials = await _lineSerials.Query()
                 .Where(ls => ls.LineId == line.Id)
-                .SumAsync(ls => ls.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
 
-            var totalRouteQuantity = await _routes.Query()
+            var routes = await _routes.Query()
                 .Where(r => r.ImportLine.LineId == line.Id && !r.ImportLine.IsDeleted)
-                .SumAsync(r => r.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var totalRouteQuantity = routes.Sum(r => r.Quantity);
 
             if (requireAllOrderItemsCollected)
             {
@@ -698,24 +733,22 @@ public sealed class ShHeaderService : IShHeaderService
 
             var allowLess = parameter?.AllowLessQuantityBasedOnOrder ?? false;
             var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
-
-            if (!allowLess && !allowMore && Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
+            var validationResult = LineSerialRouteValidationHelper.Validate(lineSerials, routes, allowLess, allowMore);
+            if (!validationResult.HasMismatch)
             {
-                var msg = _localizationService.GetLocalizedString("ShHeaderQuantityExactMatchRequired", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+                continue;
             }
 
-            if (allowLess && !allowMore && totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
+            var messageKey = validationResult.MismatchType switch
             {
-                var msg = _localizationService.GetLocalizedString("ShHeaderQuantityCannotBeGreater", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+                LineSerialRouteValidationMismatch.ExactMatchRequired => "ShHeaderQuantityExactMatchRequired",
+                LineSerialRouteValidationMismatch.CannotBeGreater => "ShHeaderQuantityCannotBeGreater",
+                LineSerialRouteValidationMismatch.CannotBeLess => "ShHeaderQuantityCannotBeLess",
+                _ => "ShHeaderQuantityExactMatchRequired"
+            };
 
-            if (!allowLess && allowMore && totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
-            {
-                var msg = _localizationService.GetLocalizedString("ShHeaderQuantityCannotBeLess", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+            var validationMessage = _localizationService.GetLocalizedString(messageKey, line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, validationResult.ExpectedQuantity, validationResult.ActualQuantity);
+            return ApiResponse<bool>.ErrorResult(validationMessage, validationMessage, 400);
         }
 
         return null;

@@ -23,6 +23,8 @@ public sealed class GrImportLineService : IGrImportLineService
     private readonly IRepository<PHeader> _packageHeaders;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
+    private readonly IAssignedBarcodeMatchingService _assignedBarcodeMatchingService;
     private readonly IMapper _mapper;
 
     public GrImportLineService(
@@ -37,6 +39,8 @@ public sealed class GrImportLineService : IGrImportLineService
         IRepository<PHeader> packageHeaders,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
+        IAssignedBarcodeMatchingService assignedBarcodeMatchingService,
         IMapper mapper)
     {
         _importLines = importLines;
@@ -50,6 +54,8 @@ public sealed class GrImportLineService : IGrImportLineService
         _packageHeaders = packageHeaders;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
+        _assignedBarcodeMatchingService = assignedBarcodeMatchingService;
         _mapper = mapper;
     }
 
@@ -57,6 +63,7 @@ public sealed class GrImportLineService : IGrImportLineService
     {
         var items = await _importLines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -69,6 +76,7 @@ public sealed class GrImportLineService : IGrImportLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<GrImportLineDto>>.SuccessResult(new PagedResponse<GrImportLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -82,6 +90,7 @@ public sealed class GrImportLineService : IGrImportLineService
         }
 
         var dto = _mapper.Map<GrImportLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<GrImportLineDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -89,6 +98,7 @@ public sealed class GrImportLineService : IGrImportLineService
     {
         var items = await _importLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -101,6 +111,7 @@ public sealed class GrImportLineService : IGrImportLineService
     {
         var items = await _importLines.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<GrImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
@@ -111,6 +122,7 @@ public sealed class GrImportLineService : IGrImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<GrImportLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<GrImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrImportLineCreatedSuccessfully"));
     }
 
@@ -195,108 +207,73 @@ public sealed class GrImportLineService : IGrImportLineService
                 return await RollbackImportLineErrorAsync<GrImportLineDto>("GrHeaderNotFound", "GrHeaderNotFound", 404, cancellationToken);
             }
 
-            var reqStock = (request.StockCode ?? string.Empty).Trim();
-            var reqYap = (request.YapKod ?? string.Empty).Trim();
-            var matchingLines = await _lines.Query()
-                .Where(l => l.HeaderId == request.HeaderId
-                    && !l.IsDeleted
-                    && (l.StockCode ?? string.Empty).Trim() == reqStock
-                    && (l.YapKod ?? string.Empty).Trim() == reqYap)
-                .ToListAsync(cancellationToken);
-
-            if (!matchingLines.Any())
-            {
-                return await RollbackImportLineErrorAsync<GrImportLineDto>("GrImportLineStokCodeAndYapCodeNotMatch", "GrImportLineStokCodeAndYapCodeNotMatch", 404, cancellationToken);
-            }
-
-            var serialNo = (request.SerialNo ?? string.Empty).Trim();
-            var hasRequestSerial = !string.IsNullOrWhiteSpace(serialNo);
-            var lineIds = matchingLines.Select(l => l.Id).ToList();
-            var lineSerials = await _lineSerials.Query()
-                .Where(ls => !ls.IsDeleted && ls.LineId.HasValue && lineIds.Contains(ls.LineId.Value))
-                .ToListAsync(cancellationToken);
-
-            var hasSerialInLineSerials = lineSerials.Any(ls => !string.IsNullOrWhiteSpace(ls.SerialNo));
             var parameter = await _parameters.Query().Where(p => !p.IsDeleted).FirstOrDefaultAsync(cancellationToken);
+            var lines = await _lines.Query()
+                .Where(line => line.HeaderId == request.HeaderId && !line.IsDeleted)
+                .ToListAsync(cancellationToken);
+            var lineIds = lines.Select(line => line.Id).ToList();
+            var lineSerials = await _lineSerials.Query()
+                .Where(serial => !serial.IsDeleted && serial.LineId.HasValue && lineIds.Contains(serial.LineId.Value))
+                .ToListAsync(cancellationToken);
+            var existingRoutes = await _routes.Query()
+                .Where(route => !route.IsDeleted
+                    && !route.ImportLine.IsDeleted
+                    && route.ImportLine.HeaderId == request.HeaderId)
+                .Select(route => new AssignedBarcodeRouteSnapshot
+                {
+                    LineId = route.ImportLine.LineId,
+                    ScannedBarcode = route.ScannedBarcode,
+                    SerialNo = route.SerialNo,
+                    Quantity = route.Quantity,
+                    SourceCellCode = route.SourceCellCode,
+                    TargetCellCode = route.TargetCellCode
+                })
+                .ToListAsync(cancellationToken);
 
-            if (hasSerialInLineSerials && hasRequestSerial)
+            var matchResult = await _assignedBarcodeMatchingService.MatchAsync(new AssignedBarcodeMatchRequest<GrLine, GrLineSerial>
             {
-                var matchingLineSerials = lineSerials.Where(ls => (ls.SerialNo ?? string.Empty).Trim() == serialNo).ToList();
-                if (!matchingLineSerials.Any())
+                BarcodeRequest = new ResolveBarcodeRequestDto
                 {
-                    return await RollbackImportLineErrorAsync<GrImportLineDto>("GrImportLineSerialNotMatch", "GrImportLineSerialNotMatch", 404, cancellationToken);
-                }
+                    ModuleKey = BarcodeModuleKeys.GoodsReceiptAssigned,
+                    Barcode = request.Barcode,
+                    FallbackStockCode = request.StockCode,
+                    FallbackStockName = request.StockName,
+                    FallbackYapKod = request.YapKod,
+                    FallbackYapAcik = request.YapAcik,
+                    FallbackSerialNumber = request.SerialNo
+                },
+                RequestQuantity = request.Quantity,
+                RawBarcode = request.Barcode,
+                SourceCellCode = request.SourceCellCode,
+                TargetCellCode = request.TargetCellCode,
+                AllowMoreQuantityBasedOnOrder = parameter?.AllowMoreQuantityBasedOnOrder ?? false,
+                Lines = lines,
+                LineSerials = lineSerials,
+                ExistingRoutes = existingRoutes,
+                LineIdSelector = line => line.Id,
+                LineSerialLineIdSelector = serial => serial.LineId,
+                StockAndYapKodNotMatchedErrorCode = "GrImportLineStokCodeAndYapCodeNotMatch",
+                SerialNotMatchedErrorCode = "GrImportLineSerialNotMatch",
+                NoMatchingLineErrorCode = "GrImportLineNoMatchingLine",
+                QuantityExceededErrorCode = "GrHeaderQuantityCannotBeGreater"
+            }, cancellationToken);
 
-                var totalLineSerialQuantity = matchingLineSerials.Sum(ls => ls.Quantity);
-                var totalRouteQuantity = await _routes.Query()
-                    .Where(r => !r.IsDeleted
-                        && lineIds.Contains(r.ImportLine.LineId ?? 0)
-                        && !r.ImportLine.IsDeleted
-                        && (r.SerialNo ?? string.Empty).Trim() == serialNo)
-                    .SumAsync(r => r.Quantity, cancellationToken);
-
-                var totalRouteAfterAdd = totalRouteQuantity + request.Quantity;
-                var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
-                if (!allowMore && totalRouteAfterAdd > totalLineSerialQuantity + 0.000001m)
-                {
-                    return await RollbackImportLineErrorAsync<GrImportLineDto>("GrHeaderQuantityCannotBeGreater", "GrHeaderQuantityCannotBeGreater", 400, cancellationToken);
-                }
-            }
-            else
+            if (!matchResult.Success)
             {
-                var totalLineSerialQuantity = lineSerials.Sum(ls => ls.Quantity);
-                var totalRouteQuantity = await _routes.Query()
-                    .Where(r => !r.IsDeleted
-                        && lineIds.Contains(r.ImportLine.LineId ?? 0)
-                        && !r.ImportLine.IsDeleted)
-                    .SumAsync(r => r.Quantity, cancellationToken);
-                var totalRouteAfterAdd = totalRouteQuantity + request.Quantity;
-                var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
-                if (!allowMore && totalRouteAfterAdd > totalLineSerialQuantity + 0.000001m)
-                {
-                    return await RollbackImportLineErrorAsync<GrImportLineDto>("GrHeaderQuantityCannotBeGreater", "GrHeaderQuantityCannotBeGreater", 400, cancellationToken);
-                }
-            }
-
-            long? selectedLineId = null;
-            if (hasSerialInLineSerials && hasRequestSerial)
-            {
-                var linesWithSerial = lineSerials
-                    .Where(ls => (ls.SerialNo ?? string.Empty).Trim() == serialNo)
-                    .Select(ls => ls.LineId)
-                    .Distinct()
-                    .ToList();
-                if (linesWithSerial.Count == 1)
-                {
-                    selectedLineId = linesWithSerial.First();
-                }
-            }
-
-            if (!selectedLineId.HasValue)
-            {
-                var lineQuantities = new List<(long LineId, decimal Remaining)>();
-                foreach (var line in matchingLines)
-                {
-                    var lineSerialTotal = lineSerials.Where(ls => ls.LineId == line.Id).Sum(ls => ls.Quantity);
-                    var routeTotal = await _routes.Query()
-                        .Where(r => !r.IsDeleted && r.ImportLine.LineId == line.Id && !r.ImportLine.IsDeleted)
-                        .SumAsync(r => r.Quantity, cancellationToken);
-                    lineQuantities.Add((line.Id, lineSerialTotal - routeTotal));
-                }
-                var bestLine = lineQuantities.OrderByDescending(x => x.Remaining).FirstOrDefault();
-                selectedLineId = bestLine.LineId > 0 ? bestLine.LineId : matchingLines.First().Id;
+                var errorCode = matchResult.ErrorCode ?? "BarcodeCouldNotBeResolved";
+                return await RollbackImportLineErrorAsync<GrImportLineDto>(errorCode, errorCode, matchResult.StatusCode ?? 400, cancellationToken, matchResult.Details);
             }
 
-            if (!selectedLineId.HasValue)
-            {
-                return await RollbackImportLineErrorAsync<GrImportLineDto>("GrImportLineNoMatchingLine", "GrImportLineNoMatchingLine", 400, cancellationToken);
-            }
+            var reqStock = matchResult.RequestedStockCode;
+            var reqYap = matchResult.RequestedYapKod;
+            var serialNo = matchResult.RequestedSerialNo ?? string.Empty;
+            var selectedLineId = matchResult.SelectedLineId!.Value;
 
             var importLine = await _importLines.Query(tracking: true)
                 .Where(il => il.HeaderId == request.HeaderId
-                    && il.LineId == selectedLineId.Value
+                    && il.LineId == selectedLineId
                     && (il.StockCode ?? string.Empty).Trim() == reqStock
-                    && (il.YapKod ?? string.Empty).Trim() == reqYap
+                    && (il.YapKod ?? string.Empty).Trim() == (reqYap ?? string.Empty)
                     && !il.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -305,9 +282,9 @@ public sealed class GrImportLineService : IGrImportLineService
                 importLine = new GrImportLine
                 {
                     HeaderId = request.HeaderId,
-                    LineId = selectedLineId.Value,
-                    StockCode = request.StockCode ?? reqStock,
-                    YapKod = request.YapKod ?? reqYap,
+                    LineId = selectedLineId,
+                    StockCode = reqStock,
+                    YapKod = string.IsNullOrWhiteSpace(reqYap) ? null : reqYap,
                     CreatedDate = DateTimeProvider.Now
                 };
                 await _importLines.AddAsync(importLine, cancellationToken);
@@ -319,7 +296,7 @@ public sealed class GrImportLineService : IGrImportLineService
                 ImportLineId = importLine.Id,
                 ScannedBarcode = request.Barcode,
                 Quantity = request.Quantity,
-                SerialNo = request.SerialNo,
+                SerialNo = string.IsNullOrWhiteSpace(serialNo) ? null : serialNo,
                 SerialNo2 = request.SerialNo2,
                 SerialNo3 = request.SerialNo3,
                 SerialNo4 = request.SerialNo4,
@@ -430,7 +407,7 @@ public sealed class GrImportLineService : IGrImportLineService
         return ApiResponse<IEnumerable<GrImportLineWithRoutesDto>>.SuccessResult(items, _localizationService.GetLocalizedString("GrImportLineRetrievedSuccessfully"));
     }
 
-    private async Task<ApiResponse<T>> RollbackImportLineErrorAsync<T>(string titleKey, string messageKey, int statusCode, CancellationToken cancellationToken)
+    private async Task<ApiResponse<T>> RollbackImportLineErrorAsync<T>(string titleKey, string messageKey, int statusCode, CancellationToken cancellationToken, object? details = null)
     {
         await _unitOfWork.RollbackTransactionAsync(cancellationToken);
         return ApiResponse<T>.ErrorResult(_localizationService.GetLocalizedString(titleKey), _localizationService.GetLocalizedString(messageKey), statusCode);

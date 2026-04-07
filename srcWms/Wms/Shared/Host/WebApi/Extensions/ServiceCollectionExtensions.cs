@@ -72,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
         services.Configure<HangfireMonitoringOptions>(configuration.GetSection("HangfireMonitoring"));
         services.Configure<PragmaticCorsOptions>(configuration.GetSection("Cors"));
+        services.Configure<BarcodeDefinitionsOptions>(configuration.GetSection("BarcodeDefinitions"));
 
         var corsOptions = configuration.GetSection("Cors").Get<PragmaticCorsOptions>() ?? new PragmaticCorsOptions();
         services.AddCors(options =>
@@ -184,6 +185,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRequestCancellationAccessor, RequestCancellationAccessor>();
         services.AddScoped<IFileUploadService, FileUploadService>();
         services.AddScoped<IEntityReferenceResolver, EntityReferenceResolver>();
+        services.AddScoped<IDocumentReferenceReadEnricher, DocumentReferenceReadEnricher>();
+        services.AddScoped<IAssignedBarcodeMatchingService, AssignedBarcodeMatchingService>();
+        services.AddScoped<IBarcodeDefinitionService, BarcodeDefinitionService>();
+        services.AddSingleton<IBarcodeParser, BarcodeParser>();
+        services.AddScoped<IBarcodeResolutionService, BarcodeResolutionService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IResetPasswordEmailJob, ResetPasswordEmailJob>();
@@ -228,6 +234,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISitParameterService, SitParameterService>();
         services.AddScoped<ISrtParameterService, SrtParameterService>();
         services.AddScoped<IIcHeaderService, IcHeaderService>();
+        services.AddScoped<IIcScopeService, IcScopeService>();
+        services.AddScoped<IIcLineService, IcLineService>();
+        services.AddScoped<IIcCountEntryService, IcCountEntryService>();
         services.AddScoped<IIcImportLineService, IcImportLineService>();
         services.AddScoped<IIcRouteService, IcRouteService>();
         services.AddScoped<IIcTerminalLineService, IcTerminalLineService>();
@@ -300,6 +309,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IShRouteService, ShRouteService>();
         services.AddScoped<IShLineSerialService, ShLineSerialService>();
         services.AddScoped<IPrHeaderService, PrHeaderService>();
+        services.AddScoped<IPrOperationService, PrOperationService>();
         services.AddScoped<IPrLineService, PrLineService>();
         services.AddScoped<IPrImportLineService, PrImportLineService>();
         services.AddScoped<IPrRouteService, PrRouteService>();

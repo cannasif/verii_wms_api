@@ -161,8 +161,6 @@ public sealed class PtImportLineService : IPtImportLineService
             LineId = request.LineId,
             StockCode = request.StockCode,
             YapKod = request.YapKod,
-            Description = request.StockName ?? request.Barcode,
-            Description1 = request.Barcode,
             CreatedDate = DateTimeProvider.Now
         };
 

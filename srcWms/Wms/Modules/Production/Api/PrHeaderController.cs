@@ -32,6 +32,13 @@ public sealed class PrHeaderController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [HttpGet("detail/{id:long}")]
+    public async Task<IActionResult> GetDetail(long id, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetDetailAsync(id, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpPost("paged")]
     public async Task<IActionResult> GetPaged([FromBody] PagedRequest request, CancellationToken cancellationToken = default)
     {
@@ -70,15 +77,8 @@ public sealed class PrHeaderController : ControllerBase
     [HttpPost("assigned/{userId:long}/paged")]
     public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAssignedProductionOrdersAsync(userId, cancellationToken);
-        var items = result.Data?.ToList() ?? new List<PrHeaderDto>();
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
-        var pagedData = items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        var pagedResult = result.Success
-            ? ApiResponse<PagedResponse<PrHeaderDto>>.SuccessResult(new PagedResponse<PrHeaderDto>(pagedData, items.Count, pageNumber, pageSize), result.Message)
-            : ApiResponse<PagedResponse<PrHeaderDto>>.ErrorResult(result.Message, result.ExceptionMessage, result.StatusCode);
-        return StatusCode(pagedResult.StatusCode, pagedResult);
+        var result = await _service.GetAssignedProductionOrdersPagedAsync(userId, request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet("assigned-lines/{headerId:long}")]
@@ -86,6 +86,27 @@ public sealed class PrHeaderController : ControllerBase
     public async Task<ActionResult<ApiResponse<PrAssignedProductionOrderLinesDto>>> GetAssignedOrderLines(long headerId, CancellationToken cancellationToken = default)
     {
         var result = await _service.GetAssignedProductionOrderLinesAsync(headerId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("plan")]
+    public async Task<ActionResult<ApiResponse<PrHeaderDto>>> CreatePlan([FromBody] CreateProductionPlanRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.CreatePlanAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("plan/{id:long}")]
+    public async Task<ActionResult<ApiResponse<PrHeaderDto>>> UpdatePlan(long id, [FromBody] CreateProductionPlanRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.UpdatePlanAsync(id, request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("erp-template")]
+    public async Task<ActionResult<ApiResponse<ProductionPlanDraftDto>>> GetErpTemplate([FromBody] ProductionErpTemplateRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetErpTemplateAsync(request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 

@@ -7,6 +7,7 @@ using Wms.Domain.Entities.Customer;
 using Wms.Domain.Entities.Definitions;
 using Wms.Domain.Entities.GoodsReceipt;
 using Wms.Domain.Entities.Identity;
+using Wms.Domain.Entities.InventoryCount;
 using Wms.Domain.Entities.Package;
 using Wms.Domain.Entities.Production;
 using Wms.Domain.Entities.ProductionTransfer;
@@ -35,6 +36,14 @@ public sealed class WmsDbContext : DbContext
 
     public DbSet<GrParameter> GrParameters => Set<GrParameter>();
     public DbSet<IcParameter> IcParameters => Set<IcParameter>();
+    public DbSet<IcHeader> IcHeaders => Set<IcHeader>();
+    public DbSet<IcScope> IcScopes => Set<IcScope>();
+    public DbSet<IcLine> IcLines => Set<IcLine>();
+    public DbSet<IcCountEntry> IcCountEntries => Set<IcCountEntry>();
+    public DbSet<IcAdjustment> IcAdjustments => Set<IcAdjustment>();
+    public DbSet<IcImportLine> IcImportLines => Set<IcImportLine>();
+    public DbSet<IcRoute> IcRoutes => Set<IcRoute>();
+    public DbSet<IcTerminalLine> IcTerminalLines => Set<IcTerminalLine>();
     public DbSet<PParameter> PParameters => Set<PParameter>();
     public DbSet<PrParameter> PrParameters => Set<PrParameter>();
     public DbSet<PtParameter> PtParameters => Set<PtParameter>();
@@ -91,6 +100,15 @@ public sealed class WmsDbContext : DbContext
     public DbSet<ShLineSerial> ShLineSerials => Set<ShLineSerial>();
     public DbSet<ShTerminalLine> ShTerminalLines => Set<ShTerminalLine>();
     public DbSet<PrHeader> PrHeaders => Set<PrHeader>();
+    public DbSet<PrHeaderAssignment> PrHeaderAssignments => Set<PrHeaderAssignment>();
+    public DbSet<PrOrder> PrOrders => Set<PrOrder>();
+    public DbSet<PrOrderDependency> PrOrderDependencies => Set<PrOrderDependency>();
+    public DbSet<PrOrderAssignment> PrOrderAssignments => Set<PrOrderAssignment>();
+    public DbSet<PrOrderOutput> PrOrderOutputs => Set<PrOrderOutput>();
+    public DbSet<PrOrderConsumption> PrOrderConsumptions => Set<PrOrderConsumption>();
+    public DbSet<PrOperation> PrOperations => Set<PrOperation>();
+    public DbSet<PrOperationLine> PrOperationLines => Set<PrOperationLine>();
+    public DbSet<PrOperationEvent> PrOperationEvents => Set<PrOperationEvent>();
     public DbSet<PrLine> PrLines => Set<PrLine>();
     public DbSet<PrImportLine> PrImportLines => Set<PrImportLine>();
     public DbSet<PrRoute> PrRoutes => Set<PrRoute>();
@@ -119,6 +137,7 @@ public sealed class WmsDbContext : DbContext
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<YapKod> YapKodlar => Set<YapKod>();
+    public DbSet<BarcodeDefinitionRecord> BarcodeDefinitions => Set<BarcodeDefinitionRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

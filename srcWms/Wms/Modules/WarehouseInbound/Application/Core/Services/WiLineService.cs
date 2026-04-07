@@ -12,17 +12,20 @@ public sealed class WiLineService : IWiLineService
     private readonly IRepository<WiLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public WiLineService(
         IRepository<WiLine> lines,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _lines = lines;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
@@ -30,6 +33,7 @@ public sealed class WiLineService : IWiLineService
     {
         var items = await _lines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WiLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WiLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiLineRetrievedSuccessfully"));
     }
 
@@ -42,6 +46,7 @@ public sealed class WiLineService : IWiLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WiLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<WiLineDto>>.SuccessResult(new PagedResponse<WiLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WiLineRetrievedSuccessfully"));
     }
 
@@ -55,6 +60,7 @@ public sealed class WiLineService : IWiLineService
         }
 
         var dto = _mapper.Map<WiLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<WiLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WiLineRetrievedSuccessfully"));
     }
 
@@ -62,6 +68,7 @@ public sealed class WiLineService : IWiLineService
     {
         var items = await _lines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WiLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WiLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiLineRetrievedSuccessfully"));
     }
 

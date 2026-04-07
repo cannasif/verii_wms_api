@@ -11,7 +11,6 @@ public sealed class ShHeader : BaseHeaderEntity
     public string? TargetWarehouse { get; set; }
     public long? TargetWarehouseId { get; set; }
     public long? ShipmentId { get; set; }
-    public byte Type { get; set; }
 
     public ICollection<ShLine> Lines { get; set; } = new List<ShLine>();
     public ICollection<ShImportLine> ImportLines { get; set; } = new List<ShImportLine>();

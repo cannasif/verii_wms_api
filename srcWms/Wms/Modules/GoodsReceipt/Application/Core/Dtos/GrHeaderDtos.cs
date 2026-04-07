@@ -87,10 +87,11 @@ public sealed class GrRouteDto : BaseRouteEntityDto
 
 public sealed class CreateGrRouteWithImportLineKeyDto : BaseRouteCreateDto
 {
-    [Required]
-    public string ImportLineClientKey { get; set; } = null!;
+    public string? LineClientKey { get; set; }
+    public long? StockId { get; set; }
     public string? StockCode { get; set; }
     public string? StockName { get; set; }
+    public long? YapKodId { get; set; }
     public string? YapKod { get; set; }
     public string? YapAcik { get; set; }
     [StringLength(100)]
@@ -109,16 +110,12 @@ public class CreateGrLineSerialDto : BaseLineSerialCreateDto
     public string? ClientKey { get; set; }
 }
 
-public sealed class CreateGrImportSerialLineWithImportLineKeyDto : BaseLineSerialCreateDto
-{
-    [Required]
-    public string ImportLineClientKey { get; set; } = null!;
-}
-
 public sealed class CreateGrLineSerialWithLineKeyDto : CreateGrLineSerialDto
 {
     public string? LineClientKey { get; set; }
     public Guid? LineGroupGuid { get; set; }
+    public string? StockCode { get; set; }
+    public string? YapKod { get; set; }
 }
 
 public sealed class CreateGrTerminalLineWithUserDto : BaseTerminalLineCreateDto
@@ -146,8 +143,33 @@ public sealed class BulkCreateGrRequestDto
     public List<CreateGrImportDocumentSimpleDto>? Documents { get; set; }
     public List<CreateGrLineWithKeyDto>? Lines { get; set; }
     public List<CreateGrImportLineWithLineKeyDto>? ImportLines { get; set; }
-    public List<CreateGrImportSerialLineWithImportLineKeyDto>? SerialLines { get; set; }
+    public List<CreateGrLineSerialWithLineKeyDto>? SerialLines { get; set; }
     public List<CreateGrRouteWithImportLineKeyDto>? Routes { get; set; }
+}
+
+public sealed class ProcessGrRouteDto
+{
+    public long? StockId { get; set; }
+    public string StockCode { get; set; } = string.Empty;
+    public long? YapKodId { get; set; }
+    public string? YapKod { get; set; }
+    public decimal Quantity { get; set; }
+    public string? SerialNo { get; set; }
+    public string? SerialNo2 { get; set; }
+    public string? SerialNo3 { get; set; }
+    public string? SerialNo4 { get; set; }
+    public string? ScannedBarcode { get; set; }
+    public long? SourceWarehouse { get; set; }
+    public long? TargetWarehouse { get; set; }
+    public string? SourceCellCode { get; set; }
+    public string? TargetCellCode { get; set; }
+}
+
+public sealed class ProcessGrRequestDto
+{
+    [Required]
+    public CreateGrHeaderDto Header { get; set; } = null!;
+    public List<ProcessGrRouteDto>? Routes { get; set; }
 }
 
 public sealed class GenerateGoodReceiptOrderRequestDto

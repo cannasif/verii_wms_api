@@ -12,24 +12,29 @@ public sealed class SitRouteService : ISitRouteService
     private readonly IRepository<SitRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public SitRouteService(
         IRepository<SitRoute> routes,
         IUnitOfWork unitOfSitrk,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _routes = routes;
         _unitOfWork = unitOfSitrk;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<SitRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<SitRouteDto>>.SuccessResult(_mapper.Map<List<SitRouteDto>>(items), _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SitRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<SitRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<SitRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +45,9 @@ public sealed class SitRouteService : ISitRouteService
             .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
-        return ApiResponse<PagedResponse<SitRouteDto>>.SuccessResult(new PagedResponse<SitRouteDto>(_mapper.Map<List<SitRouteDto>>(items), total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SitRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<PagedResponse<SitRouteDto>>.SuccessResult(new PagedResponse<SitRouteDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<SitRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -52,14 +59,18 @@ public sealed class SitRouteService : ISitRouteService
             return ApiResponse<SitRouteDto>.ErrorResult(msg, msg, 404);
         }
 
-        return ApiResponse<SitRouteDto>.SuccessResult(_mapper.Map<SitRouteDto>(entity), _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
+        var dto = _mapper.Map<SitRouteDto>(entity);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(new List<SitRouteDto> { dto }, cancellationToken);
+        return ApiResponse<SitRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<SitRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
     {
         var normalizedSerial = (serialNo ?? string.Empty).Trim();
         var items = await _routes.Query().Where(x => (x.SerialNo ?? string.Empty).Trim() == normalizedSerial).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<SitRouteDto>>.SuccessResult(_mapper.Map<List<SitRouteDto>>(items), _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SitRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<SitRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SitRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<SitRouteDto>> CreateAsync(CreateSitRouteDto createDto, CancellationToken cancellationToken = default)

@@ -12,17 +12,20 @@ public sealed class SitTerminalLineService : ISitTerminalLineService
     private readonly IRepository<SitTerminalLine> _terminalLines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public SitTerminalLineService(
         IRepository<SitTerminalLine> terminalLines,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _terminalLines = terminalLines;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 

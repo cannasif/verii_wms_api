@@ -12,17 +12,20 @@ public sealed class SrtLineService : ISrtLineService
     private readonly IRepository<SrtLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public SrtLineService(
         IRepository<SrtLine> lines,
         IUnitOfWork unitOfSrtrk,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _lines = lines;
         _unitOfWork = unitOfSrtrk;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
@@ -30,6 +33,7 @@ public sealed class SrtLineService : ISrtLineService
     {
         var items = await _lines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<SrtLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<SrtLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineRetrievedSuccessfully"));
     }
 
@@ -42,6 +46,7 @@ public sealed class SrtLineService : ISrtLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<SrtLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<SrtLineDto>>.SuccessResult(new PagedResponse<SrtLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("SrtLineRetrievedSuccessfully"));
     }
 
@@ -55,6 +60,7 @@ public sealed class SrtLineService : ISrtLineService
         }
 
         var dto = _mapper.Map<SrtLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<SrtLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtLineRetrievedSuccessfully"));
     }
 
@@ -62,6 +68,7 @@ public sealed class SrtLineService : ISrtLineService
     {
         var items = await _lines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<SrtLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<SrtLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineRetrievedSuccessfully"));
     }
 

@@ -29,6 +29,7 @@ public sealed class GrHeaderService : IGrHeaderService
     private readonly ILocalizationService _localizationService;
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
@@ -47,6 +48,7 @@ public sealed class GrHeaderService : IGrHeaderService
         ILocalizationService localizationService,
         INotificationService notificationService,
         IEntityReferenceResolver entityReferenceResolver,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IUnitOfWork unitOfWork,
         IMapper mapper)
     {
@@ -64,6 +66,7 @@ public sealed class GrHeaderService : IGrHeaderService
         _localizationService = localizationService;
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
@@ -81,6 +84,8 @@ public sealed class GrHeaderService : IGrHeaderService
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
 
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(dtos, cancellationToken);
+
         var result = new PagedResponse<GrHeaderDto>(dtos, request.PageNumber < 1 ? totalCount : totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<GrHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
     }
@@ -90,6 +95,7 @@ public sealed class GrHeaderService : IGrHeaderService
         var branchCode = _currentUserAccessor.BranchCode ?? "0";
         var items = await _headers.Query().Where(x => x.BranchCode == branchCode).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GrHeaderDto>>(items);
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<GrHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
     }
 
@@ -103,6 +109,7 @@ public sealed class GrHeaderService : IGrHeaderService
         }
 
         var dto = _mapper.Map<GrHeaderDto>(entity);
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<GrHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("GrHeaderRetrievedSuccessfully"));
     }
 
@@ -218,27 +225,11 @@ public sealed class GrHeaderService : IGrHeaderService
                 }
             }
 
-            if (request.SerialLines?.Count > 0)
-            {
-                var serials = new List<GrLineSerial>(request.SerialLines.Count);
-                foreach (var serialDto in request.SerialLines)
-                {
-                    if (string.IsNullOrWhiteSpace(serialDto.ImportLineClientKey))
-                    {
-                        return await RollbackWithErrorAsync<long>("InvalidCorrelationKey", "ImportLineClientKeyMissing", 400, cancellationToken);
-                    }
-
-                    serials.Add(_mapper.Map<GrLineSerial>(serialDto) ?? new GrLineSerial());
-                }
-
-                await _lineSerials.AddRangeAsync(serials, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-            }
-
             var importLineKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            var importLineGroupingKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             if (request.ImportLines?.Count > 0)
             {
-                var importLines = new List<GrImportLine>(request.ImportLines.Count);
+                var groupedImportLines = new Dictionary<string, (CreateGrImportLineWithLineKeyDto Dto, long? LineId, List<string> ReferenceKeys)>(StringComparer.OrdinalIgnoreCase);
                 foreach (var importDto in request.ImportLines)
                 {
                     if (string.IsNullOrWhiteSpace(importDto.ClientKey))
@@ -257,19 +248,164 @@ public sealed class GrHeaderService : IGrHeaderService
                         lineId = foundLineId;
                     }
 
-                    var importLine = _mapper.Map<GrImportLine>(importDto) ?? new GrImportLine();
+                    var groupingKey = BuildImportLineGroupingKey(lineId, importDto.StockId, importDto.StockCode, importDto.YapKodId, importDto.YapKod);
+                    if (!groupedImportLines.TryGetValue(groupingKey, out var grouped))
+                    {
+                        grouped = (importDto, lineId, new List<string>());
+                    }
+
+                    grouped.ReferenceKeys.Add(importDto.ClientKey);
+                    groupedImportLines[groupingKey] = grouped;
+                }
+
+                var importLines = new List<GrImportLine>(groupedImportLines.Count);
+                foreach (var grouped in groupedImportLines.Values)
+                {
+                    var importLine = _mapper.Map<GrImportLine>(grouped.Dto) ?? new GrImportLine();
                     await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLine.HeaderId = header.Id;
-                    importLine.LineId = lineId;
+                    importLine.LineId = grouped.LineId;
                     importLines.Add(importLine);
                 }
 
                 await _importLines.AddRangeAsync(importLines, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                for (var i = 0; i < request.ImportLines.Count; i++)
+                var createdImportLines = importLines.ToArray();
+                var groupedEntries = groupedImportLines.Values.ToArray();
+                for (var i = 0; i < groupedEntries.Length; i++)
                 {
-                    importLineKeyToId[request.ImportLines[i].ClientKey] = importLines[i].Id;
+                    var groupedEntry = groupedEntries[i];
+                    var groupingKey = BuildImportLineGroupingKey(groupedEntry.LineId, groupedEntry.Dto.StockId, groupedEntry.Dto.StockCode, groupedEntry.Dto.YapKodId, groupedEntry.Dto.YapKod);
+                    importLineGroupingKeyToId[groupingKey] = createdImportLines[i].Id;
+                    foreach (var referenceKey in groupedEntries[i].ReferenceKeys)
+                    {
+                        importLineKeyToId[referenceKey] = createdImportLines[i].Id;
+                    }
+                }
+            }
+
+            if (request.SerialLines?.Count > 0)
+            {
+                var serials = new List<GrLineSerial>(request.SerialLines.Count);
+                foreach (var serialDto in request.SerialLines)
+                {
+                    var serial = _mapper.Map<GrLineSerial>(serialDto) ?? new GrLineSerial();
+
+                    if (!string.IsNullOrWhiteSpace(serialDto.LineClientKey))
+                    {
+                        if (!lineKeyToId.TryGetValue(serialDto.LineClientKey, out var foundLineId))
+                        {
+                            return await RollbackWithErrorAsync<long>("InvalidCorrelationKey", "LineClientKeyNotFound", 400, cancellationToken);
+                        }
+
+                        serial.LineId = foundLineId;
+                    }
+
+                    serials.Add(serial);
+                }
+
+                await _lineSerials.AddRangeAsync(serials, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            if (request.Routes?.Count > 0)
+            {
+                var routes = new List<GrRoute>(request.Routes.Count);
+                foreach (var routeDto in request.Routes)
+                {
+                    long? lineId = null;
+                    if (!string.IsNullOrWhiteSpace(routeDto.LineClientKey))
+                    {
+                        if (!lineKeyToId.TryGetValue(routeDto.LineClientKey, out var foundLineId))
+                        {
+                            return await RollbackWithErrorAsync<long>("InvalidCorrelationKey", "LineClientKeyNotFound", 400, cancellationToken);
+                        }
+
+                        lineId = foundLineId;
+                    }
+
+                    var groupingKey = BuildImportLineGroupingKey(lineId, routeDto.StockId, routeDto.StockCode ?? string.Empty, routeDto.YapKodId, routeDto.YapKod);
+                    if (!importLineGroupingKeyToId.TryGetValue(groupingKey, out var importLineId))
+                    {
+                        return await RollbackWithErrorAsync<long>("InvalidCorrelationKey", "ImportLineClientKeyNotFound", 400, cancellationToken);
+                    }
+
+                    var route = _mapper.Map<GrRoute>(routeDto) ?? new GrRoute();
+                    route.ImportLineId = importLineId;
+                    routes.Add(route);
+                }
+
+                await _routes.AddRangeAsync(routes, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            return ApiResponse<long>.SuccessResult(header.Id, _localizationService.GetLocalizedString("GrHeaderCreatedSuccessfully"));
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<ApiResponse<long>> ProcessGoodsReceiptAsync(ProcessGrRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request?.Header == null)
+        {
+            var message = _localizationService.GetLocalizedString("RequestOrHeaderMissing");
+            return ApiResponse<long>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), message, 400);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Header.BranchCode))
+        {
+            request.Header.BranchCode = _currentUserAccessor.BranchCode ?? "0";
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Header.CustomerCode))
+        {
+            var message = _localizationService.GetLocalizedString("HeaderFieldsMissing");
+            return ApiResponse<long>.ErrorResult(_localizationService.GetLocalizedString("InvalidModelState"), message, 400);
+        }
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var header = _mapper.Map<GrHeader>(request.Header) ?? new GrHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
+            var parameter = await _parameters.Query().FirstOrDefaultAsync(cancellationToken);
+            header.IsPendingApproval = parameter?.RequireApprovalBeforeErp == true;
+
+            await _headers.AddAsync(header, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var seeds = GrProcessGroupingHelper.BuildImportLineSeeds(request.Routes);
+            var importLineGroupingKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            if (seeds.Count > 0)
+            {
+                var importLines = new List<GrImportLine>(seeds.Count);
+                foreach (var seed in seeds)
+                {
+                    var importLine = new GrImportLine
+                    {
+                        HeaderId = header.Id,
+                        StockId = seed.StockId,
+                        StockCode = seed.StockCode,
+                        YapKodId = seed.YapKodId,
+                        YapKod = seed.YapKod
+                    };
+
+                    await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
+                    importLines.Add(importLine);
+                }
+
+                await _importLines.AddRangeAsync(importLines, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                for (var i = 0; i < importLines.Count; i++)
+                {
+                    importLineGroupingKeyToId[seeds[i].GroupingKey] = importLines[i].Id;
                 }
             }
 
@@ -278,18 +414,27 @@ public sealed class GrHeaderService : IGrHeaderService
                 var routes = new List<GrRoute>(request.Routes.Count);
                 foreach (var routeDto in request.Routes)
                 {
-                    if (string.IsNullOrWhiteSpace(routeDto.ImportLineClientKey))
-                    {
-                        return await RollbackWithErrorAsync<long>("InvalidCorrelationKey", "ImportLineClientKeyMissing", 400, cancellationToken);
-                    }
-
-                    if (!importLineKeyToId.TryGetValue(routeDto.ImportLineClientKey, out var importLineId))
+                    var groupingKey = GrProcessGroupingHelper.BuildGroupingKey(routeDto.StockId, routeDto.StockCode, routeDto.YapKodId, routeDto.YapKod);
+                    if (!importLineGroupingKeyToId.TryGetValue(groupingKey, out var importLineId))
                     {
                         return await RollbackWithErrorAsync<long>("InvalidCorrelationKey", "ImportLineClientKeyNotFound", 400, cancellationToken);
                     }
 
-                    var route = _mapper.Map<GrRoute>(routeDto) ?? new GrRoute();
-                    route.ImportLineId = importLineId;
+                    var route = new GrRoute
+                    {
+                        ImportLineId = importLineId,
+                        Quantity = routeDto.Quantity,
+                        ScannedBarcode = routeDto.ScannedBarcode ?? string.Empty,
+                        SerialNo = routeDto.SerialNo,
+                        SerialNo2 = routeDto.SerialNo2,
+                        SerialNo3 = routeDto.SerialNo3,
+                        SerialNo4 = routeDto.SerialNo4,
+                        SourceWarehouse = routeDto.SourceWarehouse.HasValue ? (int?)routeDto.SourceWarehouse.Value : null,
+                        TargetWarehouse = routeDto.TargetWarehouse.HasValue ? (int?)routeDto.TargetWarehouse.Value : null,
+                        SourceCellCode = routeDto.SourceCellCode,
+                        TargetCellCode = routeDto.TargetCellCode
+                    };
+
                     routes.Add(route);
                 }
 
@@ -375,6 +520,20 @@ public sealed class GrHeaderService : IGrHeaderService
             await _unitOfWork.RollbackTransactionAsync(cancellationToken);
             throw;
         }
+    }
+
+    private static string BuildImportLineGroupingKey(long? lineId, long? stockId, string stockCode, long? yapKodId, string? yapKod)
+    {
+        var stockKey = stockId.HasValue
+            ? $"STOCK-ID:{stockId.Value}"
+            : $"STOCK-CODE:{(stockCode ?? string.Empty).Trim().ToUpperInvariant()}";
+        var yapKey = yapKodId.HasValue
+            ? $"YAP-ID:{yapKodId.Value}"
+            : $"YAP-CODE:{(yapKod ?? string.Empty).Trim().ToUpperInvariant()}";
+
+        return lineId.HasValue
+            ? $"LINE:{lineId.Value}|{stockKey}|{yapKey}"
+            : $"HEADER|{stockKey}|{yapKey}";
     }
 
     public async Task<ApiResponse<IEnumerable<GrHeaderDto>>> GetByCustomerCodeAsync(string customerCode, CancellationToken cancellationToken = default)
@@ -679,13 +838,15 @@ public sealed class GrHeaderService : IGrHeaderService
         var lines = await _lines.Query().Where(l => l.HeaderId == headerId).ToListAsync(cancellationToken);
         foreach (var line in lines)
         {
-            var totalLineSerialQuantity = await _lineSerials.Query()
+            var lineSerials = await _lineSerials.Query()
                 .Where(ls => ls.LineId == line.Id)
-                .SumAsync(ls => ls.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
 
-            var totalRouteQuantity = await _routes.Query()
+            var routes = await _routes.Query()
                 .Where(r => r.ImportLine.LineId == line.Id && !r.ImportLine.IsDeleted)
-                .SumAsync(r => r.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var totalRouteQuantity = routes.Sum(r => r.Quantity);
 
             if (requireAllOrderItemsCollected)
             {
@@ -707,42 +868,29 @@ public sealed class GrHeaderService : IGrHeaderService
 
             var allowLess = parameter?.AllowLessQuantityBasedOnOrder ?? false;
             var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
+            var validationResult = LineSerialRouteValidationHelper.Validate(lineSerials, routes, allowLess, allowMore);
 
-            if (!allowLess && !allowMore && Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
+            if (!validationResult.HasMismatch)
             {
-                var msg = _localizationService.GetLocalizedString(
-                    "GrHeaderQuantityExactMatchRequired",
-                    line.Id,
-                    line.StockCode ?? string.Empty,
-                    line.YapKod ?? string.Empty,
-                    totalLineSerialQuantity,
-                    totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+                continue;
             }
 
-            if (allowLess && !allowMore && totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
+            var messageKey = validationResult.MismatchType switch
             {
-                var msg = _localizationService.GetLocalizedString(
-                    "GrHeaderQuantityCannotBeGreater",
-                    line.Id,
-                    line.StockCode ?? string.Empty,
-                    line.YapKod ?? string.Empty,
-                    totalLineSerialQuantity,
-                    totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+                LineSerialRouteValidationMismatch.ExactMatchRequired => "GrHeaderQuantityExactMatchRequired",
+                LineSerialRouteValidationMismatch.CannotBeGreater => "GrHeaderQuantityCannotBeGreater",
+                LineSerialRouteValidationMismatch.CannotBeLess => "GrHeaderQuantityCannotBeLess",
+                _ => "GrHeaderQuantityExactMatchRequired"
+            };
 
-            if (!allowLess && allowMore && totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
-            {
-                var msg = _localizationService.GetLocalizedString(
-                    "GrHeaderQuantityCannotBeLess",
-                    line.Id,
-                    line.StockCode ?? string.Empty,
-                    line.YapKod ?? string.Empty,
-                    totalLineSerialQuantity,
-                    totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+            var validationMessage = _localizationService.GetLocalizedString(
+                messageKey,
+                line.Id,
+                line.StockCode ?? string.Empty,
+                line.YapKod ?? string.Empty,
+                validationResult.ExpectedQuantity,
+                validationResult.ActualQuantity);
+            return ApiResponse<bool>.ErrorResult(validationMessage, validationMessage, 400);
         }
 
         return null;

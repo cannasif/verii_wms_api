@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common;
 using Wms.Application.WarehouseOutbound.Dtos;
 using Wms.Domain.Common;
+using Wms.Domain.Entities.Definitions;
 using Wms.Domain.Entities.WarehouseOutbound;
 
 namespace Wms.Application.WarehouseOutbound.Services;
@@ -12,26 +13,38 @@ public sealed class WoImportLineService : IWoImportLineService
     private readonly IRepository<WoImportLine> _importLines;
     private readonly IRepository<WoHeader> _headers;
     private readonly IRepository<WoLine> _lines;
+    private readonly IRepository<WoLineSerial> _lineSerials;
     private readonly IRepository<WoRoute> _routes;
+    private readonly IRepository<WoParameter> _parameters;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
+    private readonly IAssignedBarcodeMatchingService _assignedBarcodeMatchingService;
     private readonly IMapper _mapper;
 
     public WoImportLineService(
         IRepository<WoImportLine> importLines,
         IRepository<WoHeader> headers,
         IRepository<WoLine> lines,
+        IRepository<WoLineSerial> lineSerials,
         IRepository<WoRoute> routes,
+        IRepository<WoParameter> parameters,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
+        IAssignedBarcodeMatchingService assignedBarcodeMatchingService,
         IMapper mapper)
     {
         _importLines = importLines;
         _headers = headers;
         _lines = lines;
+        _lineSerials = lineSerials;
         _routes = routes;
+        _parameters = parameters;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
+        _assignedBarcodeMatchingService = assignedBarcodeMatchingService;
         _mapper = mapper;
     }
 
@@ -39,6 +52,7 @@ public sealed class WoImportLineService : IWoImportLineService
     {
         var items = await _importLines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WoImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -51,6 +65,7 @@ public sealed class WoImportLineService : IWoImportLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<WoImportLineDto>>.SuccessResult(new PagedResponse<WoImportLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -64,6 +79,7 @@ public sealed class WoImportLineService : IWoImportLineService
         }
 
         var dto = _mapper.Map<WoImportLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<WoImportLineDto?>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -71,6 +87,7 @@ public sealed class WoImportLineService : IWoImportLineService
     {
         var items = await _importLines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WoImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -78,6 +95,7 @@ public sealed class WoImportLineService : IWoImportLineService
     {
         var items = await _importLines.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoImportLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WoImportLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
     }
 
@@ -88,6 +106,7 @@ public sealed class WoImportLineService : IWoImportLineService
         await _importLines.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var dto = _mapper.Map<WoImportLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<WoImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineCreatedSuccessfully"));
     }
 
@@ -149,27 +168,131 @@ public sealed class WoImportLineService : IWoImportLineService
 
     public async Task<ApiResponse<WoImportLineDto>> AddBarcodeBasedonAssignedOrderAsync(AddWoImportBarcodeRequestDto request, CancellationToken cancellationToken = default)
     {
-        if (request.Quantity <= 0)
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var msg = _localizationService.GetLocalizedString("WoImportLineQuantityInvalid");
-            return ApiResponse<WoImportLineDto>.ErrorResult(msg, msg, 400);
+            if (request.Quantity <= 0)
+            {
+                return await RollbackImportLineErrorAsync("WoImportLineQuantityInvalid", 400, cancellationToken);
+            }
+
+            var header = await _headers.GetByIdAsync(request.HeaderId, cancellationToken);
+            if (header == null || header.IsDeleted)
+            {
+                return await RollbackImportLineErrorAsync("WoHeaderNotFound", 404, cancellationToken);
+            }
+
+            var parameter = await _parameters.Query().Where(x => !x.IsDeleted).FirstOrDefaultAsync(cancellationToken);
+            var lines = await _lines.Query()
+                .Where(line => line.HeaderId == request.HeaderId && !line.IsDeleted)
+                .ToListAsync(cancellationToken);
+            var lineIds = lines.Select(line => line.Id).ToList();
+            var lineSerials = await _lineSerials.Query()
+                .Where(serial => !serial.IsDeleted && lineIds.Contains(serial.LineId))
+                .ToListAsync(cancellationToken);
+            var existingRoutes = await _routes.Query()
+                .Where(route => !route.IsDeleted
+                    && !route.ImportLine.IsDeleted
+                    && route.ImportLine.HeaderId == request.HeaderId)
+                .Select(route => new AssignedBarcodeRouteSnapshot
+                {
+                    LineId = route.ImportLine.LineId,
+                    ScannedBarcode = route.ScannedBarcode,
+                    SerialNo = route.SerialNo,
+                    Quantity = route.Quantity,
+                    SourceCellCode = route.SourceCellCode,
+                    TargetCellCode = route.TargetCellCode
+                })
+                .ToListAsync(cancellationToken);
+
+            var matchResult = await _assignedBarcodeMatchingService.MatchAsync(new AssignedBarcodeMatchRequest<WoLine, WoLineSerial>
+            {
+                BarcodeRequest = new ResolveBarcodeRequestDto
+                {
+                    ModuleKey = BarcodeModuleKeys.WarehouseOutboundAssigned,
+                    Barcode = request.Barcode,
+                    FallbackStockCode = request.StockCode,
+                    FallbackStockName = request.StockName,
+                    FallbackYapKod = request.YapKod,
+                    FallbackYapAcik = request.YapAcik,
+                    FallbackSerialNumber = request.SerialNo
+                },
+                RequestQuantity = request.Quantity,
+                RawBarcode = request.Barcode,
+                SourceCellCode = request.SourceCellCode,
+                TargetCellCode = request.TargetCellCode,
+                AllowMoreQuantityBasedOnOrder = parameter?.AllowMoreQuantityBasedOnOrder ?? false,
+                Lines = lines,
+                LineSerials = lineSerials,
+                ExistingRoutes = existingRoutes,
+                LineIdSelector = line => line.Id,
+                LineSerialLineIdSelector = serial => serial.LineId,
+                StockAndYapKodNotMatchedErrorCode = "WoImportLineStockAndYapKodNotMatched",
+                SerialNotMatchedErrorCode = "WoImportLineSerialNotMatched",
+                NoMatchingLineErrorCode = "WoImportLineMatchingLineNotFound",
+                QuantityExceededErrorCode = "WoHeaderQuantityCannotBeGreater"
+            }, cancellationToken);
+
+            if (!matchResult.Success)
+            {
+                return await RollbackImportLineErrorAsync(matchResult.ErrorCode ?? "BarcodeCouldNotBeResolved", matchResult.StatusCode ?? 400, cancellationToken, matchResult.Details);
+            }
+
+            var requestedStockCode = matchResult.RequestedStockCode;
+            var requestedYapKod = matchResult.RequestedYapKod;
+            var requestSerial = matchResult.RequestedSerialNo ?? string.Empty;
+            var selectedLineId = matchResult.SelectedLineId!.Value;
+
+            var importLine = await _importLines.Query(tracking: true)
+                .Where(line => line.HeaderId == request.HeaderId
+                    && line.LineId == selectedLineId
+                    && !line.IsDeleted
+                    && (line.StockCode ?? string.Empty).Trim() == requestedStockCode
+                    && (line.YapKod ?? string.Empty).Trim() == (requestedYapKod ?? string.Empty))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (importLine == null)
+            {
+                importLine = new WoImportLine
+                {
+                    HeaderId = request.HeaderId,
+                    LineId = selectedLineId,
+                    StockCode = requestedStockCode,
+                    YapKod = string.IsNullOrWhiteSpace(requestedYapKod) ? null : requestedYapKod,
+                    CreatedDate = DateTimeProvider.Now
+                };
+
+                await _importLines.AddAsync(importLine, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            var route = new WoRoute
+            {
+                ImportLineId = importLine.Id,
+                ScannedBarcode = request.Barcode,
+                Quantity = request.Quantity,
+                SerialNo = string.IsNullOrWhiteSpace(requestSerial) ? null : requestSerial,
+                SerialNo2 = request.SerialNo2,
+                SerialNo3 = request.SerialNo3,
+                SerialNo4 = request.SerialNo4,
+                SourceCellCode = request.SourceCellCode,
+                TargetCellCode = request.TargetCellCode,
+                CreatedDate = DateTimeProvider.Now
+            };
+
+            await _routes.AddAsync(route, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+            var dto = _mapper.Map<WoImportLineDto>(importLine);
+            await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
+            return ApiResponse<WoImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineCreatedSuccessfully"));
         }
-
-        var entity = new WoImportLine
+        catch
         {
-            HeaderId = request.HeaderId,
-            LineId = request.LineId,
-            StockCode = request.StockCode,
-            YapKod = request.YapKod,
-            Description = request.StockName ?? request.Barcode,
-            Description1 = request.Barcode,
-            CreatedDate = DateTimeProvider.Now
-        };
-
-        await _importLines.AddAsync(entity, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        var dto = _mapper.Map<WoImportLineDto>(entity);
-        return ApiResponse<WoImportLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoImportLineCreatedSuccessfully"));
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<ApiResponse<IEnumerable<WoImportLineWithRoutesDto>>> GetCollectedBarcodesByHeaderIdAsync(long headerId, CancellationToken cancellationToken = default)
@@ -188,5 +311,12 @@ public sealed class WoImportLineService : IWoImportLineService
         }).ToList();
 
         return ApiResponse<IEnumerable<WoImportLineWithRoutesDto>>.SuccessResult(result, _localizationService.GetLocalizedString("WoImportLineRetrievedSuccessfully"));
+    }
+
+    private async Task<ApiResponse<WoImportLineDto>> RollbackImportLineErrorAsync(string localizationKey, int statusCode, CancellationToken cancellationToken, object? details = null)
+    {
+        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+        var message = _localizationService.GetLocalizedString(localizationKey);
+        return ApiResponse<WoImportLineDto>.ErrorResult(message, message, statusCode, errorCode: localizationKey, details: details);
     }
 }

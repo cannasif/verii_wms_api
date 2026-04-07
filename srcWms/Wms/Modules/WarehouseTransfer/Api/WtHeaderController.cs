@@ -70,15 +70,8 @@ public sealed class WtHeaderController : ControllerBase
     [HttpPost("assigned/{userId:long}/paged")]
     public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAssignedOrdersAsync(userId, cancellationToken);
-        var items = result.Data?.ToList() ?? new List<WtHeaderDto>();
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
-        var pagedData = items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        var pagedResult = result.Success
-            ? ApiResponse<PagedResponse<WtHeaderDto>>.SuccessResult(new PagedResponse<WtHeaderDto>(pagedData, items.Count, pageNumber, pageSize), result.Message)
-            : ApiResponse<PagedResponse<WtHeaderDto>>.ErrorResult(result.Message, result.ExceptionMessage, result.StatusCode);
-        return StatusCode(pagedResult.StatusCode, pagedResult);
+        var result = await _service.GetAssignedOrdersPagedAsync(userId, request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet("assigned-lines/{headerId:long}")]
@@ -93,6 +86,13 @@ public sealed class WtHeaderController : ControllerBase
     public async Task<ActionResult<ApiResponse<WtHeaderDto>>> Generate([FromBody] GenerateWarehouseTransferOrderRequestDto request, CancellationToken cancellationToken = default)
     {
         var result = await _service.GenerateWarehouseTransferOrderAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("process")]
+    public async Task<ActionResult<ApiResponse<int>>> Process([FromBody] ProcessWtRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.ProcessWarehouseTransferAsync(request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 

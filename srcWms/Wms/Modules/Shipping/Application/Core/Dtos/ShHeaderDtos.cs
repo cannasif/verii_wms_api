@@ -89,16 +89,6 @@ public sealed class CreateShImportLineWithKeysDto : BaseImportLineCreateDto
     public Guid? LineGroupGuid { get; set; }
     public string? RouteClientKey { get; set; }
     public Guid? RouteGroupGuid { get; set; }
-    public decimal Quantity { get; set; }
-    public string? Unit { get; set; }
-    public string? SerialNo { get; set; }
-    public string? SerialNo2 { get; set; }
-    public string? SerialNo3 { get; set; }
-    public string? SerialNo4 { get; set; }
-    public string? ScannedBarkod { get; set; }
-    public string? ErpOrderNumber { get; set; }
-    public string? ErpOrderNo { get; set; }
-    public string? ErpOrderLineNumber { get; set; }
 }
 
 public sealed class CreateShTerminalLineWithUserDto : BaseTerminalLineCreateDto

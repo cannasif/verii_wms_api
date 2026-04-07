@@ -70,15 +70,8 @@ public sealed class SitHeaderController : ControllerBase
     [HttpPost("assigned/{userId:long}/paged")]
     public async Task<IActionResult> GetAssignedOrders(long userId, [FromBody] PagedRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAssignedSubcontractingIssueTransferOrdersAsync(userId, cancellationToken);
-        var items = result.Data?.ToList() ?? new List<SitHeaderDto>();
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
-        var pagedData = items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        var pagedResult = result.Success
-            ? ApiResponse<PagedResponse<SitHeaderDto>>.SuccessResult(new PagedResponse<SitHeaderDto>(pagedData, items.Count, pageNumber, pageSize), result.Message)
-            : ApiResponse<PagedResponse<SitHeaderDto>>.ErrorResult(result.Message, result.ExceptionMessage, result.StatusCode);
-        return StatusCode(pagedResult.StatusCode, pagedResult);
+        var result = await _service.GetAssignedSubcontractingIssueTransferOrdersPagedAsync(userId, request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet("assigned-lines/{headerId:long}")]
@@ -93,6 +86,13 @@ public sealed class SitHeaderController : ControllerBase
     public async Task<ActionResult<ApiResponse<SitHeaderDto>>> Generate([FromBody] GenerateSubcontractingIssueTransferOrderRequestDto request, CancellationToken cancellationToken = default)
     {
         var result = await _service.GenerateSubcontractingIssueTransferOrderAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("process")]
+    public async Task<ActionResult<ApiResponse<int>>> Process([FromBody] BulkSitGenerateRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.ProcessSubcontractingIssueTransferAsync(request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 

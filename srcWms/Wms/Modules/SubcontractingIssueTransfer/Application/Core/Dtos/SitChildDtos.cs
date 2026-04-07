@@ -59,13 +59,11 @@ public sealed class AddSitImportBarcodeRequestDto
 {
     [Required]
     public long HeaderId { get; set; }
-    public long? LineId { get; set; }
     [Required]
     [StringLength(75)]
     public string Barcode { get; set; } = string.Empty;
-    [Required]
     [StringLength(50)]
-    public string StockCode { get; set; } = string.Empty;
+    public string? StockCode { get; set; }
     public string? StockName { get; set; }
     [StringLength(50)]
     public string? YapKod { get; set; }

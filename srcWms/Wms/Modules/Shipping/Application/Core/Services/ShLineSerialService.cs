@@ -12,6 +12,7 @@ public sealed class ShLineSerialService : IShLineSerialService
     private readonly IRepository<ShLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public ShLineSerialService(
@@ -19,19 +20,23 @@ public sealed class ShLineSerialService : IShLineSerialService
         IRepository<ShLine> lines,
         IUnitOfWork unitOfShrk,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _serials = serials;
         _lines = lines;
         _unitOfWork = unitOfShrk;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<ShLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<ShLineSerialDto>>.SuccessResult(_mapper.Map<List<ShLineSerialDto>>(items), _localizationService.GetLocalizedString("ShLineSerialRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<ShLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<ShLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShLineSerialRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<ShLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -60,7 +65,9 @@ public sealed class ShLineSerialService : IShLineSerialService
     public async Task<ApiResponse<IEnumerable<ShLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<ShLineSerialDto>>.SuccessResult(_mapper.Map<List<ShLineSerialDto>>(items), _localizationService.GetLocalizedString("ShLineSerialRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<ShLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<ShLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShLineSerialRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<ShLineSerialDto>> CreateAsync(CreateShLineSerialDto createDto, CancellationToken cancellationToken = default)

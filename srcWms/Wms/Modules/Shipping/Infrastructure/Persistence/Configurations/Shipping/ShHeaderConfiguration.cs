@@ -23,7 +23,6 @@ public sealed class ShHeaderConfiguration : BaseHeaderEntityConfiguration<ShHead
         builder.Property(x => x.YearCode).HasMaxLength(4).IsRequired();
         builder.Property(x => x.Description1).HasMaxLength(50);
         builder.Property(x => x.Description2).HasMaxLength(100);
-        builder.Property(x => x.Type).IsRequired();
 
         builder.HasIndex(x => x.BranchCode).HasDatabaseName("IX_ShHeader_BranchCode");
         builder.HasIndex(x => x.PlannedDate).HasDatabaseName("IX_ShHeader_PlannedDate");

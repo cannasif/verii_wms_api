@@ -15,9 +15,11 @@ public interface IWiHeaderService
     Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     Task<ApiResponse<bool>> CompleteAsync(long id, CancellationToken cancellationToken = default);
     Task<ApiResponse<IEnumerable<WiHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetAssignedOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<WiAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default);
     Task<ApiResponse<WiHeaderDto>> GenerateWarehouseInboundOrderAsync(GenerateWarehouseInboundOrderRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<int>> BulkCreateWarehouseInboundAsync(BulkCreateWiRequestDto request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<int>> ProcessWarehouseInboundAsync(ProcessWiRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<PagedResponse<WiHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<WiHeaderDto>> SetApprovalAsync(long id, bool approved, CancellationToken cancellationToken = default);
 }

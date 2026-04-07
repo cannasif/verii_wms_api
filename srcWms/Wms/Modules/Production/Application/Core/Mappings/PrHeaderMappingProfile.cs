@@ -13,5 +13,6 @@ public sealed class PrHeaderMappingProfile : Profile
             .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.BranchCode) ? "0" : src.BranchCode));
         CreateMap<UpdatePrHeaderDto, PrHeader>()
             .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.BranchCode) ? "0" : src.BranchCode));
+        CreateMap<CreateProductionPlanRequestDto, ProductionPlanDraftDto>();
     }
 }

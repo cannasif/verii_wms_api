@@ -12,6 +12,7 @@ public sealed class SrtLineSerialService : ISrtLineSerialService
     private readonly IRepository<SrtLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public SrtLineSerialService(
@@ -19,19 +20,23 @@ public sealed class SrtLineSerialService : ISrtLineSerialService
         IRepository<SrtLine> lines,
         IUnitOfWork unitOfSrtrk,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _serials = serials;
         _lines = lines;
         _unitOfWork = unitOfSrtrk;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<SrtLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(_mapper.Map<List<SrtLineSerialDto>>(items), _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SrtLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<SrtLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -60,7 +65,9 @@ public sealed class SrtLineSerialService : ISrtLineSerialService
     public async Task<ApiResponse<IEnumerable<SrtLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(_mapper.Map<List<SrtLineSerialDto>>(items), _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SrtLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<SrtLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtLineSerialRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<SrtLineSerialDto>> CreateAsync(CreateSrtLineSerialDto createDto, CancellationToken cancellationToken = default)

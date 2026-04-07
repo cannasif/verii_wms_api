@@ -12,24 +12,29 @@ public sealed class WoRouteService : IWoRouteService
     private readonly IRepository<WoRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public WoRouteService(
         IRepository<WoRoute> routes,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _routes = routes;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<WoRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<WoRouteDto>>.SuccessResult(_mapper.Map<List<WoRouteDto>>(items), _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WoRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<WoRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<WoRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +45,9 @@ public sealed class WoRouteService : IWoRouteService
             .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
-        return ApiResponse<PagedResponse<WoRouteDto>>.SuccessResult(new PagedResponse<WoRouteDto>(_mapper.Map<List<WoRouteDto>>(items), total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WoRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<PagedResponse<WoRouteDto>>.SuccessResult(new PagedResponse<WoRouteDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WoRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -52,14 +59,18 @@ public sealed class WoRouteService : IWoRouteService
             return ApiResponse<WoRouteDto>.ErrorResult(msg, msg, 404);
         }
 
-        return ApiResponse<WoRouteDto>.SuccessResult(_mapper.Map<WoRouteDto>(entity), _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
+        var dto = _mapper.Map<WoRouteDto>(entity);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(new List<WoRouteDto> { dto }, cancellationToken);
+        return ApiResponse<WoRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<WoRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
     {
         var normalizedSerial = (serialNo ?? string.Empty).Trim();
         var items = await _routes.Query().Where(x => (x.SerialNo ?? string.Empty).Trim() == normalizedSerial).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<WoRouteDto>>.SuccessResult(_mapper.Map<List<WoRouteDto>>(items), _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WoRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<WoRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WoRouteDto>> CreateAsync(CreateWoRouteDto createDto, CancellationToken cancellationToken = default)

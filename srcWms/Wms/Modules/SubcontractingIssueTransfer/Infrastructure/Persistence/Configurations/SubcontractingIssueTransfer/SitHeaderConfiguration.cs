@@ -16,7 +16,6 @@ public sealed class SitHeaderConfiguration : BaseHeaderEntityConfiguration<SitHe
         builder.Property(x => x.SourceWarehouseId).IsRequired(false);
         builder.Property(x => x.TargetWarehouse).HasMaxLength(20);
         builder.Property(x => x.TargetWarehouseId).IsRequired(false);
-        builder.Property(x => x.Type).IsRequired();
         builder.HasIndex(x => x.CustomerId).HasDatabaseName("IX_SitHeader_CustomerId");
         builder.HasIndex(x => x.SourceWarehouseId).HasDatabaseName("IX_SitHeader_SourceWarehouseId");
         builder.HasIndex(x => x.TargetWarehouseId).HasDatabaseName("IX_SitHeader_TargetWarehouseId");

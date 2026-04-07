@@ -30,6 +30,7 @@ public sealed class WoHeaderService : IWoHeaderService
     private readonly ICurrentUserAccessor _currentUserAccessor;
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
 
     public WoHeaderService(
         IRepository<WoHeader> headers,
@@ -46,7 +47,8 @@ public sealed class WoHeaderService : IWoHeaderService
         ILocalizationService localizationService,
         ICurrentUserAccessor currentUserAccessor,
         INotificationService notificationService,
-        IEntityReferenceResolver entityReferenceResolver)
+        IEntityReferenceResolver entityReferenceResolver,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher)
     {
         _headers = headers;
         _lines = lines;
@@ -63,6 +65,7 @@ public sealed class WoHeaderService : IWoHeaderService
         _currentUserAccessor = currentUserAccessor;
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
     }
 
     public async Task<ApiResponse<IEnumerable<WoHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -101,6 +104,7 @@ public sealed class WoHeaderService : IWoHeaderService
         }
 
         var dto = _mapper.Map<WoHeaderDto>(entity);
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<WoHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoHeaderRetrievedSuccessfully"));
     }
 
@@ -242,6 +246,27 @@ public sealed class WoHeaderService : IWoHeaderService
 
         var dtos = _mapper.Map<List<WoHeaderDto>>(entities);
         return ApiResponse<IEnumerable<WoHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoHeaderAssignedOrdersRetrievedSuccessfully"));
+    }
+
+    public async Task<ApiResponse<PagedResponse<WoHeaderDto>>> GetAssignedOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        request ??= new PagedRequest();
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
+        var branchCode = _currentUserAccessor.BranchCode ?? "0";
+        var terminalLineHeaderIds = _terminalLines.Query(false, false)
+            .Where(t => t.TerminalUserId == userId)
+            .Select(t => t.HeaderId);
+
+        var query = _headers.Query()
+            .Where(h => !h.IsCompleted && h.BranchCode == branchCode && terminalLineHeaderIds.Contains(h.Id))
+            .ApplyFilters(request.Filters, request.FilterLogic)
+            .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
+        var dtos = _mapper.Map<List<WoHeaderDto>>(items);
+        return ApiResponse<PagedResponse<WoHeaderDto>>.SuccessResult(new PagedResponse<WoHeaderDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("WoHeaderAssignedOrdersRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WoAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default)
@@ -429,7 +454,6 @@ public sealed class WoHeaderService : IWoHeaderService
 
         if (request.Lines?.Any(x => x.Quantity <= 0) == true ||
             request.LineSerials?.Any(x => x.Quantity <= 0) == true ||
-            request.ImportLines?.Any(x => x.Quantity <= 0) == true ||
             request.Routes?.Any(x => x.Quantity <= 0) == true)
         {
             var message = _localizationService.GetLocalizedString("InvalidModelState");
@@ -521,16 +545,13 @@ public sealed class WoHeaderService : IWoHeaderService
             }
 
             var importLineKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            var importLineGroupingKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            var importLineSeedItems = new List<(long? LineId, long? StockId, string StockCode, long? YapKodId, string? YapKod, List<string> ReferenceKeys)>();
+
             if (request.ImportLines?.Count > 0)
             {
-                var groupedImportLines = new Dictionary<string, (CreateWoImportLineWithKeysDto Dto, long? LineId, List<string> ReferenceKeys)>(StringComparer.OrdinalIgnoreCase);
                 foreach (var importDto in request.ImportLines)
                 {
-                    if (string.IsNullOrWhiteSpace(importDto.ClientKey))
-                    {
-                        return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "ImportLineClientKeyMissing", 400, cancellationToken);
-                    }
-
                     long? lineId = null;
                     if (importDto.LineGroupGuid.HasValue && lineGuidToId.TryGetValue(importDto.LineGroupGuid.Value, out var guidLineId))
                     {
@@ -541,18 +562,50 @@ public sealed class WoHeaderService : IWoHeaderService
                         lineId = keyLineId;
                     }
 
-                    var groupingKey = BuildImportLineGroupingKey(lineId, importDto.StockCode, importDto.YapKod);
-                    if (!groupedImportLines.TryGetValue(groupingKey, out var grouped))
+                    var referenceKeys = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(importDto.ClientKey))
                     {
-                        grouped = (importDto, lineId, new List<string>());
+                        referenceKeys.Add(importDto.ClientKey!);
                     }
-
-                    grouped.ReferenceKeys.Add(importDto.ClientKey!);
                     if (importDto.ClientGroupGuid.HasValue)
                     {
-                        grouped.ReferenceKeys.Add(importDto.ClientGroupGuid.Value.ToString());
+                        referenceKeys.Add(importDto.ClientGroupGuid.Value.ToString());
                     }
 
+                    importLineSeedItems.Add((lineId, importDto.StockId, importDto.StockCode, importDto.YapKodId, importDto.YapKod, referenceKeys));
+                }
+            }
+
+            if (request.Routes?.Count > 0)
+            {
+                foreach (var routeDto in request.Routes)
+                {
+                    long? lineId = null;
+                    if (routeDto.LineGroupGuid.HasValue && lineGuidToId.TryGetValue(routeDto.LineGroupGuid.Value, out var guidLineId))
+                    {
+                        lineId = guidLineId;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(routeDto.LineClientKey) && lineKeyToId.TryGetValue(routeDto.LineClientKey!, out var keyLineId))
+                    {
+                        lineId = keyLineId;
+                    }
+
+                    importLineSeedItems.Add((lineId, routeDto.StockId, routeDto.StockCode, routeDto.YapKodId, routeDto.YapKod, new List<string>()));
+                }
+            }
+
+            if (importLineSeedItems.Count > 0)
+            {
+                var groupedImportLines = new Dictionary<string, (long? LineId, long? StockId, string StockCode, long? YapKodId, string? YapKod, List<string> ReferenceKeys)>(StringComparer.OrdinalIgnoreCase);
+                foreach (var seed in importLineSeedItems)
+                {
+                    var groupingKey = BuildImportLineGroupingKey(seed.LineId, seed.StockId, seed.StockCode, seed.YapKodId, seed.YapKod);
+                    if (!groupedImportLines.TryGetValue(groupingKey, out var grouped))
+                    {
+                        grouped = (seed.LineId, seed.StockId, seed.StockCode, seed.YapKodId, seed.YapKod, new List<string>());
+                    }
+
+                    grouped.ReferenceKeys.AddRange(seed.ReferenceKeys);
                     groupedImportLines[groupingKey] = grouped;
                 }
 
@@ -563,11 +616,10 @@ public sealed class WoHeaderService : IWoHeaderService
                     {
                         HeaderId = header.Id,
                         LineId = grouped.LineId,
-                        StockCode = grouped.Dto.StockCode,
-                        StockId = grouped.Dto.StockId,
-                        YapKod = grouped.Dto.YapKod,
-                        Description = grouped.Dto.ErpOrderNo ?? grouped.Dto.ErpOrderNumber,
-                        Description1 = grouped.Dto.ErpOrderLineNumber
+                        StockCode = grouped.StockCode,
+                        StockId = grouped.StockId,
+                        YapKod = grouped.YapKod,
+                        YapKodId = grouped.YapKodId
                     };
                     await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLines.Add(importLine);
@@ -576,13 +628,14 @@ public sealed class WoHeaderService : IWoHeaderService
                 await _importLines.AddRangeAsync(importLines, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                var createdImportLines = importLines.ToArray();
+                var groupedKeys = groupedImportLines.Keys.ToArray();
                 var groupedEntries = groupedImportLines.Values.ToArray();
                 for (var i = 0; i < groupedEntries.Length; i++)
                 {
+                    importLineGroupingKeyToId[groupedKeys[i]] = importLines[i].Id;
                     foreach (var referenceKey in groupedEntries[i].ReferenceKeys)
                     {
-                        importLineKeyToId[referenceKey] = createdImportLines[i].Id;
+                        importLineKeyToId[referenceKey] = importLines[i].Id;
                     }
                 }
             }
@@ -609,7 +662,31 @@ public sealed class WoHeaderService : IWoHeaderService
                     }
                     else
                     {
-                        return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "ImportLineReferenceMissing", 400, cancellationToken);
+                        long? lineId = null;
+                        if (routeDto.LineGroupGuid.HasValue)
+                        {
+                            if (!lineGuidToId.TryGetValue(routeDto.LineGroupGuid.Value, out var foundLineId))
+                            {
+                                return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "LineGroupGuidNotFound", 400, cancellationToken);
+                            }
+
+                            lineId = foundLineId;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(routeDto.LineClientKey))
+                        {
+                            if (!lineKeyToId.TryGetValue(routeDto.LineClientKey!, out var foundLineId))
+                            {
+                                return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "LineClientKeyNotFound", 400, cancellationToken);
+                            }
+
+                            lineId = foundLineId;
+                        }
+
+                        var groupingKey = BuildImportLineGroupingKey(lineId, routeDto.StockId, routeDto.StockCode, routeDto.YapKodId, routeDto.YapKod);
+                        if (!importLineGroupingKeyToId.TryGetValue(groupingKey, out importLineId))
+                        {
+                            return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "ImportLineReferenceMissing", 400, cancellationToken);
+                        }
                     }
 
                     var route = new WoRoute
@@ -624,10 +701,125 @@ public sealed class WoHeaderService : IWoHeaderService
                         SourceWarehouse = routeDto.SourceWarehouse.HasValue ? (int?)routeDto.SourceWarehouse.Value : null,
                         TargetWarehouse = routeDto.TargetWarehouse.HasValue ? (int?)routeDto.TargetWarehouse.Value : null,
                         SourceCellCode = routeDto.SourceCellCode,
-                        TargetCellCode = routeDto.TargetCellCode,
-                        Description = routeDto.Description
+                        TargetCellCode = routeDto.TargetCellCode
                     };
                     routes.Add(route);
+                }
+
+                await _routes.AddRangeAsync(routes, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            return ApiResponse<int>.SuccessResult(1, _localizationService.GetLocalizedString("WoHeaderBulkCreateCompletedSuccessfully"));
+        }
+        catch (DbUpdateException ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            var exceptionMessage = ex.InnerException?.Message ?? ex.Message;
+            return ApiResponse<int>.ErrorResult(
+                _localizationService.GetLocalizedString("WoHeaderCreationError"),
+                exceptionMessage,
+                400);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<ApiResponse<int>> ProcessWarehouseOutboundAsync(ProcessWoRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request?.Header == null)
+        {
+            return ApiResponse<int>.ErrorResult(
+                _localizationService.GetLocalizedString("InvalidModelState"),
+                _localizationService.GetLocalizedString("RequestOrHeaderMissing"),
+                400);
+        }
+
+        if (request.Routes?.Any(x => x.Quantity <= 0) == true)
+        {
+            var message = _localizationService.GetLocalizedString("InvalidModelState");
+            return ApiResponse<int>.ErrorResult(message, "Quantity must be greater than zero for outbound process routes.", 400);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Header.BranchCode))
+        {
+            request.Header.BranchCode = _currentUserAccessor.BranchCode ?? "0";
+        }
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var parameter = await _parameters.Query().FirstOrDefaultAsync(cancellationToken);
+            var header = _mapper.Map<WoHeader>(request.Header) ?? new WoHeader();
+            await _entityReferenceResolver.ResolveAsync(header, cancellationToken);
+            header.IsPendingApproval = parameter?.RequireApprovalBeforeErp == true;
+
+            await _headers.AddAsync(header, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            if (header.Id <= 0)
+            {
+                return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "HeaderInsertFailed", 500, cancellationToken);
+            }
+
+            var importLineGroupingKeyToId = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+            if (request.Routes?.Count > 0)
+            {
+                var groupedImportLines = WoProcessGroupingHelper.BuildImportLineSeeds(request.Routes);
+
+                var importLines = new List<WoImportLine>(groupedImportLines.Count);
+                foreach (var grouped in groupedImportLines)
+                {
+                    var importLine = new WoImportLine
+                    {
+                        HeaderId = header.Id,
+                        LineId = null,
+                        StockCode = grouped.StockCode,
+                        StockId = grouped.StockId,
+                        YapKod = grouped.YapKod,
+                        YapKodId = grouped.YapKodId
+                    };
+                    await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
+                    importLines.Add(importLine);
+                }
+
+                await _importLines.AddRangeAsync(importLines, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                var groupedKeys = groupedImportLines.Select(x => x.GroupingKey).ToArray();
+                for (var i = 0; i < groupedKeys.Length; i++)
+                {
+                    importLineGroupingKeyToId[groupedKeys[i]] = importLines[i].Id;
+                }
+
+                var routes = new List<WoRoute>(request.Routes.Count);
+                foreach (var routeDto in request.Routes)
+                {
+                    var groupingKey = WoProcessGroupingHelper.BuildGroupingKey(routeDto.StockId, routeDto.StockCode, routeDto.YapKodId, routeDto.YapKod);
+                    if (!importLineGroupingKeyToId.TryGetValue(groupingKey, out var importLineId))
+                    {
+                        return await RollbackWithErrorAsync<int>("WoHeaderCreationError", "ImportLineReferenceMissing", 400, cancellationToken);
+                    }
+
+                    routes.Add(new WoRoute
+                    {
+                        ImportLineId = importLineId,
+                        Quantity = routeDto.Quantity,
+                        ScannedBarcode = routeDto.ScannedBarcode ?? string.Empty,
+                        SerialNo = routeDto.SerialNo,
+                        SerialNo2 = routeDto.SerialNo2,
+                        SerialNo3 = routeDto.SerialNo3,
+                        SerialNo4 = routeDto.SerialNo4,
+                        SourceWarehouse = routeDto.SourceWarehouse.HasValue ? (int?)routeDto.SourceWarehouse.Value : null,
+                        TargetWarehouse = routeDto.TargetWarehouse.HasValue ? (int?)routeDto.TargetWarehouse.Value : null,
+                        SourceCellCode = routeDto.SourceCellCode,
+                        TargetCellCode = routeDto.TargetCellCode
+                    });
                 }
 
                 await _routes.AddRangeAsync(routes, cancellationToken);
@@ -665,17 +857,24 @@ public sealed class WoHeaderService : IWoHeaderService
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoHeaderDto>>(items);
 
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(dtos, cancellationToken);
+
         var result = new PagedResponse<WoHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<WoHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("WoHeaderCompletedAwaitingErpApprovalRetrievedSuccessfully"));
     }
 
-    private static string BuildImportLineGroupingKey(long? lineId, string stockCode, string? yapKod)
+    private static string BuildImportLineGroupingKey(long? lineId, long? stockId, string stockCode, long? yapKodId, string? yapKod)
     {
-        var normalizedStockCode = (stockCode ?? string.Empty).Trim().ToUpperInvariant();
-        var normalizedYapKod = (yapKod ?? string.Empty).Trim().ToUpperInvariant();
+        var stockKey = stockId.HasValue
+            ? $"STOCK-ID:{stockId.Value}"
+            : $"STOCK-CODE:{(stockCode ?? string.Empty).Trim().ToUpperInvariant()}";
+        var yapKey = yapKodId.HasValue
+            ? $"YAP-ID:{yapKodId.Value}"
+            : $"YAP-CODE:{(yapKod ?? string.Empty).Trim().ToUpperInvariant()}";
+
         return lineId.HasValue
-            ? $"LINE:{lineId.Value}|STOCK:{normalizedStockCode}|YAP:{normalizedYapKod}"
-            : $"HEADER-STOCK:{normalizedStockCode}|YAP:{normalizedYapKod}";
+            ? $"LINE:{lineId.Value}|{stockKey}|{yapKey}"
+            : $"HEADER|{stockKey}|{yapKey}";
     }
 
     public async Task<ApiResponse<WoHeaderDto>> SetApprovalAsync(long id, bool approved, CancellationToken cancellationToken = default)
@@ -726,13 +925,15 @@ public sealed class WoHeaderService : IWoHeaderService
         var lines = await _lines.Query().Where(l => l.HeaderId == headerId).ToListAsync(cancellationToken);
         foreach (var line in lines)
         {
-            var totalLineSerialQuantity = await _lineSerials.Query()
+            var lineSerials = await _lineSerials.Query()
                 .Where(ls => ls.LineId == line.Id)
-                .SumAsync(ls => ls.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
 
-            var totalRouteQuantity = await _routes.Query()
+            var routes = await _routes.Query()
                 .Where(r => r.ImportLine.LineId == line.Id && !r.ImportLine.IsDeleted)
-                .SumAsync(r => r.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var totalRouteQuantity = routes.Sum(r => r.Quantity);
 
             if (requireAllOrderItemsCollected)
             {
@@ -749,24 +950,22 @@ public sealed class WoHeaderService : IWoHeaderService
 
             var allowLess = parameter?.AllowLessQuantityBasedOnOrder ?? false;
             var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
-
-            if (!allowLess && !allowMore && Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
+            var validationResult = LineSerialRouteValidationHelper.Validate(lineSerials, routes, allowLess, allowMore);
+            if (!validationResult.HasMismatch)
             {
-                var msg = _localizationService.GetLocalizedString("WoHeaderQuantityExactMatchRequired", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+                continue;
             }
 
-            if (allowLess && !allowMore && totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
+            var messageKey = validationResult.MismatchType switch
             {
-                var msg = _localizationService.GetLocalizedString("WoHeaderQuantityCannotBeGreater", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+                LineSerialRouteValidationMismatch.ExactMatchRequired => "WoHeaderQuantityExactMatchRequired",
+                LineSerialRouteValidationMismatch.CannotBeGreater => "WoHeaderQuantityCannotBeGreater",
+                LineSerialRouteValidationMismatch.CannotBeLess => "WoHeaderQuantityCannotBeLess",
+                _ => "WoHeaderQuantityExactMatchRequired"
+            };
 
-            if (!allowLess && allowMore && totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
-            {
-                var msg = _localizationService.GetLocalizedString("WoHeaderQuantityCannotBeLess", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+            var validationMessage = _localizationService.GetLocalizedString(messageKey, line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, validationResult.ExpectedQuantity, validationResult.ActualQuantity);
+            return ApiResponse<bool>.ErrorResult(validationMessage, validationMessage, 400);
         }
 
         return null;

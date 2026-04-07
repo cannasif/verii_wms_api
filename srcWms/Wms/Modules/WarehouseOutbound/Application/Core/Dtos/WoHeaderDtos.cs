@@ -85,10 +85,10 @@ public sealed class CreateWoRouteWithLineKeyDto
     public Guid? LineGroupGuid { get; set; }
     public string? ImportLineClientKey { get; set; }
     public Guid? ImportLineGroupGuid { get; set; }
-    public string? ClientKey { get; set; }
-    public Guid? ClientGroupGuid { get; set; }
     public string StockCode { get; set; } = string.Empty;
     public string? YapKod { get; set; }
+    public long? StockId { get; set; }
+    public long? YapKodId { get; set; }
     public decimal Quantity { get; set; }
     public string? SerialNo { get; set; }
     public string? SerialNo2 { get; set; }
@@ -112,17 +112,8 @@ public sealed class CreateWoImportLineWithKeysDto
     public Guid? RouteGroupGuid { get; set; }
     public long? StockId { get; set; }
     public string StockCode { get; set; } = string.Empty;
+    public long? YapKodId { get; set; }
     public string? YapKod { get; set; }
-    public decimal Quantity { get; set; }
-    public string? Unit { get; set; }
-    public string? SerialNo { get; set; }
-    public string? SerialNo2 { get; set; }
-    public string? SerialNo3 { get; set; }
-    public string? SerialNo4 { get; set; }
-    public string? ScannedBarkod { get; set; }
-    public string? ErpOrderNumber { get; set; }
-    public string? ErpOrderNo { get; set; }
-    public string? ErpOrderLineNumber { get; set; }
 }
 
 public sealed class CreateWoTerminalLineWithUserDto : BaseTerminalLineCreateDto
@@ -146,4 +137,29 @@ public sealed class BulkCreateWoRequestDto
     public List<CreateWoLineSerialWithLineKeyDto>? LineSerials { get; set; }
     public List<CreateWoRouteWithLineKeyDto>? Routes { get; set; }
     public List<CreateWoImportLineWithKeysDto>? ImportLines { get; set; }
+}
+
+public sealed class ProcessWoRouteDto
+{
+    public string StockCode { get; set; } = string.Empty;
+    public string? YapKod { get; set; }
+    public long? StockId { get; set; }
+    public long? YapKodId { get; set; }
+    public decimal Quantity { get; set; }
+    public string? SerialNo { get; set; }
+    public string? SerialNo2 { get; set; }
+    public string? SerialNo3 { get; set; }
+    public string? SerialNo4 { get; set; }
+    public string? ScannedBarcode { get; set; }
+    public long? SourceWarehouse { get; set; }
+    public long? TargetWarehouse { get; set; }
+    public string? SourceCellCode { get; set; }
+    public string? TargetCellCode { get; set; }
+}
+
+public sealed class ProcessWoRequestDto
+{
+    [Required]
+    public CreateWoHeaderDto Header { get; set; } = null!;
+    public List<ProcessWoRouteDto>? Routes { get; set; }
 }

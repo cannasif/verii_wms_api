@@ -12,17 +12,20 @@ public sealed class WoLineService : IWoLineService
     private readonly IRepository<WoLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public WoLineService(
         IRepository<WoLine> lines,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _lines = lines;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
@@ -30,6 +33,7 @@ public sealed class WoLineService : IWoLineService
     {
         var items = await _lines.Query().ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WoLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoLineRetrievedSuccessfully"));
     }
 
@@ -42,6 +46,7 @@ public sealed class WoLineService : IWoLineService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<PagedResponse<WoLineDto>>.SuccessResult(new PagedResponse<WoLineDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WoLineRetrievedSuccessfully"));
     }
 
@@ -55,6 +60,7 @@ public sealed class WoLineService : IWoLineService
         }
 
         var dto = _mapper.Map<WoLineDto>(entity);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<WoLineDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WoLineRetrievedSuccessfully"));
     }
 
@@ -62,6 +68,7 @@ public sealed class WoLineService : IWoLineService
     {
         var items = await _lines.Query().Where(x => x.HeaderId == headerId).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<WoLineDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLinesAsync(dtos, cancellationToken);
         return ApiResponse<IEnumerable<WoLineDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WoLineRetrievedSuccessfully"));
     }
 

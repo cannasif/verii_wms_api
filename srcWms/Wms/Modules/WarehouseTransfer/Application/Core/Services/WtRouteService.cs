@@ -12,24 +12,29 @@ public sealed class WtRouteService : IWtRouteService
     private readonly IRepository<WtRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public WtRouteService(
         IRepository<WtRoute> routes,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _routes = routes;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<WtRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(_mapper.Map<List<WtRouteDto>>(items), _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WtRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<WtRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +45,9 @@ public sealed class WtRouteService : IWtRouteService
             .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
-        return ApiResponse<PagedResponse<WtRouteDto>>.SuccessResult(new PagedResponse<WtRouteDto>(_mapper.Map<List<WtRouteDto>>(items), total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WtRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<PagedResponse<WtRouteDto>>.SuccessResult(new PagedResponse<WtRouteDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WtRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -52,7 +59,9 @@ public sealed class WtRouteService : IWtRouteService
             return ApiResponse<WtRouteDto>.ErrorResult(msg, msg, 404);
         }
 
-        return ApiResponse<WtRouteDto>.SuccessResult(_mapper.Map<WtRouteDto>(entity), _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
+        var dto = _mapper.Map<WtRouteDto>(entity);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(new List<WtRouteDto> { dto }, cancellationToken);
+        return ApiResponse<WtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<WtRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
@@ -61,7 +70,9 @@ public sealed class WtRouteService : IWtRouteService
         var items = await _routes.Query()
             .Where(x => (x.SerialNo ?? string.Empty).Trim() == normalizedSerial)
             .ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(_mapper.Map<List<WtRouteDto>>(items), _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WtRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<WtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WtRouteDto>> CreateAsync(CreateWtRouteDto createDto, CancellationToken cancellationToken = default)

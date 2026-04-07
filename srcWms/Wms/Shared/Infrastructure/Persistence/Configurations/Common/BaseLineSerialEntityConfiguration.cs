@@ -14,6 +14,8 @@ public abstract class BaseLineSerialEntityConfiguration<T> : BaseEntityConfigura
         builder.Property(x => x.SerialNo2).HasMaxLength(50);
         builder.Property(x => x.SerialNo3).HasMaxLength(50);
         builder.Property(x => x.SerialNo4).HasMaxLength(50);
+        builder.Property(x => x.SourceWarehouseId).IsRequired(false);
+        builder.Property(x => x.TargetWarehouseId).IsRequired(false);
         builder.Property(x => x.SourceCellCode).HasMaxLength(20);
         builder.Property(x => x.TargetCellCode).HasMaxLength(20);
     }

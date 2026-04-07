@@ -12,24 +12,29 @@ public sealed class ShRouteService : IShRouteService
     private readonly IRepository<ShRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public ShRouteService(
         IRepository<ShRoute> routes,
         IUnitOfWork unitOfShrk,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _routes = routes;
         _unitOfWork = unitOfShrk;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(_mapper.Map<List<ShRouteDto>>(items), _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<ShRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<ShRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +45,9 @@ public sealed class ShRouteService : IShRouteService
             .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
-        return ApiResponse<PagedResponse<ShRouteDto>>.SuccessResult(new PagedResponse<ShRouteDto>(_mapper.Map<List<ShRouteDto>>(items), total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<ShRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<PagedResponse<ShRouteDto>>.SuccessResult(new PagedResponse<ShRouteDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<ShRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -52,14 +59,18 @@ public sealed class ShRouteService : IShRouteService
             return ApiResponse<ShRouteDto>.ErrorResult(msg, msg, 404);
         }
 
-        return ApiResponse<ShRouteDto>.SuccessResult(_mapper.Map<ShRouteDto>(entity), _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
+        var dto = _mapper.Map<ShRouteDto>(entity);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(new List<ShRouteDto> { dto }, cancellationToken);
+        return ApiResponse<ShRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<ShRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
     {
         var normalizedSerial = (serialNo ?? string.Empty).Trim();
         var items = await _routes.Query().Where(x => (x.SerialNo ?? string.Empty).Trim() == normalizedSerial).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(_mapper.Map<List<ShRouteDto>>(items), _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<ShRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<ShRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("ShRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<ShRouteDto>> CreateAsync(CreateShRouteDto createDto, CancellationToken cancellationToken = default)

@@ -276,6 +276,92 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.ToTable("RII_USER_PERMISSION_GROUPS", (string)null);
                 });
 
+            modelBuilder.Entity("Wms.Domain.Entities.Common.BarcodeDefinitionRecord", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("AllowMirrorLookup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DefinitionType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("pattern");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("HintText")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ModuleKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RequiredSegments")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("SegmentPattern")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchCode", "ModuleKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_RII_BARCODE_DEFINITION_BRANCH_MODULE");
+
+                    b.ToTable("RII_BARCODE_DEFINITION", (string)null);
+                });
+
             modelBuilder.Entity("Wms.Domain.Entities.Common.JobFailureLog", b =>
                 {
                     b.Property<long>("Id")
@@ -1802,6 +1888,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -1903,9 +1992,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -2452,6 +2547,198 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.ToTable("RII_USER_SESSION", (string)null);
                 });
 
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcAdjustment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AdjustmentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ApprovedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("ApprovedCountedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DifferenceQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("ErpReferenceNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("ExpectedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long>("LineId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime?>("PostingDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HeaderId")
+                        .HasDatabaseName("IX_IcAdjustment_HeaderId");
+
+                    b.HasIndex("LineId")
+                        .HasDatabaseName("IX_IcAdjustment_LineId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_IcAdjustment_Status");
+
+                    b.ToTable("RII_IC_ADJUSTMENT", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcCountEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<string>("CellCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("EnteredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("EnteredByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("EnteredQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int>("EntryNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntryType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long>("LineId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("RackCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("WarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntryType")
+                        .HasDatabaseName("IX_IcCountEntry_EntryType");
+
+                    b.HasIndex("HeaderId")
+                        .HasDatabaseName("IX_IcCountEntry_HeaderId");
+
+                    b.HasIndex("LineId")
+                        .HasDatabaseName("IX_IcCountEntry_LineId");
+
+                    b.ToTable("RII_IC_COUNT_ENTRY", (string)null);
+                });
+
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcHeader", b =>
                 {
                     b.Property<long>("Id")
@@ -2469,6 +2756,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("ApprovedByUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("AssignedRoleId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AssignedTeamId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AssignedUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("BranchCode")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -2482,6 +2778,19 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("CompletionDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CountMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CountType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("CountedLineCount")
+                        .HasColumnType("int");
 
                     b.Property<long?>("CreatedBy")
                         .HasColumnType("bigint");
@@ -2502,6 +2811,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<string>("Description2")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("DifferenceLineCount")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DocumentDate")
                         .HasColumnType("datetime2");
@@ -2527,6 +2839,11 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<string>("ERPReferenceNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FreezeMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2542,6 +2859,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsFirstCount")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsPendingApproval")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2552,6 +2872,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int?>("LineCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("OrderId")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -2559,19 +2882,51 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("PlannedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<byte?>("PriorityLevel")
                         .HasColumnType("tinyint");
-
-                    b.Property<string>("ProductCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("ProjectCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
+                    b.Property<string>("RackCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<int?>("RecountRequiredLineCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequiresRecount")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ScopeMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("SequenceNo")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StockCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("StockId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -2586,12 +2941,31 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("WarehouseId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("YapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("YapKodId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("YearCode")
                         .IsRequired()
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedUserId")
+                        .HasDatabaseName("IX_IcHeader_AssignedUserId");
+
+                    b.HasIndex("CountType")
+                        .HasDatabaseName("IX_IcHeader_CountType");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_IcHeader_Status");
+
+                    b.HasIndex("StockId")
+                        .HasDatabaseName("IX_IcHeader_StockId");
 
                     b.HasIndex("WarehouseId")
                         .HasDatabaseName("IX_IcHeader_WarehouseId");
@@ -2672,6 +3046,169 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.HasIndex("HeaderId");
 
                     b.ToTable("RII_IC_IMPORT_LINE", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcLine", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ApprovalNote")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("BatchNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<string>("CellCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<string>("CountStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("CountedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal?>("CountedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("DifferenceQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("DifferenceReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int>("EntryCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ExpectedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime?>("FirstCountedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDifference")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsExtraStock")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMatched")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMissingStock")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRecountRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastCountedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LotNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RackCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<long?>("ScopeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SequenceNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SerialNo1")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SerialNo2")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("StockCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("StockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("WarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("YapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("YapKodId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountStatus")
+                        .HasDatabaseName("IX_IcLine_CountStatus");
+
+                    b.HasIndex("HeaderId")
+                        .HasDatabaseName("IX_IcLine_HeaderId");
+
+                    b.HasIndex("ScopeId")
+                        .HasDatabaseName("IX_IcLine_ScopeId");
+
+                    b.HasIndex("StockId")
+                        .HasDatabaseName("IX_IcLine_StockId");
+
+                    b.ToTable("RII_IC_LINE", (string)null);
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcRoute", b =>
@@ -2778,6 +3315,104 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.HasIndex("ImportLineId");
 
                     b.ToTable("RII_IC_ROUTE", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcScope", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<string>("CellCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("RackCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("SequenceNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StockCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("StockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("WarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("YapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("YapKodId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HeaderId")
+                        .HasDatabaseName("IX_IcScope_HeaderId");
+
+                    b.HasIndex("ScopeType")
+                        .HasDatabaseName("IX_IcScope_ScopeType");
+
+                    b.HasIndex("StockId")
+                        .HasDatabaseName("IX_IcScope_StockId");
+
+                    b.HasIndex("WarehouseId")
+                        .HasDatabaseName("IX_IcScope_WarehouseId");
+
+                    b.ToTable("RII_IC_SCOPE", (string)null);
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcTerminalLine", b =>
@@ -3202,6 +3837,12 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("ApprovalDate")
                         .HasColumnType("datetime2");
 
@@ -3217,6 +3858,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasDefaultValue("0");
+
+                    b.Property<decimal?>("CompletedQuantity")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<DateTime?>("CompletionDate")
                         .HasColumnType("datetime2");
@@ -3272,6 +3916,11 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<string>("ERPReferenceNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ExecutionMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -3297,12 +3946,43 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("MainStockCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("MainStockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MainYapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("MainYapKodId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("OrderId")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("PlanType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime?>("PlannedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("PlannedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
 
                     b.Property<byte?>("PriorityLevel")
                         .HasColumnType("tinyint");
@@ -3311,8 +3991,17 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal?>("Quantity")
                         .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReleasedBy")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("SourceWarehouse")
                         .HasMaxLength(20)
@@ -3320,6 +4009,11 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
 
                     b.Property<long?>("SourceWarehouseId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("StockCode")
                         .HasMaxLength(35)
@@ -3358,6 +4052,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("IX_PrHeader_CustomerId");
 
+                    b.HasIndex("MainStockId")
+                        .HasDatabaseName("IX_PrHeader_MainStockId");
+
+                    b.HasIndex("MainYapKodId")
+                        .HasDatabaseName("IX_PrHeader_MainYapKodId");
+
+                    b.HasIndex("ProjectId")
+                        .HasDatabaseName("IX_PrHeader_ProjectId");
+
                     b.HasIndex("SourceWarehouseId")
                         .HasDatabaseName("IX_PrHeader_SourceWarehouseId");
 
@@ -3371,6 +4074,78 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_PrHeader_YapKodId");
 
                     b.ToTable("RII_PR_HEADER", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrHeaderAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("AssignedRoleId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AssignedTeamId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AssignedUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("AssignmentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HeaderId", "IsActive")
+                        .HasDatabaseName("IX_PrHeaderAssignment_HeaderId_IsActive");
+
+                    b.ToTable("RII_PR_HEADER_ASSIGNMENT", (string)null);
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.Production.PrHeaderSerial", b =>
@@ -3570,6 +4345,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -3660,9 +4438,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -3675,6 +4459,850 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.HasIndex("LineId");
 
                     b.ToTable("RII_PR_LINE_SERIAL", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("ActualDurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long?>("ExecutedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long?>("MachineId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("NetWorkingDurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OperationNo")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("PauseDurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlannedDurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("WorkcenterId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "Status")
+                        .HasDatabaseName("IX_PrOperation_OrderId_Status");
+
+                    b.ToTable("RII_PR_OPERATION", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperationEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EventAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EventNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("EventReasonCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long?>("MachineId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OperationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("PerformedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("WorkcenterId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.HasIndex("OrderId", "EventAt")
+                        .HasDatabaseName("IX_PrOperationEvent_OrderId_EventAt");
+
+                    b.ToTable("RII_PR_OPERATION_EVENT", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperationLine", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BatchNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LineRole")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("LotNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<long>("OperationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("OrderConsumptionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("OrderOutputId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("ScannedBarcode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SerialNo1")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SerialNo2")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SerialNo3")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SerialNo4")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SourceCellCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SourceWarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StockCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("StockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TargetCellCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TargetWarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("YapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("YapKodId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.HasIndex("OrderConsumptionId");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("IX_PrOperationLine_OrderId");
+
+                    b.HasIndex("OrderOutputId");
+
+                    b.ToTable("RII_PR_OPERATION_LINE", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrder", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("AutoStartWhenDependenciesDone")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("BlockedReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<bool>("CanStartManually")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("CompletedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsTransferRequiredBeforeStart")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrderNo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("OrderType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("ParallelGroupNo")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("PlannedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProducedStockCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("ProducedStockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ProducedYapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("ProducedYapKodId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal?>("ScrapQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int?>("SequenceNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceWarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal?>("StartedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StatusNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TargetWarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HeaderId", "OrderNo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PrOrder_HeaderId_OrderNo");
+
+                    b.HasIndex("HeaderId", "Status")
+                        .HasDatabaseName("IX_PrOrder_HeaderId_Status");
+
+                    b.ToTable("RII_PR_ORDER", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("AssignedRoleId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AssignedTeamId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AssignedUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("AssignmentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "IsActive")
+                        .HasDatabaseName("IX_PrOrderAssignment_OrderId_IsActive");
+
+                    b.ToTable("RII_PR_ORDER_ASSIGNMENT", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderConsumption", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<decimal?>("ConsumedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsBackflush")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("PlannedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int?>("SequenceNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SerialEntryMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("SourceCellCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SourceWarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StockCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("StockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TrackingMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("YapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("YapKodId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("IX_PrOrderConsumption_OrderId");
+
+                    b.ToTable("RII_PR_ORDER_CONSUMPTION", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderDependency", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<string>("ConditionNote")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DependencyType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("HeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LagMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<long>("PredecessorOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("RequiredOutputAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiredTransferCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("SuccessorOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HeaderId")
+                        .HasDatabaseName("IX_PrOrderDependency_HeaderId");
+
+                    b.HasIndex("SuccessorOrderId");
+
+                    b.HasIndex("PredecessorOrderId", "SuccessorOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PrOrderDependency_Predecessor_Successor");
+
+                    b.ToTable("RII_PR_ORDER_DEPENDENCY", (string)null);
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderOutput", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BranchCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("0");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("PlannedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal?>("ProducedQuantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int?>("SequenceNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SerialEntryMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StockCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("StockId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TargetCellCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TargetWarehouseCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TrackingMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("YapKod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("YapKodId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("IX_PrOrderOutput_OrderId");
+
+                    b.ToTable("RII_PR_ORDER_OUTPUT", (string)null);
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.Production.PrRoute", b =>
@@ -3838,6 +5466,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("ApprovedByUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("AutoGenerated")
+                        .HasColumnType("bit");
+
                     b.Property<string>("BranchCode")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -3934,9 +5565,21 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<byte?>("PriorityLevel")
                         .HasColumnType("tinyint");
 
+                    b.Property<long?>("ProductionHeaderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ProductionOrderId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("ProjectCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("RequiredForOrderCompletion")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiredForOrderStart")
+                        .HasColumnType("bit");
 
                     b.Property<string>("SourceWarehouse")
                         .HasMaxLength(20)
@@ -3945,12 +5588,26 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("SourceWarehouseId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("SourceWorkcenterId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetWarehouse")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<long?>("TargetWarehouseId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("TargetWorkcenterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TransferPurpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("TriggeredByProduction")
+                        .HasColumnType("bit");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -3967,6 +5624,12 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("IX_PtHeader_CustomerId");
+
+                    b.HasIndex("ProductionHeaderId")
+                        .HasDatabaseName("IX_PtHeader_ProductionHeaderId");
+
+                    b.HasIndex("ProductionOrderId")
+                        .HasDatabaseName("IX_PtHeader_ProductionOrderId");
 
                     b.HasIndex("SourceWarehouseId")
                         .HasDatabaseName("IX_PtHeader_SourceWarehouseId");
@@ -4104,7 +5767,26 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("LineRole")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("ProductionOrderConsumptionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ProductionOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ProductionOrderOutputId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal?>("RequiredQuantityFromProduction")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal?>("SiparisMiktar")
                         .HasColumnType("decimal(18,6)");
 
                     b.Property<string>("StockCode")
@@ -4135,6 +5817,12 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("HeaderId");
+
+                    b.HasIndex("ProductionOrderConsumptionId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("ProductionOrderOutputId");
 
                     b.ToTable("RII_PT_LINE", (string)null);
                 });
@@ -4174,6 +5862,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long>("LineId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("PrOperationLineId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
@@ -4197,9 +5888,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -4210,6 +5907,8 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LineId");
+
+                    b.HasIndex("PrOperationLineId");
 
                     b.ToTable("RII_PT_LINE_SERIAL", (string)null);
                 });
@@ -4492,9 +6191,6 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("TargetWarehouseId")
                         .HasColumnType("bigint");
 
-                    b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
-
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
 
@@ -4676,6 +6372,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -4779,9 +6478,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -5211,9 +6916,6 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("TargetWarehouseId")
                         .HasColumnType("bigint");
 
-                    b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
-
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
 
@@ -5369,6 +7071,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -5459,9 +7164,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -5751,9 +7462,6 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<long?>("TargetWarehouseId")
                         .HasColumnType("bigint");
 
-                    b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
-
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
 
@@ -5909,6 +7617,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -5999,9 +7710,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -6546,6 +8263,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -6649,9 +8369,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -7154,6 +8880,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -7257,9 +8986,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -7759,6 +9494,9 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,6)");
 
+                    b.Property<decimal?>("SiparisMiktar")
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(35)
@@ -7862,9 +9600,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<long?>("SourceWarehouseId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TargetCellCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<long?>("TargetWarehouseId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -8286,6 +10030,44 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcAdjustment", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcHeader", "Header")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcLine", "Line")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Header");
+
+                    b.Navigation("Line");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcCountEntry", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcHeader", "Header")
+                        .WithMany("CountEntries")
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcLine", "Line")
+                        .WithMany("CountEntries")
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Header");
+
+                    b.Navigation("Line");
+                });
+
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcImportLine", b =>
                 {
                     b.HasOne("Wms.Domain.Entities.InventoryCount.IcHeader", "Header")
@@ -8297,6 +10079,24 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Navigation("Header");
                 });
 
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcLine", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcHeader", "Header")
+                        .WithMany("Lines")
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcScope", "Scope")
+                        .WithMany("Lines")
+                        .HasForeignKey("ScopeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Header");
+
+                    b.Navigation("Scope");
+                });
+
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcRoute", b =>
                 {
                     b.HasOne("Wms.Domain.Entities.InventoryCount.IcImportLine", "ImportLine")
@@ -8306,6 +10106,17 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("ImportLine");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcScope", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.InventoryCount.IcHeader", "Header")
+                        .WithMany("Scopes")
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Header");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcTerminalLine", b =>
@@ -8350,6 +10161,17 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasConstraintName("FK_PPackage_PHeader");
 
                     b.Navigation("PackingHeader");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrHeaderAssignment", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrHeader", "Header")
+                        .WithMany("Assignments")
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Header");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.Production.PrHeaderSerial", b =>
@@ -8403,6 +10225,140 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Navigation("Line");
                 });
 
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperation", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "Order")
+                        .WithMany("Operations")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperationEvent", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrOperation", "Operation")
+                        .WithMany("Events")
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Operation");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperationLine", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrOperation", "Operation")
+                        .WithMany("Lines")
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrderConsumption", "OrderConsumption")
+                        .WithMany("OperationLines")
+                        .HasForeignKey("OrderConsumptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrderOutput", "OrderOutput")
+                        .WithMany("OperationLines")
+                        .HasForeignKey("OrderOutputId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Operation");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("OrderConsumption");
+
+                    b.Navigation("OrderOutput");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrder", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrHeader", "Header")
+                        .WithMany("Orders")
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Header");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderAssignment", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "Order")
+                        .WithMany("Assignments")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderConsumption", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "Order")
+                        .WithMany("Consumptions")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderDependency", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrHeader", "Header")
+                        .WithMany()
+                        .HasForeignKey("HeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "PredecessorOrder")
+                        .WithMany("DependenciesAsPredecessor")
+                        .HasForeignKey("PredecessorOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "SuccessorOrder")
+                        .WithMany("DependenciesAsSuccessor")
+                        .HasForeignKey("SuccessorOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Header");
+
+                    b.Navigation("PredecessorOrder");
+
+                    b.Navigation("SuccessorOrder");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderOutput", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "Order")
+                        .WithMany("Outputs")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("Wms.Domain.Entities.Production.PrRoute", b =>
                 {
                     b.HasOne("Wms.Domain.Entities.Production.PrImportLine", "ImportLine")
@@ -8423,6 +10379,23 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Header");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.ProductionTransfer.PtHeader", b =>
+                {
+                    b.HasOne("Wms.Domain.Entities.Production.PrHeader", "ProductionHeader")
+                        .WithMany()
+                        .HasForeignKey("ProductionHeaderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "ProductionOrder")
+                        .WithMany("ProductionTransfers")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ProductionHeader");
+
+                    b.Navigation("ProductionOrder");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.ProductionTransfer.PtImportLine", b =>
@@ -8451,7 +10424,28 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrderConsumption", "ProductionOrderConsumption")
+                        .WithMany("ProductionTransferLines")
+                        .HasForeignKey("ProductionOrderConsumptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOrderOutput", "ProductionOrderOutput")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderOutputId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Header");
+
+                    b.Navigation("ProductionOrder");
+
+                    b.Navigation("ProductionOrderConsumption");
+
+                    b.Navigation("ProductionOrderOutput");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.ProductionTransfer.PtLineSerial", b =>
@@ -8461,6 +10455,10 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                         .HasForeignKey("LineId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Wms.Domain.Entities.Production.PrOperationLine", null)
+                        .WithMany("ProductionTransferSerialLines")
+                        .HasForeignKey("PrOperationLineId");
 
                     b.Navigation("Line");
                 });
@@ -8899,7 +10897,15 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcHeader", b =>
                 {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("CountEntries");
+
                     b.Navigation("ImportLines");
+
+                    b.Navigation("Lines");
+
+                    b.Navigation("Scopes");
 
                     b.Navigation("TerminalLines");
                 });
@@ -8907,6 +10913,18 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcImportLine", b =>
                 {
                     b.Navigation("Routes");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcLine", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("CountEntries");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.InventoryCount.IcScope", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.Package.PHeader", b =>
@@ -8921,9 +10939,13 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Wms.Domain.Entities.Production.PrHeader", b =>
                 {
+                    b.Navigation("Assignments");
+
                     b.Navigation("ImportLines");
 
                     b.Navigation("Lines");
+
+                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.Production.PrImportLine", b =>
@@ -8936,6 +10958,47 @@ namespace Wms.Shared.Infrastructure.Persistence.Migrations
                     b.Navigation("ImportLines");
 
                     b.Navigation("SerialLines");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperation", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOperationLine", b =>
+                {
+                    b.Navigation("ProductionTransferSerialLines");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrder", b =>
+                {
+                    b.Navigation("Assignments");
+
+                    b.Navigation("Consumptions");
+
+                    b.Navigation("DependenciesAsPredecessor");
+
+                    b.Navigation("DependenciesAsSuccessor");
+
+                    b.Navigation("Operations");
+
+                    b.Navigation("Outputs");
+
+                    b.Navigation("ProductionTransfers");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderConsumption", b =>
+                {
+                    b.Navigation("OperationLines");
+
+                    b.Navigation("ProductionTransferLines");
+                });
+
+            modelBuilder.Entity("Wms.Domain.Entities.Production.PrOrderOutput", b =>
+                {
+                    b.Navigation("OperationLines");
                 });
 
             modelBuilder.Entity("Wms.Domain.Entities.ProductionTransfer.PtHeader", b =>

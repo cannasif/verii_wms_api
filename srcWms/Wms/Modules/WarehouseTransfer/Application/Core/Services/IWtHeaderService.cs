@@ -13,9 +13,11 @@ public interface IWtHeaderService
     Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     Task<ApiResponse<bool>> CompleteAsync(long id, CancellationToken cancellationToken = default);
     Task<ApiResponse<IEnumerable<WtHeaderDto>>> GetAssignedOrdersAsync(long userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetAssignedOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<WtAssignedOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default);
     Task<ApiResponse<WtAssignedOrderLinesDto>> GetAssignedTransferOrderLinesAsync(long headerId, CancellationToken cancellationToken = default);
     Task<ApiResponse<WtHeaderDto>> GenerateWarehouseTransferOrderAsync(GenerateWarehouseTransferOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<int>> ProcessWarehouseTransferAsync(ProcessWtRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<WtHeaderDto>> BulkCreateWarehouseTransferAsync(BulkCreateWtRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<WtHeaderDto>> BulkWtGenerateAsync(BulkCreateWtRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<PagedResponse<WtHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);

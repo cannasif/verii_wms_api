@@ -30,6 +30,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
     private readonly ICurrentUserAccessor _currentUserAccessor;
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
 
     public SrtHeaderService(
         IRepository<SrtHeader> headers,
@@ -46,7 +47,8 @@ public sealed class SrtHeaderService : ISrtHeaderService
         ILocalizationService localizationService,
         ICurrentUserAccessor currentUserAccessor,
         INotificationService notificationService,
-        IEntityReferenceResolver entityReferenceResolver)
+        IEntityReferenceResolver entityReferenceResolver,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher)
     {
         _headers = headers;
         _lines = lines;
@@ -63,6 +65,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
         _currentUserAccessor = currentUserAccessor;
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
     }
 
     public async Task<ApiResponse<IEnumerable<SrtHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -101,6 +104,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
         }
 
         var dto = _mapper.Map<SrtHeaderDto>(entity);
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(new List<object> { dto }, cancellationToken);
         return ApiResponse<SrtHeaderDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtHeaderRetrievedSuccessfully"));
     }
 
@@ -242,6 +246,27 @@ public sealed class SrtHeaderService : ISrtHeaderService
 
         var dtos = _mapper.Map<List<SrtHeaderDto>>(entities);
         return ApiResponse<IEnumerable<SrtHeaderDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtHeaderAssignedOrdersRetrievedSuccessfully"));
+    }
+
+    public async Task<ApiResponse<PagedResponse<SrtHeaderDto>>> GetAssignedSubcontractingReceiptTransferOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        request ??= new PagedRequest();
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
+        var branchCode = _currentUserAccessor.BranchCode ?? "0";
+        var terminalLineHeaderIds = _terminalLines.Query(false, false)
+            .Where(t => t.TerminalUserId == userId)
+            .Select(t => t.HeaderId);
+
+        var query = _headers.Query()
+            .Where(h => !h.IsCompleted && h.BranchCode == branchCode && terminalLineHeaderIds.Contains(h.Id))
+            .ApplyFilters(request.Filters, request.FilterLogic)
+            .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.ApplyPagination(pageNumber, pageSize).ToListAsync(cancellationToken);
+        var dtos = _mapper.Map<List<SrtHeaderDto>>(items);
+        return ApiResponse<PagedResponse<SrtHeaderDto>>.SuccessResult(new PagedResponse<SrtHeaderDto>(dtos, total, pageNumber, pageSize), _localizationService.GetLocalizedString("SrtHeaderAssignedOrdersRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<SrtAssignedSubcontractingReceiptTransferOrderLinesDto>> GetAssignedSubcontractingReceiptTransferOrderLinesAsync(long headerId, CancellationToken cancellationToken = default)
@@ -538,9 +563,8 @@ public sealed class SrtHeaderService : ISrtHeaderService
                         LineId = lineId,
                         StockCode = importDto.StockCode,
                         StockId = importDto.StockId,
-                        Description = importDto.ErpOrderNo ?? importDto.ErpOrderNumber,
-                        Description1 = importDto.ScannedBarkod,
-                        Description2 = importDto.ErpOrderLineNumber
+                        YapKod = importDto.YapKod,
+                        YapKodId = importDto.YapKodId
                     };
                     await _entityReferenceResolver.ResolveAsync(importLine, cancellationToken);
                     importLines.Add(importLine);
@@ -593,11 +617,13 @@ public sealed class SrtHeaderService : ISrtHeaderService
                         Quantity = routeDto.Quantity,
                         SerialNo = routeDto.SerialNo,
                         SerialNo2 = routeDto.SerialNo2,
+                        SerialNo3 = routeDto.SerialNo3,
+                        SerialNo4 = routeDto.SerialNo4,
+                        ScannedBarcode = routeDto.ScannedBarcode ?? string.Empty,
                         SourceWarehouse = routeDto.SourceWarehouse,
                         TargetWarehouse = routeDto.TargetWarehouse,
                         SourceCellCode = routeDto.SourceCellCode,
-                        TargetCellCode = routeDto.TargetCellCode,
-                        Description = routeDto.Description
+                        TargetCellCode = routeDto.TargetCellCode
                     };
                     routes.Add(route);
                 }
@@ -616,6 +642,11 @@ public sealed class SrtHeaderService : ISrtHeaderService
         }
     }
 
+    public Task<ApiResponse<int>> ProcessSubcontractingReceiptTransferAsync(BulkSrtGenerateRequestDto request, CancellationToken cancellationToken = default)
+    {
+        return BulkCreateSubcontractingReceiptTransferAsync(request, cancellationToken);
+    }
+
     public Task<ApiResponse<int>> BulkCreateSubcontractingReceiptTransferAsync(BulkSrtGenerateRequestDto request, CancellationToken cancellationToken = default)
     {
         return BulkSrtGenerateAsync(request, cancellationToken);
@@ -632,6 +663,8 @@ public sealed class SrtHeaderService : ISrtHeaderService
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<SrtHeaderDto>>(items);
+
+        await _documentReferenceReadEnricher.EnrichHeadersAsync(dtos, cancellationToken);
 
         var result = new PagedResponse<SrtHeaderDto>(dtos, totalCount, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize);
         return ApiResponse<PagedResponse<SrtHeaderDto>>.SuccessResult(result, _localizationService.GetLocalizedString("SrtHeaderCompletedAwaitingErpApprovalRetrievedSuccessfully"));
@@ -685,13 +718,15 @@ public sealed class SrtHeaderService : ISrtHeaderService
         var lines = await _lines.Query().Where(l => l.HeaderId == headerId).ToListAsync(cancellationToken);
         foreach (var line in lines)
         {
-            var totalLineSerialQuantity = await _lineSerials.Query()
+            var lineSerials = await _lineSerials.Query()
                 .Where(ls => ls.LineId == line.Id)
-                .SumAsync(ls => ls.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
 
-            var totalRouteQuantity = await _routes.Query()
+            var routes = await _routes.Query()
                 .Where(r => r.ImportLine.LineId == line.Id && !r.ImportLine.IsDeleted)
-                .SumAsync(r => r.Quantity, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var totalRouteQuantity = routes.Sum(r => r.Quantity);
 
             if (requireAllOrderItemsCollected)
             {
@@ -708,24 +743,22 @@ public sealed class SrtHeaderService : ISrtHeaderService
 
             var allowLess = parameter?.AllowLessQuantityBasedOnOrder ?? false;
             var allowMore = parameter?.AllowMoreQuantityBasedOnOrder ?? false;
-
-            if (!allowLess && !allowMore && Math.Abs(totalLineSerialQuantity - totalRouteQuantity) > 0.000001m)
+            var validationResult = LineSerialRouteValidationHelper.Validate(lineSerials, routes, allowLess, allowMore);
+            if (!validationResult.HasMismatch)
             {
-                var msg = _localizationService.GetLocalizedString("SrtHeaderQuantityExactMatchRequired", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
+                continue;
             }
 
-            if (allowLess && !allowMore && totalRouteQuantity > totalLineSerialQuantity + 0.000001m)
+            var messageKey = validationResult.MismatchType switch
             {
-                var msg = _localizationService.GetLocalizedString("SrtHeaderQuantityCannotBeGreater", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+                LineSerialRouteValidationMismatch.ExactMatchRequired => "SrtHeaderQuantityExactMatchRequired",
+                LineSerialRouteValidationMismatch.CannotBeGreater => "SrtHeaderQuantityCannotBeGreater",
+                LineSerialRouteValidationMismatch.CannotBeLess => "SrtHeaderQuantityCannotBeLess",
+                _ => "SrtHeaderQuantityExactMatchRequired"
+            };
 
-            if (!allowLess && allowMore && totalRouteQuantity + 0.000001m < totalLineSerialQuantity)
-            {
-                var msg = _localizationService.GetLocalizedString("SrtHeaderQuantityCannotBeLess", line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, totalLineSerialQuantity, totalRouteQuantity);
-                return ApiResponse<bool>.ErrorResult(msg, msg, 400);
-            }
+            var validationMessage = _localizationService.GetLocalizedString(messageKey, line.Id, line.StockCode ?? string.Empty, line.YapKod ?? string.Empty, validationResult.ExpectedQuantity, validationResult.ActualQuantity);
+            return ApiResponse<bool>.ErrorResult(validationMessage, validationMessage, 400);
         }
 
         return null;

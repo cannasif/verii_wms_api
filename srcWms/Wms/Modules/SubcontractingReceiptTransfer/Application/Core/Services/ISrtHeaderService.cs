@@ -13,9 +13,11 @@ public interface ISrtHeaderService
     Task<ApiResponse<bool>> SoftDeleteAsync(long id, CancellationToken cancellationToken = default);
     Task<ApiResponse<bool>> CompleteAsync(long id, CancellationToken cancellationToken = default);
     Task<ApiResponse<IEnumerable<SrtHeaderDto>>> GetAssignedSubcontractingReceiptTransferOrdersAsync(long userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<PagedResponse<SrtHeaderDto>>> GetAssignedSubcontractingReceiptTransferOrdersPagedAsync(long userId, PagedRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<SrtAssignedSubcontractingReceiptTransferOrderLinesDto>> GetAssignedSubcontractingReceiptTransferOrderLinesAsync(long headerId, CancellationToken cancellationToken = default);
     Task<ApiResponse<SrtAssignedSubcontractingReceiptTransferOrderLinesDto>> GetAssignedOrderLinesAsync(long headerId, CancellationToken cancellationToken = default);
     Task<ApiResponse<SrtHeaderDto>> GenerateSubcontractingReceiptTransferOrderAsync(GenerateSubcontractingReceiptTransferOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<int>> ProcessSubcontractingReceiptTransferAsync(BulkSrtGenerateRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<int>> BulkSrtGenerateAsync(BulkSrtGenerateRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<int>> BulkCreateSubcontractingReceiptTransferAsync(BulkSrtGenerateRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<PagedResponse<SrtHeaderDto>>> GetCompletedAwaitingErpApprovalPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);

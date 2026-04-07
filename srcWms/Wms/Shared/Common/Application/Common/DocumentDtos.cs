@@ -78,6 +78,7 @@ public class BaseLineEntityDto : BaseEntityDto
     public long? YapKodId { get; set; }
     public string? YapAcik { get; set; }
     public decimal Quantity { get; set; }
+    public decimal? SiparisMiktar { get; set; }
     public string? Unit { get; set; }
     public string? ErpOrderNo { get; set; }
     public string? ErpOrderId { get; set; }
@@ -91,6 +92,7 @@ public class BaseLineCreateDto
     public string? YapKod { get; set; }
     public long? YapKodId { get; set; }
     public decimal Quantity { get; set; }
+    public decimal? SiparisMiktar { get; set; }
     public string? Unit { get; set; }
     public string? ErpOrderNo { get; set; }
     public string? ErpOrderId { get; set; }
@@ -104,6 +106,7 @@ public class BaseLineUpdateDto
     public string? YapKod { get; set; }
     public long? YapKodId { get; set; }
     public decimal? Quantity { get; set; }
+    public decimal? SiparisMiktar { get; set; }
     public string? Unit { get; set; }
     public string? ErpOrderNo { get; set; }
     public string? ErpOrderId { get; set; }
@@ -157,6 +160,8 @@ public class BaseRouteEntityDto : BaseEntityDto
     public string? SerialNo4 { get; set; }
     public int? SourceWarehouse { get; set; }
     public int? TargetWarehouse { get; set; }
+    public string? SourceWarehouseName { get; set; }
+    public string? TargetWarehouseName { get; set; }
     public string? SourceCellCode { get; set; }
     public string? TargetCellCode { get; set; }
 }
@@ -182,6 +187,10 @@ public class BaseLineSerialEntityDto : BaseEntityDto
     public string? SerialNo2 { get; set; }
     public string? SerialNo3 { get; set; }
     public string? SerialNo4 { get; set; }
+    public long? SourceWarehouseId { get; set; }
+    public long? TargetWarehouseId { get; set; }
+    public string? SourceWarehouseName { get; set; }
+    public string? TargetWarehouseName { get; set; }
     public string? SourceCellCode { get; set; }
     public string? TargetCellCode { get; set; }
 }
@@ -193,6 +202,8 @@ public class BaseLineSerialCreateDto
     public string? SerialNo2 { get; set; }
     public string? SerialNo3 { get; set; }
     public string? SerialNo4 { get; set; }
+    public long? SourceWarehouseId { get; set; }
+    public long? TargetWarehouseId { get; set; }
     public string? SourceCellCode { get; set; }
     public string? TargetCellCode { get; set; }
 }
@@ -204,6 +215,8 @@ public class BaseLineSerialUpdateDto
     public string? SerialNo2 { get; set; }
     public string? SerialNo3 { get; set; }
     public string? SerialNo4 { get; set; }
+    public long? SourceWarehouseId { get; set; }
+    public long? TargetWarehouseId { get; set; }
     public string? SourceCellCode { get; set; }
     public string? TargetCellCode { get; set; }
 }

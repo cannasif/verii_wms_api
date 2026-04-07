@@ -14,6 +14,7 @@ public abstract class BaseLineEntityConfiguration<T> : BaseEntityConfiguration<T
         builder.Property(x => x.YapKodId).IsRequired(false);
         builder.Property(x => x.YapKod).HasMaxLength(50);
         builder.Property(x => x.Quantity).HasColumnType("decimal(18,6)").IsRequired();
+        builder.Property(x => x.SiparisMiktar).HasColumnType("decimal(18,6)").IsRequired(false);
         builder.Property(x => x.Unit).HasMaxLength(10);
         builder.Property(x => x.ErpOrderNo).HasMaxLength(50);
         builder.Property(x => x.ErpOrderId).HasMaxLength(30);

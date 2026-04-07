@@ -9,6 +9,7 @@ public interface IGrHeaderService
     Task<ApiResponse<PagedResponse<GrHeaderDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<GrHeaderDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ApiResponse<long>> BulkCreateAsync(BulkCreateGrRequestDto request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<long>> ProcessGoodsReceiptAsync(ProcessGrRequestDto request, CancellationToken cancellationToken = default);
     Task<ApiResponse<GrHeaderDto>> CreateAsync(CreateGrHeaderDto createDto, CancellationToken cancellationToken = default);
     Task<ApiResponse<bool>> CompleteAsync(int id, CancellationToken cancellationToken = default);
     Task<ApiResponse<IEnumerable<GrHeaderDto>>> GetByCustomerCodeAsync(string customerCode, CancellationToken cancellationToken = default);

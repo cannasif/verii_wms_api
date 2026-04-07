@@ -12,6 +12,7 @@ public sealed class WiLineSerialService : IWiLineSerialService
     private readonly IRepository<WiLine> _lines;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public WiLineSerialService(
@@ -19,19 +20,23 @@ public sealed class WiLineSerialService : IWiLineSerialService
         IRepository<WiLine> lines,
         IUnitOfWork unitOfWork,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _serials = serials;
         _lines = lines;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<WiLineSerialDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<WiLineSerialDto>>.SuccessResult(_mapper.Map<List<WiLineSerialDto>>(items), _localizationService.GetLocalizedString("WiLineSerialRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WiLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<WiLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiLineSerialRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<WiLineSerialDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -60,7 +65,9 @@ public sealed class WiLineSerialService : IWiLineSerialService
     public async Task<ApiResponse<IEnumerable<WiLineSerialDto>>> GetByLineIdAsync(long lineId, CancellationToken cancellationToken = default)
     {
         var items = await _serials.Query().Where(x => x.LineId == lineId).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<WiLineSerialDto>>.SuccessResult(_mapper.Map<List<WiLineSerialDto>>(items), _localizationService.GetLocalizedString("WiLineSerialRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<WiLineSerialDto>>(items);
+        await _documentReferenceReadEnricher.EnrichLineSerialsAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<WiLineSerialDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("WiLineSerialRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<WiLineSerialDto>> CreateAsync(CreateWiLineSerialDto createDto, CancellationToken cancellationToken = default)

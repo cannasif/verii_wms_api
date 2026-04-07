@@ -60,6 +60,13 @@ public sealed class GrHeaderController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [HttpPost("process")]
+    public async Task<ActionResult<ApiResponse<long>>> Process([FromBody] ProcessGrRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.ProcessGoodsReceiptAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpPost("generate")]
     public async Task<ActionResult<ApiResponse<GrHeaderDto>>> GenerateOrder([FromBody] GenerateGoodReceiptOrderRequestDto request, CancellationToken cancellationToken = default)
     {

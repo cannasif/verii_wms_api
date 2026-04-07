@@ -12,7 +12,8 @@ public sealed class IcHeaderMappingProfile : Profile
         CreateMap<CreateIcHeaderDto, IcHeader>()
             .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.BranchCode) ? "0" : src.BranchCode));
         CreateMap<UpdateIcHeaderDto, IcHeader>()
-            .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.BranchCode) ? "0" : src.BranchCode));
+            .ForMember(dest => dest.BranchCode, opt => opt.Condition(src => !string.IsNullOrWhiteSpace(src.BranchCode)))
+            .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => src.BranchCode));
     }
 }
 
@@ -40,5 +41,15 @@ public sealed class IcChildMappingProfile : Profile
         CreateMap<IcTerminalLine, IcTerminalLineDto>();
         CreateMap<CreateIcTerminalLineDto, IcTerminalLine>();
         CreateMap<UpdateIcTerminalLineDto, IcTerminalLine>();
+
+        CreateMap<IcScope, IcScopeDto>();
+        CreateMap<CreateIcScopeDto, IcScope>();
+        CreateMap<UpdateIcScopeDto, IcScope>();
+        CreateMap<IcLine, IcLineDto>();
+        CreateMap<CreateIcLineDto, IcLine>();
+        CreateMap<UpdateIcLineDto, IcLine>();
+        CreateMap<IcCountEntry, IcCountEntryDto>();
+        CreateMap<CreateIcCountEntryDto, IcCountEntry>();
+        CreateMap<IcAdjustment, IcAdjustmentDto>();
     }
 }

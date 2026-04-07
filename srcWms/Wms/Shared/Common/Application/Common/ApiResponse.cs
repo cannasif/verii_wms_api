@@ -8,6 +8,8 @@ public class ApiResponse<T>
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public string ExceptionMessage { get; set; } = string.Empty;
+    public string? ErrorCode { get; set; }
+    public object? Details { get; set; }
     public T? Data { get; set; }
     public List<string> Errors { get; set; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -43,13 +45,21 @@ public class ApiResponse<T>
         };
     }
 
-    public static ApiResponse<T> ErrorResult(string message, string? exceptionMessage = null, int statusCode = 500, string? error = null)
+    public static ApiResponse<T> ErrorResult(
+        string message,
+        string? exceptionMessage = null,
+        int statusCode = 500,
+        string? error = null,
+        string? errorCode = null,
+        object? details = null)
     {
         return new ApiResponse<T>
         {
             Success = false,
             Message = message,
             ExceptionMessage = exceptionMessage ?? string.Empty,
+            ErrorCode = errorCode,
+            Details = details,
             Errors = error is null ? new List<string>() : new List<string> { error },
             StatusCode = statusCode,
             ClassName = $"ApiResponse<{GetGenericTypeDisplayName(typeof(T))}>"

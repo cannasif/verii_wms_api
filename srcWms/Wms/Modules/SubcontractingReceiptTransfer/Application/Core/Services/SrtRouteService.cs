@@ -12,24 +12,29 @@ public sealed class SrtRouteService : ISrtRouteService
     private readonly IRepository<SrtRoute> _routes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localizationService;
+    private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
     private readonly IMapper _mapper;
 
     public SrtRouteService(
         IRepository<SrtRoute> routes,
         IUnitOfWork unitOfSrtrk,
         ILocalizationService localizationService,
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
         IMapper mapper)
     {
         _routes = routes;
         _unitOfWork = unitOfSrtrk;
         _localizationService = localizationService;
+        _documentReferenceReadEnricher = documentReferenceReadEnricher;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<IEnumerable<SrtRouteDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = await _routes.Query().ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(_mapper.Map<List<SrtRouteDto>>(items), _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SrtRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<PagedResponse<SrtRouteDto>>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +45,9 @@ public sealed class SrtRouteService : ISrtRouteService
             .ApplySorting(request.SortBy ?? "Id", string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase));
         var total = await query.CountAsync(cancellationToken);
         var items = await query.ApplyPagination(request.PageNumber, request.PageSize).ToListAsync(cancellationToken);
-        return ApiResponse<PagedResponse<SrtRouteDto>>.SuccessResult(new PagedResponse<SrtRouteDto>(_mapper.Map<List<SrtRouteDto>>(items), total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SrtRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<PagedResponse<SrtRouteDto>>.SuccessResult(new PagedResponse<SrtRouteDto>(dtos, total, request.PageNumber < 1 ? 1 : request.PageNumber, request.PageSize < 1 ? 20 : request.PageSize), _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<SrtRouteDto>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -52,14 +59,18 @@ public sealed class SrtRouteService : ISrtRouteService
             return ApiResponse<SrtRouteDto>.ErrorResult(msg, msg, 404);
         }
 
-        return ApiResponse<SrtRouteDto>.SuccessResult(_mapper.Map<SrtRouteDto>(entity), _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
+        var dto = _mapper.Map<SrtRouteDto>(entity);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(new List<SrtRouteDto> { dto }, cancellationToken);
+        return ApiResponse<SrtRouteDto>.SuccessResult(dto, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<IEnumerable<SrtRouteDto>>> GetBySerialNoAsync(string serialNo, CancellationToken cancellationToken = default)
     {
         var normalizedSerial = (serialNo ?? string.Empty).Trim();
         var items = await _routes.Query().Where(x => (x.SerialNo ?? string.Empty).Trim() == normalizedSerial).ToListAsync(cancellationToken);
-        return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(_mapper.Map<List<SrtRouteDto>>(items), _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
+        var dtos = _mapper.Map<List<SrtRouteDto>>(items);
+        await _documentReferenceReadEnricher.EnrichRoutesAsync(dtos, cancellationToken);
+        return ApiResponse<IEnumerable<SrtRouteDto>>.SuccessResult(dtos, _localizationService.GetLocalizedString("SrtRouteRetrievedSuccessfully"));
     }
 
     public async Task<ApiResponse<SrtRouteDto>> CreateAsync(CreateSrtRouteDto createDto, CancellationToken cancellationToken = default)
