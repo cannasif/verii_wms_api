@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common;
 using Wms.Application.Communications.Services;
+using Wms.Application.ServiceAllocation.Services;
 using Wms.Application.WarehouseOutbound.Dtos;
 using Wms.Domain.Common;
 using Wms.Domain.Entities.Communications;
@@ -31,6 +32,7 @@ public sealed class WoHeaderService : IWoHeaderService
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
     private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
+    private readonly IOperationAllocationOrchestrator _operationAllocationOrchestrator;
 
     public WoHeaderService(
         IRepository<WoHeader> headers,
@@ -48,7 +50,8 @@ public sealed class WoHeaderService : IWoHeaderService
         ICurrentUserAccessor currentUserAccessor,
         INotificationService notificationService,
         IEntityReferenceResolver entityReferenceResolver,
-        IDocumentReferenceReadEnricher documentReferenceReadEnricher)
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
+        IOperationAllocationOrchestrator operationAllocationOrchestrator)
     {
         _headers = headers;
         _lines = lines;
@@ -66,6 +69,7 @@ public sealed class WoHeaderService : IWoHeaderService
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
         _documentReferenceReadEnricher = documentReferenceReadEnricher;
+        _operationAllocationOrchestrator = operationAllocationOrchestrator;
     }
 
     public async Task<ApiResponse<IEnumerable<WoHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -711,6 +715,7 @@ public sealed class WoHeaderService : IWoHeaderService
             }
 
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _operationAllocationOrchestrator.TriggerForDocumentAsync(Wms.Domain.Entities.ServiceAllocation.Enums.DocumentModule.WO, header.Id, cancellationToken);
             return ApiResponse<int>.SuccessResult(1, _localizationService.GetLocalizedString("WoHeaderBulkCreateCompletedSuccessfully"));
         }
         catch (DbUpdateException ex)

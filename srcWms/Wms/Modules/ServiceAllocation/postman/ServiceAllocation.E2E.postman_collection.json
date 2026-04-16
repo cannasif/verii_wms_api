@@ -1,0 +1,273 @@
+{
+  "info": {
+    "_postman_id": "8b6815e1-ff0c-4bd4-9cf1-4d0b92d5f001",
+    "name": "ServiceAllocation E2E",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "End-to-end test requests for ServiceAllocation module."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "serviceCaseId", "value": "" },
+    { "key": "erpOrderId", "value": "987654" },
+    { "key": "erpOrderNo", "value": "SIP-2026-145" },
+    { "key": "incomingStockId", "value": "5001" },
+    { "key": "partStockId", "value": "7004" }
+  ],
+  "item": [
+    {
+      "name": "1. Service Case Setup",
+      "item": [
+        {
+          "name": "Create Service Case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Service case created', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('serviceCaseId', String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"caseNo\": \"SRV-20260414-001\",\n  \"customerCode\": \"CARI001\",\n  \"customerId\": 101,\n  \"incomingStockCode\": \"CM-001\",\n  \"incomingStockId\": 5001,\n  \"incomingSerialNo\": \"SN-0001\",\n  \"intakeWarehouseId\": 1,\n  \"currentWarehouseId\": 1,\n  \"diagnosisNote\": \"Ilk kabul yapildi.\",\n  \"status\": 2,\n  \"receivedAt\": \"2026-04-14\",\n  \"branchCode\": \"0\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCase",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCase"]
+            }
+          }
+        },
+        {
+          "name": "Get Service Case",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCase/{{serviceCaseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCase", "{{serviceCaseId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Service Case Lines",
+      "item": [
+        {
+          "name": "Add Spare Part Line",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceCaseId\": {{serviceCaseId}},\n  \"lineType\": 1,\n  \"processType\": 1,\n  \"stockCode\": \"PRC-004\",\n  \"stockId\": 7004,\n  \"quantity\": 2,\n  \"unit\": \"ADET\",\n  \"erpOrderNo\": \"{{erpOrderNo}}\",\n  \"erpOrderId\": \"{{erpOrderId}}\",\n  \"description\": \"Motor kayis seti degisimi\",\n  \"branchCode\": \"0\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCaseLine",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCaseLine"]
+            }
+          }
+        },
+        {
+          "name": "Add Labor Line",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceCaseId\": {{serviceCaseId}},\n  \"lineType\": 2,\n  \"processType\": 1,\n  \"quantity\": 1,\n  \"unit\": \"HIZMET\",\n  \"erpOrderNo\": \"{{erpOrderNo}}\",\n  \"erpOrderId\": \"{{erpOrderId}}\",\n  \"description\": \"Servis isciligi\",\n  \"branchCode\": \"0\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCaseLine",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCaseLine"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Allocation Checks",
+      "item": [
+        {
+          "name": "Get Allocation Lines By ERP Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 20,\n  \"filters\": [\n    {\n      \"field\": \"ErpOrderId\",\n      \"operator\": \"eq\",\n      \"value\": \"{{erpOrderId}}\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/OrderAllocationLine/paged",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "OrderAllocationLine", "paged"]
+            }
+          }
+        },
+        {
+          "name": "Manual Recompute",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockId\": {{partStockId}},\n  \"availableQuantity\": 7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/OrderAllocationLine/recompute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "OrderAllocationLine", "recompute"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Timeline Checks",
+      "item": [
+        {
+          "name": "Get Service Case Timeline",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCase/{{serviceCaseId}}/timeline",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCase", "{{serviceCaseId}}", "timeline"]
+            }
+          }
+        },
+        {
+          "name": "Get Business Links By Service Case",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/BusinessDocumentLink/by-entity?businessEntityId={{serviceCaseId}}&businessEntityType=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "BusinessDocumentLink", "by-entity"],
+              "query": [
+                { "key": "businessEntityId", "value": "{{serviceCaseId}}" },
+                { "key": "businessEntityType", "value": "0" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Service Case Update",
+      "item": [
+        {
+          "name": "Update Service Case Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": 5,\n  \"currentWarehouseId\": 3,\n  \"diagnosisNote\": \"Ariza tespit edildi, parca degisimi basladi.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCase/{{serviceCaseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCase", "{{serviceCaseId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Negative Tests",
+      "item": [
+        {
+          "name": "Duplicate CaseNo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"caseNo\": \"SRV-20260414-001\",\n  \"customerCode\": \"CARI001\",\n  \"status\": 2,\n  \"branchCode\": \"0\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCase",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCase"]
+            }
+          }
+        },
+        {
+          "name": "Spare Part Without StockId",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceCaseId\": {{serviceCaseId}},\n  \"lineType\": 1,\n  \"processType\": 1,\n  \"quantity\": 1,\n  \"erpOrderNo\": \"{{erpOrderNo}}\",\n  \"erpOrderId\": \"{{erpOrderId}}\",\n  \"branchCode\": \"0\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ServiceCaseLine",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ServiceCaseLine"]
+            }
+          }
+        },
+        {
+          "name": "Recompute With Negative Quantity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockId\": {{partStockId}},\n  \"availableQuantity\": -1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/OrderAllocationLine/recompute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "OrderAllocationLine", "recompute"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

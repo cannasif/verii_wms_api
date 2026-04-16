@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common;
 using Wms.Application.Communications.Services;
+using Wms.Application.ServiceAllocation.Services;
 using Wms.Application.SubcontractingReceiptTransfer.Dtos;
 using Wms.Domain.Common;
 using Wms.Domain.Entities.Communications;
@@ -31,6 +32,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
     private readonly INotificationService _notificationService;
     private readonly IEntityReferenceResolver _entityReferenceResolver;
     private readonly IDocumentReferenceReadEnricher _documentReferenceReadEnricher;
+    private readonly IOperationAllocationOrchestrator _operationAllocationOrchestrator;
 
     public SrtHeaderService(
         IRepository<SrtHeader> headers,
@@ -48,7 +50,8 @@ public sealed class SrtHeaderService : ISrtHeaderService
         ICurrentUserAccessor currentUserAccessor,
         INotificationService notificationService,
         IEntityReferenceResolver entityReferenceResolver,
-        IDocumentReferenceReadEnricher documentReferenceReadEnricher)
+        IDocumentReferenceReadEnricher documentReferenceReadEnricher,
+        IOperationAllocationOrchestrator operationAllocationOrchestrator)
     {
         _headers = headers;
         _lines = lines;
@@ -66,6 +69,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
         _notificationService = notificationService;
         _entityReferenceResolver = entityReferenceResolver;
         _documentReferenceReadEnricher = documentReferenceReadEnricher;
+        _operationAllocationOrchestrator = operationAllocationOrchestrator;
     }
 
     public async Task<ApiResponse<IEnumerable<SrtHeaderDto>>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -218,6 +222,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _operationAllocationOrchestrator.TriggerForDocumentAsync(Wms.Domain.Entities.ServiceAllocation.Enums.DocumentModule.SRT, entity.Id, cancellationToken);
 
             if (notification != null)
             {
@@ -431,6 +436,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
             }
 
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _operationAllocationOrchestrator.TriggerForDocumentAsync(Wms.Domain.Entities.ServiceAllocation.Enums.DocumentModule.SRT, header.Id, cancellationToken);
 
             if (createdNotifications.Count > 0)
             {
@@ -633,6 +639,7 @@ public sealed class SrtHeaderService : ISrtHeaderService
             }
 
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _operationAllocationOrchestrator.TriggerForDocumentAsync(Wms.Domain.Entities.ServiceAllocation.Enums.DocumentModule.SRT, header.Id, cancellationToken);
             return ApiResponse<int>.SuccessResult(1, _localizationService.GetLocalizedString("SrtHeaderBulkCreateCompletedSuccessfully"));
         }
         catch

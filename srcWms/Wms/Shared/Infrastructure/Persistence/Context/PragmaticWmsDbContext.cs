@@ -11,6 +11,7 @@ using Wms.Domain.Entities.InventoryCount;
 using Wms.Domain.Entities.Package;
 using Wms.Domain.Entities.Production;
 using Wms.Domain.Entities.ProductionTransfer;
+using Wms.Domain.Entities.ServiceAllocation;
 using Wms.Domain.Entities.Shipping;
 using Wms.Domain.Entities.Stock;
 using Wms.Domain.Entities.SubcontractingIssueTransfer;
@@ -120,6 +121,10 @@ public sealed class WmsDbContext : DbContext
     public DbSet<PtRoute> PtRoutes => Set<PtRoute>();
     public DbSet<PtLineSerial> PtLineSerials => Set<PtLineSerial>();
     public DbSet<PtTerminalLine> PtTerminalLines => Set<PtTerminalLine>();
+    public DbSet<ServiceCase> ServiceCases => Set<ServiceCase>();
+    public DbSet<ServiceCaseLine> ServiceCaseLines => Set<ServiceCaseLine>();
+    public DbSet<OrderAllocationLine> OrderAllocationLines => Set<OrderAllocationLine>();
+    public DbSet<BusinessDocumentLink> BusinessDocumentLinks => Set<BusinessDocumentLink>();
     public DbSet<SitHeader> SitHeaders => Set<SitHeader>();
     public DbSet<SitLine> SitLines => Set<SitLine>();
     public DbSet<SitImportLine> SitImportLines => Set<SitImportLine>();
